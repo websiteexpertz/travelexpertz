@@ -341,7 +341,7 @@ export default function HomestayDetails() {
               }}
             >
               <img
-                src={homestay.images && homestay.images.length > 0 ? homestay.images[0] : homestay.image || ""}
+                src={homestay.images && homestay.images.length > 0 ? homestay.images[0] : ""}
                 alt={homestay.name}
                 style={{
                   width: "100%",
