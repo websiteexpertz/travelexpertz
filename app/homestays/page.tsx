@@ -270,7 +270,15 @@ export default function Homestays() {
         </div>
 
         {/* Filters and Hotels Grid */}
-        <div style={{ margin: "0 auto", padding: "0 1.5rem", maxWidth: "100rem", width: "100%" }} className="w-full py-8">
+        <div
+          style={{
+            margin: "0 auto",
+            padding: "0 1.5rem",
+            maxWidth: "100rem",
+            width: "100%",
+          }}
+          className="w-full py-8"
+        >
           {/* Filters Section */}
           <div className="filters-section" style={{ marginBottom: "2.5rem" }}>
             {/* Search Bar */}

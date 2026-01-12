@@ -323,7 +323,7 @@ export default function HomestayDetails() {
               ))}
             </div>
           </div>
-        ) : homestay.image ? (
+        ) : homestay.images && homestay.images.length > 0 ? (
           <div
             style={{
               width: "100%",
@@ -341,7 +341,7 @@ export default function HomestayDetails() {
               }}
             >
               <img
-                src={homestay.image}
+                src={homestay.images && homestay.images.length > 0 ? homestay.images[0] : homestay.image || ""}
                 alt={homestay.name}
                 style={{
                   width: "100%",
