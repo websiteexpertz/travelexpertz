@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Header from "../../components/Header";
 
@@ -20,7 +20,7 @@ interface Booking {
   room: any;
 }
 
-export default function BookingConfirmation() {
+function BookingConfirmationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -424,5 +424,13 @@ export default function BookingConfirmation() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function BookingConfirmation() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <BookingConfirmationContent />
+    </Suspense>
   );
 }
