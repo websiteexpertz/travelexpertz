@@ -1,0 +1,141 @@
+/**
+ * Button Component Styles - Uses CSS Variables from theme
+ */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  font-family: var(--font-family-primary);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-button);
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-button);
+  white-space: nowrap;
+  user-select: none;
+}
+
+/* ====== VARIANTS ====== */
+
+/* Primary Button */
+.primary {
+  background-color: var(--color-primary-main);
+  color: var(--color-text-inverse);
+  box-shadow: var(--shadow-button);
+}
+
+.primary:hover:not(.disabled) {
+  background-color: var(--color-primary-dark);
+  box-shadow: var(--shadow-button-hover);
+  transform: translateY(-1px);
+}
+
+.primary:active:not(.disabled) {
+  background-color: var(--color-primary-darker);
+  transform: translateY(0);
+}
+
+/* Secondary Button */
+.secondary {
+  background-color: var(--color-secondary-main);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-button);
+}
+
+.secondary:hover:not(.disabled) {
+  background-color: var(--color-secondary-dark);
+  box-shadow: var(--shadow-button-hover);
+  transform: translateY(-1px);
+}
+
+/* Outline Button */
+.outline {
+  background-color: transparent;
+  color: var(--color-primary-main);
+  border: 2px solid var(--color-primary-main);
+}
+
+.outline:hover:not(.disabled) {
+  background-color: var(--color-primary-light);
+  border-color: var(--color-primary-dark);
+  color: var(--color-primary-dark);
+}
+
+/* Text Button */
+.text {
+  background-color: transparent;
+  color: var(--color-primary-main);
+  padding: 0;
+}
+
+.text:hover:not(.disabled) {
+  background-color: var(--color-primary-light);
+  border-radius: var(--radius-md);
+  padding: 0 var(--spacing-sm);
+}
+
+/* Danger Button */
+.danger {
+  background-color: var(--color-error);
+  color: var(--color-text-inverse);
+  box-shadow: var(--shadow-button);
+}
+
+.danger:hover:not(.disabled) {
+  background-color: #c0392b;
+  box-shadow: var(--shadow-button-hover);
+  transform: translateY(-1px);
+}
+
+/* ====== SIZES ====== */
+
+.small {
+  font-size: var(--font-size-sm);
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+}
+
+.base {
+  font-size: var(--font-size-base);
+  padding: 12px 24px;
+}
+
+.large {
+  font-size: var(--font-size-lg);
+  padding: 14px 32px;
+  border-radius: var(--radius-lg);
+}
+
+/* ====== STATES ====== */
+
+.fullWidth {
+  width: 100%;
+}
+
+.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1em;
+}
+
+.loader {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

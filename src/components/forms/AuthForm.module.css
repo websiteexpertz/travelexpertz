@@ -1,0 +1,188 @@
+/**
+ * Auth Form Styles
+ */
+
+.card {
+  max-width: 450px;
+  margin: 0 auto;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.title {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+  text-align: center;
+}
+
+.subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  text-align: center;
+  margin: 0;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.toggleGroup {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-sm);
+  background-color: var(--color-background-secondary);
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-input);
+}
+
+.toggle {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: none;
+  background-color: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.toggle.active {
+  background-color: white;
+  color: var(--color-primary-main);
+  box-shadow: var(--shadow-sm);
+}
+
+.checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+}
+
+.checkbox input[type='checkbox'] {
+  margin-top: 4px;
+  cursor: pointer;
+  accent-color: var(--color-primary-main);
+}
+
+.checkbox label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.checkbox a {
+  color: var(--color-primary-main);
+  text-decoration: none;
+  font-weight: var(--font-weight-semibold);
+}
+
+.checkbox a:hover {
+  text-decoration: underline;
+}
+
+.error {
+  display: block;
+  color: var(--color-error);
+  font-size: var(--font-size-xs);
+  margin-top: 4px;
+}
+
+.link {
+  text-align: center;
+  color: var(--color-primary-main);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  transition: color var(--transition-fast);
+}
+
+.link:hover {
+  color: var(--color-primary-dark);
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin: var(--spacing-md) 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background-color: var(--color-border);
+}
+
+.divider span {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+.socialLogins {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md);
+}
+
+.socialBtn {
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-input);
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.socialBtn:hover {
+  border-color: var(--color-primary-main);
+  color: var(--color-primary-main);
+  background-color: var(--color-primary-light);
+}
+
+.toggleText {
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.toggleText a {
+  color: var(--color-primary-main);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
+.toggleText a:hover {
+  text-decoration: underline;
+}
+
+/* ====== RESPONSIVE ====== */
+
+@media (max-width: 639px) {
+  .card {
+    max-width: 100%;
+  }
+
+  .title {
+    font-size: var(--font-size-h3);
+  }
+
+  .subtitle {
+    font-size: 13px;
+  }
+}

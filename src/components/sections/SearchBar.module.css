@@ -1,0 +1,109 @@
+/**
+ * Search Bar Styles
+ */
+
+.searchBar {
+  background: linear-gradient(135deg, var(--color-primary-light) 0%, rgba(230, 240, 255, 0.5) 100%);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-primary-main);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ====== VARIANTS ====== */
+
+.hero {
+  padding: var(--spacing-xxl);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-lg);
+  align-items: flex-end;
+}
+
+.compact {
+  padding: var(--spacing-lg);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--spacing-md);
+  align-items: flex-end;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary-main);
+}
+
+.select {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-input);
+  background-color: white;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  font-family: var(--font-family-primary);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--color-primary-main);
+  box-shadow: 0 0 0 3px rgba(0, 85, 255, 0.1);
+}
+
+.select:hover {
+  border-color: var(--color-primary-main);
+}
+
+.searchButton {
+  width: 100%;
+  padding: var(--spacing-md) var(--spacing-xl);
+  font-weight: var(--font-weight-bold);
+}
+
+/* ====== RESPONSIVE ====== */
+
+@media (max-width: 1023px) {
+  .hero {
+    grid-template-columns: repeat(2, 1fr);
+    padding: var(--spacing-lg);
+  }
+
+  .compact {
+    grid-template-columns: repeat(2, 1fr);
+    padding: var(--spacing-md);
+  }
+}
+
+@media (max-width: 639px) {
+  .hero {
+    grid-template-columns: 1fr;
+    padding: var(--spacing-lg);
+    gap: var(--spacing-md);
+  }
+
+  .compact {
+    grid-template-columns: 1fr;
+    padding: var(--spacing-md);
+    gap: var(--spacing-sm);
+  }
+
+  .field {
+    gap: var(--spacing-xs);
+  }
+
+  .label {
+    font-size: 13px;
+  }
+
+  .select,
+  .select:focus {
+    font-size: 16px; /* Prevents zoom on mobile */
+  }
+}

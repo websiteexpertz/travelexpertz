@@ -1,0 +1,184 @@
+/**
+ * Footer Component Styles
+ */
+
+.footer {
+  background-color: var(--color-accent-main);
+  color: var(--color-text-inverse);
+  padding: var(--spacing-section) var(--layout-container-padding) 8rem var(--layout-container-padding);
+  margin-top: var(--spacing-section-spacing);
+}
+
+.container {
+  max-width: var(--layout-max-content-width);
+  margin: 0 auto;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-xxxl);
+  margin-bottom: var(--spacing-xxxl);
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.columnTitle {
+  font-size: var(--font-size-h5);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-inverse);
+  margin: 0 0 var(--spacing-md) 0;
+}
+
+.linkList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.link {
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  transition: color var(--transition-fast);
+}
+
+.link:hover {
+  color: var(--color-text-inverse);
+}
+
+.divider {
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.1);
+  margin: var(--spacing-xxxl) 0;
+}
+
+.bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--spacing-lg);
+}
+
+.copyright {
+  font-size: var(--font-size-sm);
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+}
+
+.socialLinks {
+  display: flex;
+  gap: var(--spacing-lg);
+  align-items: center;
+}
+
+.socialLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-inverse);
+  font-size: 20px;
+  transition: all var(--transition-fast);
+}
+
+.socialLink:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+/* ====== RESPONSIVE ====== */
+
+@media (max-width: 1023px) {
+  .footer {
+    padding: 3rem 1.5rem 5rem;
+  }
+
+  .columns {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 639px) {
+  .footer {
+    padding: 2rem 1rem 4rem;
+  }
+
+  .columns {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+
+  .columnTitle {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .link {
+    font-size: 0.875rem;
+    padding: 0.25rem 0;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+  }
+
+  .linkList {
+    gap: 0.5rem;
+  }
+
+  .bottom {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1rem;
+  }
+
+  .copyright {
+    font-size: 0.8rem;
+    order: 2;
+  }
+
+  .socialLinks {
+    justify-content: center;
+    order: 1;
+  }
+
+  .socialLink {
+    width: 44px;
+    height: 44px;
+  }
+
+  .divider {
+    margin: 1.5rem 0;
+  }
+}
+
+@media (max-width: 374px) {
+  .footer {
+    padding: 1.5rem 0.75rem 3rem;
+  }
+
+  .columns {
+    gap: 1rem;
+  }
+
+  .columnTitle {
+    font-size: 0.9rem;
+  }
+
+  .link {
+    font-size: 0.8rem;
+  }
+}
