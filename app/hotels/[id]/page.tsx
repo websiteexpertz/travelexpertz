@@ -66,6 +66,7 @@ export default function HotelDetails() {
 
   const [hotel, setHotel] = useState<Hotel | null>(null);
   const [loading, setLoading] = useState(true);
+  const [reviews, setReviews] = useState<any[]>([]);
   const [selectedImage, setSelectedImage] = useState(0);
   const [showFullscreenGallery, setShowFullscreenGallery] = useState(false);
   const [fullscreenImageIndex, setFullscreenImageIndex] = useState(0);
@@ -110,7 +111,22 @@ export default function HotelDetails() {
       }
     };
 
+    const fetchReviews = async () => {
+      try {
+        const response = await fetch(`/api/reviews?propertyId=${hotelId}`, {
+          cache: "no-store",
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setReviews(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch reviews:", error);
+      }
+    };
+
     fetchHotelDetails();
+    fetchReviews();
   }, [hotelId]);
 
   const filteredRooms = hotel?.rooms
@@ -865,7 +881,7 @@ export default function HotelDetails() {
                                 {Math.round(
                                   ((room.originalPrice - room.price) /
                                     room.originalPrice) *
-                                    100
+                                    100,
                                 )}
                                 % OFF
                               </div>
@@ -1138,102 +1154,130 @@ export default function HotelDetails() {
                 >
                   Guest Reviews
                 </h2>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "1.5rem",
-                  }}
-                >
-                  {hotel.userReviews?.map((review) => (
-                    <div
-                      key={review.id}
-                      style={{
-                        background: "#ffffff",
-                        borderRadius: "12px",
-                        padding: "1.5rem",
-                        border: "2px solid #e2e8f0",
-                      }}
-                    >
+                {reviews.length === 0 ? (
+                  <div
+                    style={{
+                      textAlign: "center",
+                      padding: "3rem 1rem",
+                      background: "#f8fafc",
+                      borderRadius: "12px",
+                      color: "#64748b",
+                    }}
+                  >
+                    <p style={{ fontSize: "1.1rem", marginBottom: "0.5rem" }}>
+                      No reviews yet
+                    </p>
+                    <p style={{ fontSize: "0.9rem" }}>
+                      Be the first to share your experience!
+                    </p>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "1.5rem",
+                    }}
+                  >
+                    {reviews.map((review: any) => (
                       <div
+                        key={review._id}
                         style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          marginBottom: "1rem",
+                          background: "#ffffff",
+                          borderRadius: "12px",
+                          padding: "1.5rem",
+                          border: "2px solid #e2e8f0",
                         }}
                       >
-                        <div>
-                          <div
-                            style={{
-                              fontWeight: 700,
-                              fontSize: "1.1rem",
-                              marginBottom: "0.25rem",
-                            }}
-                          >
-                            {review.userName}
-                          </div>
-                          <div style={{ color: "#f59e0b" }}>
-                            {"★".repeat(Math.floor(review.rating))}
-                            <span style={{ color: "#cbd5e1" }}>
-                              {"★".repeat(5 - Math.floor(review.rating))}
-                            </span>
-                          </div>
-                        </div>
+                        {/* Image Gallery */}
+                        {review.reviewImages &&
+                          review.reviewImages.length > 0 && (
+                            <div
+                              style={{
+                                display: "grid",
+                                gridTemplateColumns:
+                                  "repeat(auto-fill, minmax(100px, 1fr))",
+                                gap: "0.75rem",
+                                marginBottom: "1rem",
+                              }}
+                            >
+                              {review.reviewImages.map(
+                                (img: string, idx: number) => (
+                                  <img
+                                    key={idx}
+                                    src={img}
+                                    alt={`Review ${idx + 1}`}
+                                    style={{
+                                      width: "100%",
+                                      height: "100px",
+                                      objectFit: "cover",
+                                      borderRadius: "8px",
+                                      cursor: "pointer",
+                                    }}
+                                  />
+                                ),
+                              )}
+                            </div>
+                          )}
                         <div
                           style={{
-                            fontSize: "0.85rem",
-                            color: "#64748b",
-                          }}
-                        >
-                          {new Date(review.date).toLocaleDateString("en-US", {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          })}
-                        </div>
-                      </div>
-                      <p
-                        style={{
-                          color: "#475569",
-                          lineHeight: "1.7",
-                          marginBottom: "1rem",
-                        }}
-                      >
-                        {review.comment}
-                      </p>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.5rem",
-                          fontSize: "0.9rem",
-                          color: "#64748b",
-                        }}
-                      >
-                        <button
-                          style={{
-                            background: "none",
-                            border: "1px solid #e2e8f0",
-                            borderRadius: "8px",
-                            padding: "0.5rem 1rem",
-                            cursor: "pointer",
                             display: "flex",
-                            alignItems: "center",
-                            gap: "0.5rem",
+                            justifyContent: "space-between",
+                            alignItems: "flex-start",
+                            marginBottom: "1rem",
                           }}
                         >
-                          <span
-                            className="material-symbols-outlined"
-                            style={{ fontSize: "1rem" }}
+                          <div>
+                            <div
+                              style={{
+                                fontWeight: 700,
+                                fontSize: "1.1rem",
+                                marginBottom: "0.5rem",
+                              }}
+                            >
+                              {review.userName}
+                            </div>
+                            <div
+                              style={{
+                                color: "#f59e0b",
+                                marginBottom: "0.5rem",
+                              }}
+                            >
+                              {"★".repeat(review.rating)}
+                              <span style={{ color: "#cbd5e1" }}>
+                                {"★".repeat(5 - review.rating)}
+                              </span>
+                            </div>
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "0.85rem",
+                              color: "#64748b",
+                            }}
                           >
-                            thumb_up
-                          </span>
-                          Helpful ({review.helpful})
-                        </button>
+                            {new Date(review.createdAt).toLocaleDateString(
+                              "en-US",
+                              {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              },
+                            )}
+                          </div>
+                        </div>
+                        <p
+                          style={{
+                            color: "#475569",
+                            lineHeight: "1.7",
+                            marginBottom: "1rem",
+                          }}
+                        >
+                          {review.reviewText}
+                        </p>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -1520,7 +1564,7 @@ export default function HotelDetails() {
                     <span style={{ color: "#64748b" }}>Taxes & Fees</span>
                     <span style={{ fontWeight: 600 }}>
                       {formatInr(
-                        hotel.rooms[0].price * calculateNights() * 0.12
+                        hotel.rooms[0].price * calculateNights() * 0.12,
                       )}
                     </span>
                   </div>
@@ -1543,7 +1587,7 @@ export default function HotelDetails() {
                       }}
                     >
                       {formatInr(
-                        hotel.rooms[0].price * calculateNights() * 1.12
+                        hotel.rooms[0].price * calculateNights() * 1.12,
                       )}
                     </span>
                   </div>
@@ -1551,7 +1595,17 @@ export default function HotelDetails() {
               )}
 
               <button
-                onClick={() => alert("Booking functionality coming soon!")}
+                onClick={() => {
+                  if (!bookingDetails.checkIn || !bookingDetails.checkOut) {
+                    alert("Please select check-in and check-out dates");
+                    return;
+                  }
+                  if (!hotel?.rooms[0]) {
+                    alert("Room information not available");
+                    return;
+                  }
+                  window.location.href = `/booking?homestayId=${hotelId}&roomId=${hotel.rooms[0].id}&checkin=${bookingDetails.checkIn}&checkout=${bookingDetails.checkOut}&guests=${bookingDetails.guests}`;
+                }}
                 style={{
                   width: "100%",
                   padding: "1rem",
@@ -1797,7 +1851,7 @@ export default function HotelDetails() {
           </div>
         </div>
       </footer>
-      
+
       {/* Mobile Responsive Styles */}
       <style>{`
         @media (max-width: 1024px) {

@@ -1,112 +1,166 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import Header from "../../components/Header";
 
 interface PackageDetail {
-  _id?: string;
-  id?: string;
+  _id: string;
   title: string;
   description: string;
-  fullDescription: string;
-  image: string;
-  price: number;
-  currency: string;
+  fullDescription?: string;
   duration: string;
-  location: string;
-  highlights: string[];
-  itinerary: Array<{ day: number; title: string; description: string }>;
-  inclusions: string[];
-  exclusions: string[];
-  bestTime: string;
-  difficulty: string;
-  groupSize: string;
-  longDetails?: Array<{ title: string; content: string }>;
-  notes?: string;
-  customFields?: Array<{ label: string; value: string }>;
-  featured: boolean;
-  active: boolean;
+  startingPoint: string;
+  category: string;
+  badge?: string;
+  image: string;
+  gallery?: string[];
+  price?: number;
+  currency?: string;
+  featured?: boolean;
+  active?: boolean;
+  inclusions?: string[];
+  exclusions?: string[];
+  itinerary?: {
+    day: number;
+    title: string;
+    description?: string;
+  }[];
+  importantNotes?: string[];
+  thingsToCarry?:
+    | string[]
+    | {
+        category: string;
+        items: string[];
+      }[];
+  refundTiers?: {
+    timeframe: string;
+    refundInfo: string;
+  }[];
+  refundPolicyNotes?: string;
+  customFields?: {
+    id: string;
+    section:
+      | "overview"
+      | "itinerary"
+      | "inclusions"
+      | "essentials"
+      | "policies";
+    fieldName: string;
+    fieldType: "text" | "textarea" | "list";
+    value: string | string[];
+  }[];
 }
 
-export default function PackageDetailPage() {
+const inrFormatter = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  maximumFractionDigits: 0,
+});
+
+const formatInr = (value: number) =>
+  inrFormatter.format(Math.max(0, Math.round(value)));
+
+export default function PackageDetails() {
   const params = useParams();
-  const packageId = params.id as string;
+  const router = useRouter();
+  const packageId = params?.id as string;
+
   const [pkg, setPkg] = useState<PackageDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [expandedDay, setExpandedDay] = useState<number | null>(null);
+  const [selectedImage, setSelectedImage] = useState(0);
+  const [showFullscreenGallery, setShowFullscreenGallery] = useState(false);
+  const [fullscreenImageIndex, setFullscreenImageIndex] = useState(0);
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "itinerary" | "inclusions" | "essentials" | "policies"
+  >("overview");
+
+  // Booking form state
+  const [bookingDetails, setBookingDetails] = useState({
+    travelDate: "",
+    travelers: 2,
+    name: "",
+    email: "",
+    phone: "",
+  });
+
+  const [showBookingForm, setShowBookingForm] = useState(false);
 
   useEffect(() => {
-    const fetchPackage = async () => {
+    const fetchPackageDetails = async () => {
+      if (!packageId) return;
+      setLoading(true);
       try {
-        console.log(`Fetching package details for ID: ${packageId}`);
+        // Fetch package data using dynamic route
         const response = await fetch(`/api/packages/${packageId}`, {
-          method: "GET",
           cache: "no-store",
         });
 
-        console.log(`Response status: ${response.status}, ok: ${response.ok}`);
-
         if (response.ok) {
           const data = await response.json();
-          console.log(`Received package data:`, data);
-
-          // Ensure all array fields exist
-          const packageData = {
-            ...data,
-            highlights: data.highlights || [],
-            itinerary: data.itinerary || [],
-            inclusions: data.inclusions || [],
-            exclusions: data.exclusions || [],
-            longDetails: data.longDetails || [],
-            customFields: data.customFields || [],
-            notes: data.notes || "",
-          };
-          console.log(`Setting package with data:`, packageData);
-          setPkg(packageData as PackageDetail);
+          console.log("Fetched complete package data:", data);
+          console.log("Itinerary:", data.itinerary);
+          console.log("Custom Fields:", data.customFields);
+          if (data.customFields) {
+            console.log("Number of custom fields:", data.customFields.length);
+            data.customFields.forEach((field: any) => {
+              console.log(
+                `Field: ${field.fieldName}, Section: ${field.section}, Type: ${field.fieldType}`,
+              );
+            });
+          } else {
+            console.log("No custom fields found in package data");
+          }
+          setPkg(data);
         } else {
-          console.error(`Failed to fetch package: ${response.status}`);
+          console.error(
+            "Failed to fetch package:",
+            response.status,
+            response.statusText,
+          );
         }
       } catch (error) {
-        console.error("Error fetching package:", error);
+        console.error("Failed to fetch package details:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    if (packageId) {
-      fetchPackage();
-    }
+    fetchPackageDetails();
   }, [packageId]);
+
+  const totalPrice =
+    pkg && pkg.price ? pkg.price * bookingDetails.travelers : 0;
+
+  const handleBooking = async () => {
+    // Handle booking submission
+    console.log("Booking details:", {
+      packageId,
+      ...bookingDetails,
+      totalPrice,
+    });
+    // Redirect to booking page or show confirmation
+    router.push(
+      `/booking?type=package&id=${packageId}&travelers=${bookingDetails.travelers}&date=${bookingDetails.travelDate}`,
+    );
+  };
 
   if (loading) {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "white",
-        }}
-      >
-        <div style={{ textAlign: "center" }}>
-          <div
-            style={{
-              width: "50px",
-              height: "50px",
-              border: "4px solid rgba(0, 102, 204, 0.2)",
-              borderTop: "4px solid #0066cc",
-              borderRadius: "50%",
-              animation: "spin 1s linear infinite",
-              margin: "0 auto 1rem",
-            }}
-          />
-          <p style={{ color: "#666", fontSize: "1rem" }}>Loading package...</p>
-          <style>{`
-            @keyframes spin {
-              to { transform: rotate(360deg); }
-            }
-          `}</style>
+      <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+        <Header currentPage="packages" />
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            minHeight: "60vh",
+            fontSize: "1.2rem",
+            color: "#64748b",
+          }}
+        >
+          Loading package details...
         </div>
       </div>
     );
@@ -114,1062 +168,1857 @@ export default function PackageDetailPage() {
 
   if (!pkg) {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "white",
-        }}
-      >
-        <div style={{ textAlign: "center" }}>
-          <h1 style={{ color: "#1a1a2e", marginBottom: "1rem" }}>
-            Package Not Found
-          </h1>
-          <p style={{ color: "#666", marginBottom: "2rem" }}>
-            Sorry, we couldn't find the package you're looking for.
-          </p>
-          <a
-            href="/"
+      <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+        <Header currentPage="packages" />
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            minHeight: "60vh",
+            gap: "1rem",
+          }}
+        >
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: "4rem", color: "#94a3b8" }}
+          >
+            hiking
+          </span>
+          <div style={{ fontSize: "1.2rem", color: "#64748b" }}>
+            Package not found
+          </div>
+          <Link
+            href="/packages"
             style={{
-              display: "inline-block",
               padding: "0.75rem 1.5rem",
-              background: "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
+              background: "#0066cc",
               color: "white",
+              borderRadius: "8px",
               textDecoration: "none",
-              borderRadius: "12px",
-              fontWeight: 700,
-              transition: "all 0.3s ease",
+              fontSize: "1rem",
             }}
           >
-            Back to Home
-          </a>
+            Browse All Packages
+          </Link>
         </div>
       </div>
     );
   }
 
-  const overviewItems = [
-    { label: "Duration", value: pkg.duration },
-    { label: "Difficulty", value: pkg.difficulty },
-    { label: "Best Time", value: pkg.bestTime },
-    { label: "Group Size", value: pkg.groupSize },
-    ...(pkg.customFields || [])
-      .filter((cf) => cf.label && cf.value)
-      .map((cf) => ({ label: cf.label, value: cf.value })),
-  ];
+  const images =
+    pkg.gallery && pkg.gallery.length > 0
+      ? pkg.gallery
+      : pkg.image
+        ? [pkg.image]
+        : [];
 
   return (
-    <div style={{ background: "white", minHeight: "100vh" }}>
-      {/* Hero Section */}
-      <section
-        className="package-hero"
-        style={{
-          position: "relative",
-          height: "500px",
-          overflow: "hidden",
-        }}
-      >
-        {/* Hero Image */}
-        <img
-          src={pkg.image}
-          alt={pkg.title}
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-          }}
-        />
-
-        {/* Dark Overlay */}
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background:
-              "linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%)",
-            zIndex: 1,
-          }}
-        />
-
-        {/* Navigation Back Button */}
-        <div
-          className="package-back-btn"
-          style={{
-            position: "absolute",
-            top: "2rem",
-            left: "2rem",
-            zIndex: 3,
-          }}
-        >
-          <a
-            href="/"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              padding: "0.75rem 1.5rem",
-              background: "rgba(255, 255, 255, 0.95)",
-              backdropFilter: "blur(10px)",
-              borderRadius: "999px",
-              color: "#0066cc",
-              textDecoration: "none",
-              fontWeight: 600,
-              transition: "all 0.3s ease",
-              boxShadow: "0 4px 15px rgba(0, 0, 0, 0.1)",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "translateY(-2px)";
-              e.currentTarget.style.boxShadow =
-                "0 8px 25px rgba(0, 0, 0, 0.15)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "translateY(0)";
-              e.currentTarget.style.boxShadow = "0 4px 15px rgba(0, 0, 0, 0.1)";
-            }}
-          >
-            ← Back
-          </a>
-        </div>
-
-        {/* Hero Content */}
-        <div
-          style={{
-            position: "absolute",
-            bottom: "3rem",
-            left: "0",
-            right: "0",
-            zIndex: 2,
-            color: "white",
-            textAlign: "center",
-            padding: "0 1rem",
-          }}
-        >
-          <h1
-            style={{
-              fontSize: "clamp(2.2rem, 5vw, 2.7rem)",
-              fontWeight: 900,
-              margin: "0 0 1rem 0",
-              textShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
-              letterSpacing: "-0.5px",
-            }}
-          >
-            {pkg.title}
-          </h1>
-          <p
-            style={{
-              fontSize: "1.3rem",
-              fontWeight: 600,
-              margin: "0",
-              textShadow: "0 2px 4px rgba(0, 0, 0, 0.3)",
-              opacity: 0.95,
-            }}
-          >
-            {pkg.location}
-          </p>
-        </div>
-
-        {/* Featured Badge */}
-        {pkg.featured && (
+    <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-gray-50">
+      <Header currentPage="packages" />
+      <main className="flex flex-col items-center w-full">
+        {/* Image Gallery */}
+        {images.length > 0 && (
           <div
-            className="package-featured-badge"
             style={{
-              position: "absolute",
-              top: "2rem",
-              right: "2rem",
-              background: "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
-              color: "white",
-              padding: "0.75rem 1.5rem",
-              borderRadius: "999px",
-              fontSize: "0.85rem",
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-              boxShadow: "0 6px 20px rgba(0, 102, 204, 0.3)",
-              zIndex: 2,
+              width: "100%",
+              maxWidth: "1280px",
+              margin: "0 auto",
+              padding: "1.5rem 1rem",
             }}
           >
-            Featured Package
-          </div>
-        )}
-      </section>
-
-      {/* Main Content */}
-      <section
-        className="package-content-section"
-        style={{ padding: "3rem 1rem", maxWidth: "1200px", margin: "0 auto" }}
-      >
-        <div
-          className="package-main-grid"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 350px",
-            gap: "3rem",
-            marginBottom: "3rem",
-          }}
-        >
-          {/* Left Column - Content */}
-          <div>
-            {/* Overview Cards */}
             <div
-              className="package-overview-grid"
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(4, 1fr)",
-                gap: "1rem",
-                marginBottom: "3rem",
+                gridTemplateColumns: images.length > 1 ? "2fr 1fr 1fr" : "1fr",
+                gap: "0.5rem",
+                height: "400px",
+                borderRadius: "16px",
+                overflow: "hidden",
               }}
             >
-              {overviewItems.map((item, idx) => (
+              <div
+                style={{
+                  gridRow: images.length > 1 ? "1 / 3" : "1",
+                  position: "relative",
+                  cursor: "pointer",
+                }}
+                onClick={() => {
+                  setFullscreenImageIndex(0);
+                  setShowFullscreenGallery(true);
+                }}
+              >
+                <img
+                  src={images[0]}
+                  alt={pkg.title}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                />
+                {pkg.badge && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: "1rem",
+                      left: "1rem",
+                      backgroundColor: "#0066cc",
+                      color: "white",
+                      padding: "0.5rem 1rem",
+                      borderRadius: "0.5rem",
+                      fontSize: "0.85rem",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {pkg.badge}
+                  </span>
+                )}
+              </div>
+              {images.slice(1, 5).map((img, idx) => (
                 <div
                   key={idx}
                   style={{
-                    padding: "1.5rem",
-                    background: "rgba(0, 102, 204, 0.08)",
-                    borderRadius: "16px",
-                    border: "1px solid rgba(0, 102, 204, 0.15)",
+                    position: "relative",
+                    cursor: "pointer",
+                    overflow: "hidden",
+                  }}
+                  onClick={() => {
+                    setFullscreenImageIndex(idx + 1);
+                    setShowFullscreenGallery(true);
                   }}
                 >
-                  <div
+                  <img
+                    src={img}
+                    alt={`${pkg.title} ${idx + 2}`}
                     style={{
-                      fontSize: "0.8rem",
-                      color: "#999",
-                      fontWeight: 600,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.3px",
-                      marginBottom: "0.5rem",
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      transition: "transform 0.3s ease",
                     }}
-                  >
-                    {item.label}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "1.1rem",
-                      fontWeight: 700,
-                      color: "#1a1a2e",
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "scale(1.1)";
                     }}
-                  >
-                    {item.value}
-                  </div>
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "scale(1)";
+                    }}
+                  />
+                  {idx === 3 && images.length > 5 && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        background: "rgba(0, 0, 0, 0.6)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "white",
+                        fontSize: "1.5rem",
+                        fontWeight: 700,
+                      }}
+                    >
+                      +{images.length - 5} more
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
-
-            {/* Full Description */}
-            <div style={{ marginBottom: "3rem" }}>
-              <h2
-                style={{
-                  fontSize: "1.8rem",
-                  fontWeight: 900,
-                  color: "#1a1a2e",
-                  marginBottom: "1rem",
-                  marginTop: 0,
-                }}
-              >
-                About This Package
-              </h2>
-              <p
-                style={{
-                  fontSize: "1rem",
-                  lineHeight: 1.8,
-                  color: "#666",
-                  marginBottom: "1.5rem",
-                }}
-              >
-                {pkg.fullDescription}
-              </p>
-            </div>
-
-            {/* Highlights */}
-            {pkg.highlights && pkg.highlights.length > 0 && (
-              <div style={{ marginBottom: "3rem" }}>
-                <h2
-                  style={{
-                    fontSize: "1.8rem",
-                    fontWeight: 900,
-                    color: "#1a1a2e",
-                    marginBottom: "1.5rem",
-                    marginTop: 0,
-                  }}
-                >
-                  Highlights
-                </h2>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(2, 1fr)",
-                    gap: "1rem",
-                  }}
-                >
-                  {pkg.highlights.map((highlight, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        padding: "1rem",
-                        background: "rgba(0, 102, 204, 0.08)",
-                        borderRadius: "12px",
-                        display: "flex",
-                        gap: "0.75rem",
-                        alignItems: "flex-start",
-                        border: "1px solid rgba(0, 102, 204, 0.15)",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: "1.5rem",
-                          color: "#0066cc",
-                          lineHeight: 1,
-                          marginTop: "0.2rem",
-                        }}
-                      >
-                        ✓
-                      </span>
-                      <span style={{ fontSize: "0.95rem", color: "#666" }}>
-                        {highlight}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Itinerary */}
-            {pkg.itinerary && pkg.itinerary.length > 0 && (
-              <div style={{ marginBottom: "3rem" }}>
-                <h2
-                  style={{
-                    fontSize: "1.8rem",
-                    fontWeight: 900,
-                    color: "#1a1a2e",
-                    marginBottom: "1.5rem",
-                    marginTop: 0,
-                  }}
-                >
-                  Detailed Itinerary
-                </h2>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "0.75rem",
-                  }}
-                >
-                  {pkg.itinerary.map((item, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        padding: "1.5rem",
-                        background:
-                          expandedDay === idx
-                            ? "linear-gradient(135deg, rgba(0, 102, 204, 0.1) 0%, rgba(0, 153, 255, 0.08) 100%)"
-                            : "rgba(255, 255, 255, 0.8)",
-                        border: "1px solid rgba(0, 102, 204, 0.15)",
-                        borderRadius: "16px",
-                        cursor: "pointer",
-                        transition: "all 0.3s ease",
-                      }}
-                      onClick={() =>
-                        setExpandedDay(expandedDay === idx ? null : idx)
-                      }
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background =
-                          expandedDay === idx
-                            ? "linear-gradient(135deg, rgba(0, 102, 204, 0.1) 0%, rgba(0, 153, 255, 0.08) 100%)"
-                            : "rgba(0, 102, 204, 0.04)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background =
-                          expandedDay === idx
-                            ? "linear-gradient(135deg, rgba(0, 102, 204, 0.1) 0%, rgba(0, 153, 255, 0.08) 100%)"
-                            : "rgba(255, 255, 255, 0.8)";
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          marginBottom: expandedDay === idx ? "1rem" : "0",
-                        }}
-                      >
-                        <div>
-                          <div
-                            style={{
-                              display: "inline-block",
-                              background:
-                                "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
-                              color: "white",
-                              padding: "0.5rem 1rem",
-                              borderRadius: "8px",
-                              fontSize: "0.85rem",
-                              fontWeight: 700,
-                              marginBottom: "0.75rem",
-                            }}
-                          >
-                            Day {item.day}
-                          </div>
-                          <h3
-                            style={{
-                              fontSize: "1.2rem",
-                              fontWeight: 700,
-                              color: "#1a1a2e",
-                              margin: "0",
-                            }}
-                          >
-                            {item.title}
-                          </h3>
-                        </div>
-                        <span
-                          style={{
-                            fontSize: "1.5rem",
-                            color: "#0066cc",
-                            transition: "transform 0.3s ease",
-                            transform:
-                              expandedDay === idx
-                                ? "rotate(180deg)"
-                                : "rotate(0deg)",
-                          }}
-                        >
-                          ▼
-                        </span>
-                      </div>
-
-                      {expandedDay === idx && (
-                        <p
-                          style={{
-                            fontSize: "0.95rem",
-                            color: "#666",
-                            margin: "0",
-                            lineHeight: 1.7,
-                            paddingTop: "0.5rem",
-                            borderTop: "1px solid rgba(0, 102, 204, 0.2)",
-                          }}
-                        >
-                          {item.description}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Inclusions & Exclusions */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "2rem",
-              }}
-            >
-              {pkg.inclusions && pkg.inclusions.length > 0 && (
-                <div>
-                  <h2
-                    style={{
-                      fontSize: "1.4rem",
-                      fontWeight: 900,
-                      color: "#1a1a2e",
-                      marginBottom: "1rem",
-                      marginTop: 0,
-                    }}
-                  >
-                    Inclusions
-                  </h2>
-                  <ul
-                    style={{
-                      listStyle: "none",
-                      padding: 0,
-                      margin: 0,
-                    }}
-                  >
-                    {pkg.inclusions.map((item, idx) => (
-                      <li
-                        key={idx}
-                        style={{
-                          padding: "0.75rem 0",
-                          display: "flex",
-                          gap: "0.75rem",
-                          alignItems: "flex-start",
-                          color: "#666",
-                          borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
-                        }}
-                      >
-                        <span
-                          style={{
-                            color: "#0066cc",
-                            fontWeight: 700,
-                            marginTop: "0.1rem",
-                          }}
-                        >
-                          ✓
-                        </span>
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {pkg.exclusions && pkg.exclusions.length > 0 && (
-                <div>
-                  <h2
-                    style={{
-                      fontSize: "1.4rem",
-                      fontWeight: 900,
-                      color: "#1a1a2e",
-                      marginBottom: "1rem",
-                      marginTop: 0,
-                    }}
-                  >
-                    Exclusions
-                  </h2>
-                  <ul
-                    style={{
-                      listStyle: "none",
-                      padding: 0,
-                      margin: 0,
-                    }}
-                  >
-                    {pkg.exclusions.map((item, idx) => (
-                      <li
-                        key={idx}
-                        style={{
-                          padding: "0.75rem 0",
-                          display: "flex",
-                          gap: "0.75rem",
-                          alignItems: "flex-start",
-                          color: "#999",
-                          borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
-                        }}
-                      >
-                        <span
-                          style={{
-                            color: "#ccc",
-                            fontWeight: 700,
-                            marginTop: "0.1rem",
-                          }}
-                        >
-                          ×
-                        </span>
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-
-            {/* Notes / Other */}
-            {pkg.notes && pkg.notes.trim().length > 0 && (
-              <div style={{ marginTop: "3rem", marginBottom: "3rem" }}>
-                <h2
-                  style={{
-                    fontSize: "1.6rem",
-                    fontWeight: 900,
-                    color: "#1a1a2e",
-                    marginBottom: "1rem",
-                    marginTop: 0,
-                  }}
-                >
-                  Notes
-                </h2>
-                <div
-                  style={{
-                    padding: "1.25rem",
-                    background: "rgba(0, 102, 204, 0.05)",
-                    borderRadius: "12px",
-                    border: "1px solid rgba(0, 102, 204, 0.15)",
-                    color: "#444",
-                    lineHeight: 1.7,
-                  }}
-                >
-                  {pkg.notes}
-                </div>
-              </div>
-            )}
-
-            {pkg.longDetails && pkg.longDetails.length > 0 && (
-              <div style={{ marginTop: "3rem", marginBottom: "3rem" }}>
-                <h2
-                  style={{
-                    fontSize: "1.8rem",
-                    fontWeight: 900,
-                    color: "#1a1a2e",
-                    marginBottom: "1.25rem",
-                    marginTop: 0,
-                  }}
-                >
-                  More Details
-                </h2>
-                <div style={{ display: "grid", gap: "1rem" }}>
-                  {pkg.longDetails.map((detail, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        border: "1px solid rgba(0, 0, 0, 0.08)",
-                        borderRadius: "12px",
-                        padding: "1rem",
-                        background: "#f9fafb",
-                        boxShadow: "0 8px 18px rgba(0,0,0,0.04)",
-                      }}
-                    >
-                      {detail.title ? (
-                        <h3
-                          style={{
-                            margin: "0 0 0.5rem 0",
-                            fontSize: "1.1rem",
-                            color: "#1a1a2e",
-                          }}
-                        >
-                          {detail.title}
-                        </h3>
-                      ) : null}
-                      {detail.content ? (
-                        <p
-                          style={{
-                            margin: 0,
-                            color: "#555",
-                            lineHeight: 1.7,
-                            whiteSpace: "pre-wrap",
-                          }}
-                        >
-                          {detail.content}
-                        </p>
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
+        )}
 
-          {/* Right Sidebar - Booking Card */}
+        {/* Fullscreen Gallery Modal */}
+        {showFullscreenGallery && (
           <div
-            style={{ position: "sticky", top: "2rem", height: "fit-content" }}
+            style={{
+              position: "fixed",
+              inset: 0,
+              backgroundColor: "rgba(0, 0, 0, 0.95)",
+              zIndex: 1000,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={() => setShowFullscreenGallery(false)}
           >
-            <div
+            <button
+              onClick={() => setShowFullscreenGallery(false)}
               style={{
-                background: "rgba(255, 255, 255, 0.95)",
-                backdropFilter: "blur(20px)",
-                borderRadius: "24px",
-                padding: "2rem",
-                border: "1px solid rgba(0, 102, 204, 0.15)",
-                boxShadow: "0 10px 40px rgba(0, 102, 204, 0.1)",
+                position: "absolute",
+                top: "1rem",
+                right: "1rem",
+                backgroundColor: "transparent",
+                border: "none",
+                color: "white",
+                fontSize: "2rem",
+                cursor: "pointer",
+                zIndex: 1001,
               }}
             >
-              <div style={{ marginBottom: "1.5rem" }}>
-                <div
-                  style={{
-                    fontSize: "0.8rem",
-                    color: "#999",
-                    fontWeight: 600,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.3px",
-                    marginBottom: "0.5rem",
+              <span className="material-symbols-outlined">close</span>
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setFullscreenImageIndex((prev) =>
+                  prev > 0 ? prev - 1 : images.length - 1,
+                );
+              }}
+              style={{
+                position: "absolute",
+                left: "1rem",
+                backgroundColor: "rgba(255, 255, 255, 0.2)",
+                border: "none",
+                color: "white",
+                fontSize: "2rem",
+                cursor: "pointer",
+                padding: "0.5rem",
+                borderRadius: "50%",
+              }}
+            >
+              <span className="material-symbols-outlined">chevron_left</span>
+            </button>
+            <img
+              src={images[fullscreenImageIndex]}
+              alt={`${pkg.title} ${fullscreenImageIndex + 1}`}
+              style={{
+                maxWidth: "90%",
+                maxHeight: "90vh",
+                objectFit: "contain",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setFullscreenImageIndex((prev) =>
+                  prev < images.length - 1 ? prev + 1 : 0,
+                );
+              }}
+              style={{
+                position: "absolute",
+                right: "1rem",
+                backgroundColor: "rgba(255, 255, 255, 0.2)",
+                border: "none",
+                color: "white",
+                fontSize: "2rem",
+                cursor: "pointer",
+                padding: "0.5rem",
+                borderRadius: "50%",
+              }}
+            >
+              <span className="material-symbols-outlined">chevron_right</span>
+            </button>
+            <div
+              style={{
+                position: "absolute",
+                bottom: "1rem",
+                display: "flex",
+                gap: "0.5rem",
+              }}
+            >
+              {images.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFullscreenImageIndex(idx);
                   }}
-                >
-                  {pkg.price === 0 ? "Price" : "Starting From"}
-                </div>
-                <div
                   style={{
-                    fontSize: "2.5rem",
-                    fontWeight: 900,
-                    background:
-                      "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                    backgroundClip: "text",
-                    margin: "0",
+                    width: "10px",
+                    height: "10px",
+                    borderRadius: "50%",
+                    backgroundColor:
+                      idx === fullscreenImageIndex
+                        ? "white"
+                        : "rgba(255, 255, 255, 0.4)",
+                    border: "none",
+                    cursor: "pointer",
                   }}
-                >
-                  {pkg.price === 0
-                    ? "On Request"
-                    : `${pkg.currency}${pkg.price}`}
-                </div>
-                <p
-                  style={{
-                    fontSize: "0.9rem",
-                    color: "#999",
-                    margin: "0.5rem 0 0 0",
-                  }}
-                >
-                  {pkg.price === 0 ? "" : "Per person"}
-                </p>
-              </div>
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
-              <button
-                style={{
-                  width: "100%",
-                  padding: "1rem",
-                  background:
-                    pkg.price === 0
-                      ? "linear-gradient(135deg, #f59e0b 0%, #f97316 100%)"
-                      : "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "12px",
-                  fontSize: "1rem",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  transition: "all 0.3s ease",
-                  boxShadow:
-                    pkg.price === 0
-                      ? "0 6px 20px rgba(245, 158, 11, 0.3)"
-                      : "0 6px 20px rgba(0, 102, 204, 0.3)",
-                  marginBottom: "1rem",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-4px)";
-                  e.currentTarget.style.boxShadow =
-                    pkg.price === 0
-                      ? "0 10px 30px rgba(245, 158, 11, 0.4)"
-                      : "0 10px 30px rgba(0, 102, 204, 0.4)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow =
-                    pkg.price === 0
-                      ? "0 6px 20px rgba(245, 158, 11, 0.3)"
-                      : "0 6px 20px rgba(0, 102, 204, 0.3)";
-                }}
-                onClick={() => {
-                  const phoneNumber = "918923992522";
-                  const customFieldsText = (pkg.customFields || [])
-                    .filter((cf) => cf.label && cf.value)
-                    .map((cf) => `${cf.label}: ${cf.value}`)
-                    .join("\n");
-                  const packageDetails = `📦 *${pkg.title}*
-📍 Location: ${pkg.location}
-⏱️ Duration: ${pkg.duration}
-💪 Difficulty: ${pkg.difficulty}
-👥 Group Size: ${pkg.groupSize}
-⭐ Best Time: ${pkg.bestTime}
-${customFieldsText ? "\n" + customFieldsText : ""}
-${
-  pkg.price === 0
-    ? "💰 Price: On Request"
-    : `💰 Price: ${pkg.currency}${pkg.price}`
-}
-
-${pkg.description}`;
-                  const message =
-                    pkg.price === 0
-                      ? `Hi, I'm interested in the following package:\n\n${packageDetails}\n\nPlease provide pricing details.`
-                      : `Hi, I'm interested in booking the following package:\n\n${packageDetails}`;
-                  const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(
-                    message
-                  )}`;
-                  window.open(whatsappUrl, "_blank");
-                }}
-              >
-                {pkg.price === 0 ? "Get Price" : "Book Now"}
-              </button>
-
-              {/* Share Package Section */}
-              <div style={{ marginTop: "1.5rem" }}>
-                <p
-                  style={{
-                    fontSize: "0.8rem",
-                    color: "#999",
-                    fontWeight: 600,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.3px",
-                    marginBottom: "1rem",
-                    marginTop: 0,
-                  }}
-                >
-                  Share Package
-                </p>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "0.75rem",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  {/* WhatsApp Share */}
-                  <button
-                    onClick={() => {
-                      const phoneNumber = "918923992522";
-                      const shareMessage = `Check out this amazing package: *${
-                        pkg.title
-                      }*\n\n📍 Location: ${pkg.location}\n⏱️ Duration: ${
-                        pkg.duration
-                      }\n${
-                        pkg.price === 0
-                          ? "💰 Price: On Request"
-                          : `💰 Price: ${pkg.currency}${pkg.price}`
-                      }\n\nView full details here: ${
-                        typeof window !== "undefined"
-                          ? window.location.href
-                          : ""
-                      }`;
-                      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(
-                        shareMessage
-                      )}`;
-                      window.open(whatsappUrl, "_blank");
-                    }}
-                    style={{
-                      flex: 1,
-                      padding: "0.6rem",
-                      background: "#25D366",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "8px",
-                      fontSize: "0.85rem",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      transition: "all 0.3s ease",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "0.5rem",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "#1fbb50";
-                      e.currentTarget.style.transform = "translateY(-2px)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "#25D366";
-                      e.currentTarget.style.transform = "translateY(0)";
-                    }}
-                  >
-                    <span
-                      className="material-symbols-outlined"
-                      style={{ fontSize: "1rem" }}
-                    >
-                      share
-                    </span>
-                    WhatsApp
-                  </button>
-
-                  {/* Facebook Share */}
-                  <button
-                    onClick={() => {
-                      const shareUrl =
-                        typeof window !== "undefined"
-                          ? window.location.href
-                          : "";
-                      const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-                        shareUrl
-                      )}`;
-                      window.open(facebookUrl, "_blank");
-                    }}
-                    style={{
-                      flex: 1,
-                      padding: "0.6rem",
-                      background: "#1877F2",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "8px",
-                      fontSize: "0.85rem",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      transition: "all 0.3s ease",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "0.5rem",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "#0a66c2";
-                      e.currentTarget.style.transform = "translateY(-2px)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "#1877F2";
-                      e.currentTarget.style.transform = "translateY(0)";
-                    }}
-                  >
-                    <span
-                      className="material-symbols-outlined"
-                      style={{ fontSize: "1rem" }}
-                    >
-                      share
-                    </span>
-                    Facebook
-                  </button>
-
-                  {/* Copy Link */}
-                  <button
-                    onClick={() => {
-                      const url =
-                        typeof window !== "undefined"
-                          ? window.location.href
-                          : "";
-                      navigator.clipboard.writeText(url);
-                      alert("Package link copied to clipboard!");
-                    }}
-                    style={{
-                      flex: 1,
-                      padding: "0.6rem",
-                      background: "rgba(0, 102, 204, 0.1)",
-                      color: "#0066cc",
-                      border: "2px solid rgba(0, 102, 204, 0.3)",
-                      borderRadius: "8px",
-                      fontSize: "0.85rem",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      transition: "all 0.3s ease",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "0.5rem",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background =
-                        "rgba(0, 102, 204, 0.2)";
-                      e.currentTarget.style.transform = "translateY(-2px)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background =
-                        "rgba(0, 102, 204, 0.1)";
-                      e.currentTarget.style.transform = "translateY(0)";
-                    }}
-                  >
-                    <span
-                      className="material-symbols-outlined"
-                      style={{ fontSize: "1rem" }}
-                    >
-                      link
-                    </span>
-                    Copy Link
-                  </button>
-                </div>
-              </div>
-
+        {/* Main Content */}
+        <div
+          style={{
+            width: "100%",
+            maxWidth: "1280px",
+            margin: "0 auto",
+            padding: "0 1rem 2rem",
+            display: "grid",
+            gridTemplateColumns: "1fr 380px",
+            gap: "2rem",
+          }}
+        >
+          {/* Left Column - Details */}
+          <div>
+            {/* Package Header */}
+            <div style={{ marginBottom: "2rem" }}>
               <div
                 style={{
-                  marginTop: "2rem",
-                  paddingTop: "2rem",
-                  borderTop: "1px solid rgba(0, 0, 0, 0.08)",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  justifyContent: "space-between",
+                  marginBottom: "1rem",
+                  flexWrap: "wrap",
+                  gap: "1rem",
                 }}
               >
-                <h4
-                  style={{
-                    fontSize: "0.9rem",
-                    fontWeight: 700,
-                    color: "#1a1a2e",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.3px",
-                    marginBottom: "1rem",
-                    marginTop: 0,
-                  }}
-                >
-                  Package Info
-                </h4>
-
-                {[
-                  { icon: "🌍", label: "Duration", value: pkg.duration },
-                  { icon: "📍", label: "Location", value: pkg.location },
-                  { icon: "⭐", label: "Difficulty", value: pkg.difficulty },
-                  { icon: "👥", label: "Group Size", value: pkg.groupSize },
-                  { icon: "📅", label: "Best Time", value: pkg.bestTime },
-                ].map((info, idx) => (
+                <div style={{ flex: 1 }}>
                   <div
-                    key={idx}
                     style={{
                       display: "flex",
                       alignItems: "center",
                       gap: "0.75rem",
-                      marginBottom: "0.75rem",
-                      fontSize: "0.9rem",
+                      marginBottom: "0.5rem",
+                      flexWrap: "wrap",
                     }}
                   >
-                    <span style={{ fontSize: "1.2rem" }}>{info.icon}</span>
+                    {pkg.category && (
+                      <span
+                        style={{
+                          backgroundColor: "#10b981",
+                          color: "white",
+                          padding: "0.25rem 0.75rem",
+                          borderRadius: "1rem",
+                          fontSize: "0.75rem",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {pkg.category}
+                      </span>
+                    )}
+                    {pkg.badge && (
+                      <span
+                        style={{
+                          backgroundColor: "#dbeafe",
+                          color: "#1e40af",
+                          padding: "0.25rem 0.75rem",
+                          borderRadius: "1rem",
+                          fontSize: "0.75rem",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {pkg.badge}
+                      </span>
+                    )}
+                  </div>
+                  <h1
+                    style={{
+                      fontSize: "2rem",
+                      fontWeight: 800,
+                      marginBottom: "0.75rem",
+                      color: "#1a1a2e",
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {pkg.title}
+                  </h1>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "1.5rem",
+                      color: "#64748b",
+                      fontSize: "0.95rem",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.35rem",
+                      }}
+                    >
+                      <span
+                        className="material-symbols-outlined"
+                        style={{ color: "#f43f5e", fontSize: "1.25rem" }}
+                      >
+                        location_on
+                      </span>
+                      <span>{pkg.startingPoint}</span>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.35rem",
+                      }}
+                    >
+                      <span
+                        className="material-symbols-outlined"
+                        style={{ color: "#0066cc", fontSize: "1.25rem" }}
+                      >
+                        schedule
+                      </span>
+                      <span>{pkg.duration}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Tabs */}
+            <div
+              style={{
+                display: "flex",
+                gap: "0.5rem",
+                marginBottom: "1.5rem",
+                borderBottom: "2px solid #e5e7eb",
+                paddingBottom: "0",
+                overflowX: "auto",
+              }}
+            >
+              {(
+                [
+                  { key: "overview", label: "Overview", icon: "info" },
+                  { key: "itinerary", label: "Itinerary", icon: "route" },
+                  {
+                    key: "inclusions",
+                    label: "Inclusions",
+                    icon: "check_circle",
+                  },
+                  {
+                    key: "essentials",
+                    label: "Things to Carry",
+                    icon: "backpack",
+                  },
+                  {
+                    key: "policies",
+                    label: "Notes & Policies",
+                    icon: "description",
+                  },
+                ] as const
+              ).map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  style={{
+                    padding: "0.75rem 1.25rem",
+                    fontSize: "0.95rem",
+                    fontWeight: activeTab === tab.key ? 700 : 500,
+                    color: activeTab === tab.key ? "#0066cc" : "#64748b",
+                    backgroundColor: "transparent",
+                    border: "none",
+                    borderBottom:
+                      activeTab === tab.key
+                        ? "3px solid #0066cc"
+                        : "3px solid transparent",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    whiteSpace: "nowrap",
+                    marginBottom: "-2px",
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: "1.1rem" }}
+                  >
+                    {tab.icon}
+                  </span>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Tab Content */}
+            <div
+              style={{
+                backgroundColor: "white",
+                borderRadius: "1rem",
+                padding: "1.5rem",
+                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
+              }}
+            >
+              {activeTab === "overview" && (
+                <div>
+                  <h3
+                    style={{
+                      fontSize: "1.25rem",
+                      fontWeight: 700,
+                      marginBottom: "1rem",
+                      color: "#1f2937",
+                    }}
+                  >
+                    About This Package
+                  </h3>
+                  <p
+                    style={{
+                      color: "#4b5563",
+                      lineHeight: 1.7,
+                      marginBottom: "1.5rem",
+                      whiteSpace: "pre-line",
+                    }}
+                  >
+                    {pkg.fullDescription || pkg.description}
+                  </p>
+
+                  {/* Important Notes */}
+                  {pkg.importantNotes && pkg.importantNotes.length > 0 && (
+                    <div style={{ marginTop: "1.5rem" }}>
+                      <h4
+                        style={{
+                          fontSize: "1.1rem",
+                          fontWeight: 700,
+                          marginBottom: "1rem",
+                          color: "#1f2937",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                        }}
+                      >
+                        <span
+                          className="material-symbols-outlined"
+                          style={{ color: "#f59e0b" }}
+                        >
+                          info
+                        </span>
+                        Important Notes
+                      </h4>
+                      <ul
+                        style={{
+                          listStyle: "none",
+                          padding: 0,
+                          display: "grid",
+                          gridTemplateColumns:
+                            "repeat(auto-fill, minmax(250px, 1fr))",
+                          gap: "0.75rem",
+                        }}
+                      >
+                        {pkg.importantNotes.map((note, idx) => (
+                          <li
+                            key={idx}
+                            style={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: "0.5rem",
+                              color: "#4b5563",
+                            }}
+                          >
+                            <span
+                              className="material-symbols-outlined"
+                              style={{
+                                color: "#f59e0b",
+                                fontSize: "1.25rem",
+                                flexShrink: 0,
+                              }}
+                            >
+                              warning
+                            </span>
+                            {note}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Starting Point Info */}
+                  <div
+                    style={{
+                      marginTop: "1.5rem",
+                      padding: "1rem",
+                      backgroundColor: "#f8fafc",
+                      borderRadius: "0.75rem",
+                    }}
+                  >
                     <div>
-                      <div style={{ color: "#999", fontSize: "0.8rem" }}>
-                        {info.label}
+                      <div
+                        style={{
+                          fontSize: "0.8rem",
+                          color: "#64748b",
+                          marginBottom: "0.25rem",
+                        }}
+                      >
+                        Starting Point
                       </div>
                       <div
                         style={{
                           fontWeight: 600,
-                          color: "#1a1a2e",
+                          color: "#1f2937",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.35rem",
                         }}
                       >
-                        {info.value}
+                        <span
+                          className="material-symbols-outlined"
+                          style={{ color: "#10b981", fontSize: "1.1rem" }}
+                        >
+                          trip_origin
+                        </span>
+                        {pkg.startingPoint || "To be announced"}
                       </div>
                     </div>
                   </div>
-                ))}
+
+                  {/* Custom Fields */}
+                  {pkg.customFields &&
+                    pkg.customFields
+                      .filter((f) => f.section === "overview")
+                      .map((field) => (
+                        <div
+                          key={field.id}
+                          style={{
+                            marginTop: "1.5rem",
+                            padding: "1.25rem",
+                            backgroundColor: "#f8fafc",
+                            borderRadius: "0.75rem",
+                            border: "1px solid #e2e8f0",
+                          }}
+                        >
+                          <h4
+                            style={{
+                              fontSize: "1.05rem",
+                              fontWeight: 700,
+                              marginBottom: "0.75rem",
+                              color: "#0066cc",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                            }}
+                          >
+                            <span
+                              className="material-symbols-outlined"
+                              style={{ fontSize: "1.1rem" }}
+                            >
+                              info
+                            </span>
+                            {field.fieldName}
+                          </h4>
+                          {field.fieldType === "list" &&
+                          Array.isArray(field.value) ? (
+                            <ul
+                              style={{
+                                listStyle: "none",
+                                padding: 0,
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "0.5rem",
+                              }}
+                            >
+                              {field.value.map((item, idx) => (
+                                <li
+                                  key={idx}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "flex-start",
+                                    gap: "0.5rem",
+                                    color: "#4b5563",
+                                    fontSize: "0.95rem",
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      color: "#10b981",
+                                      fontSize: "0.75rem",
+                                      marginTop: "0.4rem",
+                                    }}
+                                  >
+                                    •
+                                  </span>
+                                  {item}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p
+                              style={{
+                                color: "#4b5563",
+                                lineHeight: 1.7,
+                                whiteSpace: "pre-line",
+                                margin: 0,
+                              }}
+                            >
+                              {field.value}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                </div>
+              )}
+
+              {activeTab === "itinerary" && (
+                <div>
+                  <h3
+                    style={{
+                      fontSize: "1.25rem",
+                      fontWeight: 700,
+                      marginBottom: "1.5rem",
+                      color: "#1f2937",
+                    }}
+                  >
+                    Day-by-Day Itinerary
+                  </h3>
+
+                  {pkg.itinerary &&
+                  Array.isArray(pkg.itinerary) &&
+                  pkg.itinerary.length > 0 ? (
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "1rem",
+                      }}
+                    >
+                      {pkg.itinerary.map((day, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            padding: "1.5rem",
+                            backgroundColor: "#f8fafc",
+                            borderRadius: "0.75rem",
+                            borderLeft: "4px solid #0066cc",
+                            marginBottom: "1rem",
+                          }}
+                        >
+                          <h4
+                            style={{
+                              fontSize: "1.2rem",
+                              fontWeight: 700,
+                              color: "#0066cc",
+                              marginBottom: "1rem",
+                            }}
+                          >
+                            Day {day.day || idx + 1}:{" "}
+                            {day.title || `Day ${day.day || idx + 1}`}
+                          </h4>
+                          <p
+                            style={{
+                              color: "#4b5563",
+                              fontSize: "1rem",
+                              lineHeight: 1.7,
+                              whiteSpace: "pre-line",
+                            }}
+                          >
+                            {day.description || "No details available"}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p
+                      style={{
+                        color: "#64748b",
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      Detailed itinerary will be shared upon booking.
+                    </p>
+                  )}
+
+                  {/* Custom Fields for Itinerary */}
+                  {pkg.customFields &&
+                    pkg.customFields
+                      .filter((f) => f.section === "itinerary")
+                      .map((field) => (
+                        <div
+                          key={field.id}
+                          style={{
+                            marginTop: "1.5rem",
+                            padding: "1.25rem",
+                            backgroundColor: "#f8fafc",
+                            borderRadius: "0.75rem",
+                            border: "1px solid #e2e8f0",
+                          }}
+                        >
+                          <h4
+                            style={{
+                              fontSize: "1.05rem",
+                              fontWeight: 700,
+                              marginBottom: "0.75rem",
+                              color: "#0066cc",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                            }}
+                          >
+                            <span
+                              className="material-symbols-outlined"
+                              style={{ fontSize: "1.1rem" }}
+                            >
+                              info
+                            </span>
+                            {field.fieldName}
+                          </h4>
+                          {field.fieldType === "list" &&
+                          Array.isArray(field.value) ? (
+                            <ul
+                              style={{
+                                listStyle: "none",
+                                padding: 0,
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "0.5rem",
+                              }}
+                            >
+                              {field.value.map((item, idx) => (
+                                <li
+                                  key={idx}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "flex-start",
+                                    gap: "0.5rem",
+                                    color: "#4b5563",
+                                    fontSize: "0.95rem",
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      color: "#10b981",
+                                      fontSize: "0.75rem",
+                                      marginTop: "0.4rem",
+                                    }}
+                                  >
+                                    •
+                                  </span>
+                                  {item}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p
+                              style={{
+                                color: "#4b5563",
+                                lineHeight: 1.7,
+                                whiteSpace: "pre-line",
+                                margin: 0,
+                              }}
+                            >
+                              {field.value}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                </div>
+              )}
+
+              {activeTab === "inclusions" && (
+                <div>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gap: "2rem",
+                    }}
+                  >
+                    {/* Inclusions */}
+                    <div>
+                      <h3
+                        style={{
+                          fontSize: "1.1rem",
+                          fontWeight: 700,
+                          marginBottom: "1rem",
+                          color: "#059669",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                        }}
+                      >
+                        <span className="material-symbols-outlined">
+                          check_circle
+                        </span>
+                        What&apos;s Included
+                      </h3>
+                      <ul
+                        style={{
+                          listStyle: "none",
+                          padding: 0,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "0.5rem",
+                        }}
+                      >
+                        {pkg.inclusions && pkg.inclusions.length > 0 ? (
+                          pkg.inclusions.map((item, idx) => (
+                            <li
+                              key={idx}
+                              style={{
+                                display: "flex",
+                                alignItems: "flex-start",
+                                gap: "0.5rem",
+                                color: "#4b5563",
+                                fontSize: "0.9rem",
+                              }}
+                            >
+                              <span
+                                className="material-symbols-outlined"
+                                style={{
+                                  color: "#10b981",
+                                  fontSize: "1.1rem",
+                                  flexShrink: 0,
+                                }}
+                              >
+                                check
+                              </span>
+                              {item}
+                            </li>
+                          ))
+                        ) : (
+                          <p style={{ color: "#64748b", fontSize: "0.9rem" }}>
+                            Inclusions will be shared upon inquiry.
+                          </p>
+                        )}
+                      </ul>
+                    </div>
+
+                    {/* Exclusions */}
+                    <div>
+                      <h3
+                        style={{
+                          fontSize: "1.1rem",
+                          fontWeight: 700,
+                          marginBottom: "1rem",
+                          color: "#dc2626",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                        }}
+                      >
+                        <span className="material-symbols-outlined">
+                          cancel
+                        </span>
+                        What&apos;s Not Included
+                      </h3>
+                      <ul
+                        style={{
+                          listStyle: "none",
+                          padding: 0,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "0.5rem",
+                        }}
+                      >
+                        {pkg.exclusions && pkg.exclusions.length > 0 ? (
+                          pkg.exclusions.map((item, idx) => (
+                            <li
+                              key={idx}
+                              style={{
+                                display: "flex",
+                                alignItems: "flex-start",
+                                gap: "0.5rem",
+                                color: "#4b5563",
+                                fontSize: "0.9rem",
+                              }}
+                            >
+                              <span
+                                className="material-symbols-outlined"
+                                style={{
+                                  color: "#ef4444",
+                                  fontSize: "1.1rem",
+                                  flexShrink: 0,
+                                }}
+                              >
+                                close
+                              </span>
+                              {item}
+                            </li>
+                          ))
+                        ) : (
+                          <p style={{ color: "#64748b", fontSize: "0.9rem" }}>
+                            Exclusions will be shared upon inquiry.
+                          </p>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Custom Fields for Inclusions */}
+                  {pkg.customFields &&
+                    pkg.customFields
+                      .filter((f) => f.section === "inclusions")
+                      .map((field) => (
+                        <div
+                          key={field.id}
+                          style={{
+                            marginTop: "1.5rem",
+                            padding: "1.25rem",
+                            backgroundColor: "#f8fafc",
+                            borderRadius: "0.75rem",
+                            border: "1px solid #e2e8f0",
+                          }}
+                        >
+                          <h4
+                            style={{
+                              fontSize: "1.05rem",
+                              fontWeight: 700,
+                              marginBottom: "0.75rem",
+                              color: "#0066cc",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                            }}
+                          >
+                            <span
+                              className="material-symbols-outlined"
+                              style={{ fontSize: "1.1rem" }}
+                            >
+                              info
+                            </span>
+                            {field.fieldName}
+                          </h4>
+                          {field.fieldType === "list" &&
+                          Array.isArray(field.value) ? (
+                            <ul
+                              style={{
+                                listStyle: "none",
+                                padding: 0,
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "0.5rem",
+                              }}
+                            >
+                              {field.value.map((item, idx) => (
+                                <li
+                                  key={idx}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "flex-start",
+                                    gap: "0.5rem",
+                                    color: "#4b5563",
+                                    fontSize: "0.95rem",
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      color: "#10b981",
+                                      fontSize: "0.75rem",
+                                      marginTop: "0.4rem",
+                                    }}
+                                  >
+                                    •
+                                  </span>
+                                  {item}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p
+                              style={{
+                                color: "#4b5563",
+                                lineHeight: 1.7,
+                                whiteSpace: "pre-line",
+                                margin: 0,
+                              }}
+                            >
+                              {field.value}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                </div>
+              )}
+
+              {activeTab === "essentials" && (
+                <div>
+                  <h3
+                    style={{
+                      fontSize: "1.25rem",
+                      fontWeight: 700,
+                      marginBottom: "1.5rem",
+                      color: "#1f2937",
+                    }}
+                  >
+                    Things to Carry
+                  </h3>
+
+                  {pkg.thingsToCarry && pkg.thingsToCarry.length > 0 ? (
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "1.5rem",
+                      }}
+                    >
+                      {/* Check if it's the new format (array of objects) or old format (array of strings) */}
+                      {typeof pkg.thingsToCarry[0] === "string" ? (
+                        // Old format: array of strings
+                        <div
+                          style={{
+                            backgroundColor: "#f0fdf4",
+                            padding: "1.25rem",
+                            borderRadius: "0.75rem",
+                            border: "1px solid #bbf7d0",
+                          }}
+                        >
+                          <ul
+                            style={{
+                              listStyle: "none",
+                              padding: 0,
+                              display: "grid",
+                              gridTemplateColumns:
+                                "repeat(auto-fit, minmax(280px, 1fr))",
+                              gap: "0.75rem",
+                            }}
+                          >
+                            {pkg.thingsToCarry.map((item, idx) => {
+                              // Only render if item is a string
+                              if (typeof item !== "string") return null;
+
+                              return (
+                                <li
+                                  key={idx}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "flex-start",
+                                    gap: "0.5rem",
+                                    color: "#374151",
+                                    fontSize: "0.925rem",
+                                    lineHeight: "1.5",
+                                  }}
+                                >
+                                  <span
+                                    className="material-symbols-outlined"
+                                    style={{
+                                      color: "#22c55e",
+                                      fontSize: "1.1rem",
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    check_box
+                                  </span>
+                                  {item}
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </div>
+                      ) : (
+                        // New format: array of category objects
+                        pkg.thingsToCarry.map((carryCategory, catIdx) => {
+                          // Type guard to ensure carryCategory is an object
+                          if (typeof carryCategory === "string") return null;
+
+                          const categoryObj = carryCategory as {
+                            category: string;
+                            items: string[];
+                          };
+
+                          return (
+                            <div
+                              key={catIdx}
+                              style={{
+                                backgroundColor: "#f8fafc",
+                                padding: "1.25rem",
+                                borderRadius: "0.75rem",
+                                border: "1px solid #e2e8f0",
+                              }}
+                            >
+                              <h4
+                                style={{
+                                  fontSize: "1.05rem",
+                                  fontWeight: 700,
+                                  marginBottom: "1rem",
+                                  color: "#0066cc",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.5rem",
+                                }}
+                              >
+                                <span
+                                  className="material-symbols-outlined"
+                                  style={{ fontSize: "1.2rem" }}
+                                >
+                                  backpack
+                                </span>
+                                {categoryObj.category}
+                              </h4>
+                              <ul
+                                style={{
+                                  listStyle: "none",
+                                  padding: 0,
+                                  display: "grid",
+                                  gridTemplateColumns:
+                                    "repeat(auto-fit, minmax(280px, 1fr))",
+                                  gap: "0.75rem",
+                                }}
+                              >
+                                {categoryObj.items &&
+                                  categoryObj.items.map((item, itemIdx) => (
+                                    <li
+                                      key={itemIdx}
+                                      style={{
+                                        display: "flex",
+                                        alignItems: "flex-start",
+                                        gap: "0.5rem",
+                                        color: "#374151",
+                                        fontSize: "0.925rem",
+                                        lineHeight: "1.5",
+                                      }}
+                                    >
+                                      <span
+                                        style={{
+                                          color: "#22c55e",
+                                          fontSize: "0.75rem",
+                                          flexShrink: 0,
+                                          marginTop: "0.35rem",
+                                        }}
+                                      >
+                                        •
+                                      </span>
+                                      {item}
+                                    </li>
+                                  ))}
+                              </ul>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        backgroundColor: "#f0fdf4",
+                        padding: "1.25rem",
+                        borderRadius: "0.75rem",
+                        border: "1px solid #bbf7d0",
+                      }}
+                    >
+                      <p style={{ color: "#64748b", fontSize: "0.9rem" }}>
+                        No items specified.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Custom Fields for Things to Carry */}
+                  {pkg.customFields &&
+                    pkg.customFields
+                      .filter((f) => f.section === "essentials")
+                      .map((field) => (
+                        <div
+                          key={field.id}
+                          style={{
+                            marginTop: "1.5rem",
+                            padding: "1.25rem",
+                            backgroundColor: "#f8fafc",
+                            borderRadius: "0.75rem",
+                            border: "1px solid #e2e8f0",
+                          }}
+                        >
+                          <h4
+                            style={{
+                              fontSize: "1.05rem",
+                              fontWeight: 700,
+                              marginBottom: "0.75rem",
+                              color: "#0066cc",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                            }}
+                          >
+                            <span
+                              className="material-symbols-outlined"
+                              style={{ fontSize: "1.1rem" }}
+                            >
+                              info
+                            </span>
+                            {field.fieldName}
+                          </h4>
+                          {field.fieldType === "list" &&
+                          Array.isArray(field.value) ? (
+                            <ul
+                              style={{
+                                listStyle: "none",
+                                padding: 0,
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "0.5rem",
+                              }}
+                            >
+                              {field.value.map((item, idx) => (
+                                <li
+                                  key={idx}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "flex-start",
+                                    gap: "0.5rem",
+                                    color: "#4b5563",
+                                    fontSize: "0.95rem",
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      color: "#10b981",
+                                      fontSize: "0.75rem",
+                                      marginTop: "0.4rem",
+                                    }}
+                                  >
+                                    •
+                                  </span>
+                                  {item}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p
+                              style={{
+                                color: "#4b5563",
+                                lineHeight: 1.7,
+                                whiteSpace: "pre-line",
+                                margin: 0,
+                              }}
+                            >
+                              {field.value}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                </div>
+              )}
+
+              {activeTab === "policies" && (
+                <div>
+                  <h3
+                    style={{
+                      fontSize: "1.25rem",
+                      fontWeight: 700,
+                      marginBottom: "1.5rem",
+                      color: "#1f2937",
+                    }}
+                  >
+                    Notes & Policies
+                  </h3>
+
+                  {/* Important Notes */}
+                  {pkg.importantNotes && pkg.importantNotes.length > 0 && (
+                    <div
+                      style={{
+                        backgroundColor: "#fef3c7",
+                        padding: "1.25rem",
+                        borderRadius: "0.75rem",
+                        marginBottom: "1.5rem",
+                        border: "1px solid #fcd34d",
+                      }}
+                    >
+                      <h4
+                        style={{
+                          fontSize: "1rem",
+                          fontWeight: 700,
+                          marginBottom: "1rem",
+                          color: "#92400e",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                        }}
+                      >
+                        <span className="material-symbols-outlined">
+                          warning
+                        </span>
+                        Important Notes
+                      </h4>
+                      <ul
+                        style={{
+                          listStyle: "none",
+                          padding: 0,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "0.5rem",
+                        }}
+                      >
+                        {pkg.importantNotes.map((note, idx) => (
+                          <li
+                            key={idx}
+                            style={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: "0.5rem",
+                              color: "#374151",
+                              fontSize: "0.9rem",
+                            }}
+                          >
+                            <span
+                              className="material-symbols-outlined"
+                              style={{
+                                color: "#d97706",
+                                fontSize: "1rem",
+                                flexShrink: 0,
+                              }}
+                            >
+                              arrow_right
+                            </span>
+                            {note}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Refund & Cancellation Policy */}
+                  <div
+                    style={{
+                      backgroundColor: "#fef2f2",
+                      padding: "1.25rem",
+                      borderRadius: "0.75rem",
+                      border: "1px solid #fecaca",
+                    }}
+                  >
+                    <h4
+                      style={{
+                        fontSize: "1rem",
+                        fontWeight: 700,
+                        marginBottom: "1rem",
+                        color: "#991b1b",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                      }}
+                    >
+                      <span className="material-symbols-outlined">
+                        event_busy
+                      </span>
+                      Refund & Cancellation Policy
+                    </h4>
+
+                    {/* Refund Tiers Table */}
+                    {pkg.refundTiers && pkg.refundTiers.length > 0 && (
+                      <div style={{ marginBottom: "1.5rem" }}>
+                        <table
+                          style={{
+                            width: "100%",
+                            borderCollapse: "collapse",
+                            backgroundColor: "white",
+                            borderRadius: "8px",
+                            overflow: "hidden",
+                          }}
+                        >
+                          <thead>
+                            <tr style={{ backgroundColor: "#fee2e2" }}>
+                              <th
+                                style={{
+                                  padding: "0.75rem 1rem",
+                                  textAlign: "left",
+                                  fontWeight: 600,
+                                  color: "#991b1b",
+                                  fontSize: "0.85rem",
+                                  borderBottom: "1px solid #fecaca",
+                                }}
+                              >
+                                Cancellation Period
+                              </th>
+                              <th
+                                style={{
+                                  padding: "0.75rem 1rem",
+                                  textAlign: "left",
+                                  fontWeight: 600,
+                                  color: "#991b1b",
+                                  fontSize: "0.85rem",
+                                  borderBottom: "1px solid #fecaca",
+                                }}
+                              >
+                                Refund Policy
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {pkg.refundTiers.map((tier, idx) => (
+                              <tr
+                                key={idx}
+                                style={{
+                                  backgroundColor:
+                                    idx % 2 === 0 ? "#fff" : "#fef2f2",
+                                }}
+                              >
+                                <td
+                                  style={{
+                                    padding: "0.75rem 1rem",
+                                    fontSize: "0.9rem",
+                                    color: "#374151",
+                                    fontWeight: 500,
+                                    borderBottom: "1px solid #fecaca",
+                                  }}
+                                >
+                                  {tier.timeframe}
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "0.75rem 1rem",
+                                    fontSize: "0.9rem",
+                                    color: "#374151",
+                                    borderBottom: "1px solid #fecaca",
+                                  }}
+                                >
+                                  {tier.refundInfo}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {/* Policy Notes */}
+                    {pkg.refundPolicyNotes ? (
+                      <div
+                        style={{
+                          color: "#374151",
+                          fontSize: "0.85rem",
+                          lineHeight: 1.7,
+                          whiteSpace: "pre-line",
+                        }}
+                      >
+                        {pkg.refundPolicyNotes}
+                      </div>
+                    ) : (
+                      !pkg.refundTiers?.length && (
+                        <p
+                          style={{
+                            color: "#64748b",
+                            fontSize: "0.9rem",
+                          }}
+                        >
+                          Refund and cancellation policy will be shared upon
+                          booking.
+                        </p>
+                      )
+                    )}
+                  </div>
+
+                  {/* Custom Fields for Policies */}
+                  {pkg.customFields &&
+                    pkg.customFields
+                      .filter((f) => f.section === "policies")
+                      .map((field) => (
+                        <div
+                          key={field.id}
+                          style={{
+                            marginTop: "1.5rem",
+                            padding: "1.25rem",
+                            backgroundColor: "#f8fafc",
+                            borderRadius: "0.75rem",
+                            border: "1px solid #e2e8f0",
+                          }}
+                        >
+                          <h4
+                            style={{
+                              fontSize: "1.05rem",
+                              fontWeight: 700,
+                              marginBottom: "0.75rem",
+                              color: "#0066cc",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                            }}
+                          >
+                            <span
+                              className="material-symbols-outlined"
+                              style={{ fontSize: "1.1rem" }}
+                            >
+                              info
+                            </span>
+                            {field.fieldName}
+                          </h4>
+                          {field.fieldType === "list" &&
+                          Array.isArray(field.value) ? (
+                            <ul
+                              style={{
+                                listStyle: "none",
+                                padding: 0,
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "0.5rem",
+                              }}
+                            >
+                              {field.value.map((item, idx) => (
+                                <li
+                                  key={idx}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "flex-start",
+                                    gap: "0.5rem",
+                                    color: "#4b5563",
+                                    fontSize: "0.95rem",
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      color: "#10b981",
+                                      fontSize: "0.75rem",
+                                      marginTop: "0.4rem",
+                                    }}
+                                  >
+                                    •
+                                  </span>
+                                  {item}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p
+                              style={{
+                                color: "#4b5563",
+                                lineHeight: 1.7,
+                                whiteSpace: "pre-line",
+                                margin: 0,
+                              }}
+                            >
+                              {field.value}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Column - Booking Card */}
+          <div>
+            <div
+              style={{
+                position: "sticky",
+                top: "100px",
+                backgroundColor: "white",
+                borderRadius: "1rem",
+                padding: "1.5rem",
+                boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
+                border: "1px solid #e5e7eb",
+              }}
+            >
+              {/* Price */}
+              <div
+                style={{
+                  marginBottom: "1.5rem",
+                  paddingBottom: "1rem",
+                  borderBottom: "1px solid #e5e7eb",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "baseline",
+                    gap: "0.5rem",
+                  }}
+                >
+                  {pkg.price && pkg.price > 0 ? (
+                    <>
+                      <span
+                        style={{
+                          fontSize: "2rem",
+                          fontWeight: 800,
+                          color: "#1f2937",
+                        }}
+                      >
+                        {formatInr(pkg.price)}
+                      </span>
+                      <span style={{ color: "#64748b", fontSize: "0.9rem" }}>
+                        /person
+                      </span>
+                    </>
+                  ) : (
+                    <span
+                      style={{
+                        fontSize: "1.5rem",
+                        fontWeight: 700,
+                        color: "#0066cc",
+                      }}
+                    >
+                      Contact for Price
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Booking Form */}
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "1rem",
+                }}
+              >
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.8rem",
+                      fontWeight: 600,
+                      color: "#374151",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    Travel Date
+                  </label>
+                  <div style={{ position: "relative" }}>
+                    <span
+                      className="material-symbols-outlined"
+                      style={{
+                        position: "absolute",
+                        left: "0.75rem",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        color: "#9ca3af",
+                        fontSize: "1.25rem",
+                      }}
+                    >
+                      calendar_month
+                    </span>
+                    <input
+                      type="date"
+                      value={bookingDetails.travelDate}
+                      onChange={(e) =>
+                        setBookingDetails({
+                          ...bookingDetails,
+                          travelDate: e.target.value,
+                        })
+                      }
+                      min={new Date().toISOString().split("T")[0]}
+                      style={{
+                        width: "100%",
+                        padding: "0.75rem 0.75rem 0.75rem 2.5rem",
+                        borderRadius: "0.5rem",
+                        border: "1px solid #d1d5db",
+                        fontSize: "0.95rem",
+                        outline: "none",
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.8rem",
+                      fontWeight: 600,
+                      color: "#374151",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    Number of Travelers
+                  </label>
+                  <div style={{ position: "relative" }}>
+                    <span
+                      className="material-symbols-outlined"
+                      style={{
+                        position: "absolute",
+                        left: "0.75rem",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        color: "#9ca3af",
+                        fontSize: "1.25rem",
+                      }}
+                    >
+                      group
+                    </span>
+                    <select
+                      value={bookingDetails.travelers}
+                      onChange={(e) =>
+                        setBookingDetails({
+                          ...bookingDetails,
+                          travelers: parseInt(e.target.value),
+                        })
+                      }
+                      style={{
+                        width: "100%",
+                        padding: "0.75rem 0.75rem 0.75rem 2.5rem",
+                        borderRadius: "0.5rem",
+                        border: "1px solid #d1d5db",
+                        fontSize: "0.95rem",
+                        outline: "none",
+                        backgroundColor: "white",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                        <option key={num} value={num}>
+                          {num} {num === 1 ? "Traveler" : "Travelers"}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Total */}
+                <div
+                  style={{
+                    backgroundColor: "#f8fafc",
+                    padding: "1rem",
+                    borderRadius: "0.5rem",
+                    marginTop: "0.5rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: "0.5rem",
+                      fontSize: "0.9rem",
+                      color: "#6b7280",
+                    }}
+                  >
+                    <span>
+                      {formatInr(pkg.price || 0)} × {bookingDetails.travelers}{" "}
+                      {bookingDetails.travelers === 1 ? "person" : "people"}
+                    </span>
+                    <span>{formatInr(totalPrice)}</span>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      fontSize: "1.1rem",
+                      fontWeight: 700,
+                      color: "#1f2937",
+                      paddingTop: "0.5rem",
+                      borderTop: "1px dashed #d1d5db",
+                    }}
+                  >
+                    <span>Total</span>
+                    <span>{formatInr(totalPrice)}</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleBooking}
+                  disabled={!bookingDetails.travelDate}
+                  style={{
+                    width: "100%",
+                    padding: "1rem",
+                    backgroundColor: bookingDetails.travelDate
+                      ? "#0066cc"
+                      : "#94a3b8",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "0.5rem",
+                    fontSize: "1rem",
+                    fontWeight: 700,
+                    cursor: bookingDetails.travelDate
+                      ? "pointer"
+                      : "not-allowed",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "0.5rem",
+                    transition: "background-color 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (bookingDetails.travelDate) {
+                      e.currentTarget.style.backgroundColor = "#0052a3";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (bookingDetails.travelDate) {
+                      e.currentTarget.style.backgroundColor = "#0066cc";
+                    }
+                  }}
+                >
+                  <span className="material-symbols-outlined">
+                    flight_takeoff
+                  </span>
+                  Book Now
+                </button>
               </div>
             </div>
           </div>
         </div>
-      </section>
-
-      {/* Mobile Responsive Styles */}
-      <style>{`
-        @media (max-width: 1024px) {
-          .package-main-grid {
-            grid-template-columns: 1fr !important;
-          }
-          
-          .package-sidebar {
-            position: relative !important;
-            top: 0 !important;
-          }
-        }
-        
-        @media (max-width: 768px) {
-          .package-overview-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
-          }
-          
-          .package-hero {
-            height: 350px !important;
-          }
-          
-          .package-hero-content h1 {
-            font-size: 1.75rem !important;
-          }
-          
-          .package-section-title {
-            font-size: 1.5rem !important;
-          }
-          
-          .package-content-section {
-            padding: 2rem 1rem !important;
-          }
-        }
-        
-        @media (max-width: 480px) {
-          .package-overview-grid {
-            grid-template-columns: 1fr !important;
-            gap: 0.75rem !important;
-          }
-          
-          .package-hero {
-            height: 280px !important;
-          }
-          
-          .package-back-btn {
-            top: 1rem !important;
-            left: 1rem !important;
-            padding: 0.5rem 1rem !important;
-            font-size: 0.875rem !important;
-          }
-          
-          .package-featured-badge {
-            top: 1rem !important;
-            right: 1rem !important;
-            padding: 0.5rem 1rem !important;
-            font-size: 0.75rem !important;
-          }
-          
-          .package-price-card {
-            padding: 1.5rem !important;
-            border-radius: 16px !important;
-          }
-          
-          .package-section-title {
-            font-size: 1.25rem !important;
-          }
-        }
-      `}</style>
+      </main>
     </div>
   );
 }

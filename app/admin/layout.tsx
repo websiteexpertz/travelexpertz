@@ -66,6 +66,7 @@ export default function AdminLayout({
     { label: "Dashboard", href: "/admin", icon: "📊" },
     { label: "Services", href: "/admin/services", icon: "✈️" },
     { label: "Testimonials", href: "/admin/testimonials", icon: "⭐" },
+    { label: "Reviews", href: "/admin/reviews", icon: "💬" },
     { label: "FAQs", href: "/admin/faqs", icon: "❓" },
     { label: "Packages", href: "/admin/packages", icon: "📦" },
     { label: "Hotels", href: "/admin/hotels/manage", icon: "🏨" },

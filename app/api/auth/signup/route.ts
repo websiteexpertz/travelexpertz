@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
     const userResult = await usersCollection.insertOne({
       email: email.toLowerCase(),
       password: hashedPassword,
+      name: name || "", // Store name in users collection
       emailVerified: true,
       isActive: true,
       role: "user",

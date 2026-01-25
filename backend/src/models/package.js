@@ -79,6 +79,21 @@ const packageSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    customFields: [
+      {
+        id: String,
+        section: {
+          type: String,
+          enum: ["overview", "itinerary", "inclusions", "essentials", "policies"],
+        },
+        fieldName: String,
+        fieldType: {
+          type: String,
+          enum: ["text", "textarea", "list"],
+        },
+        value: mongoose.Schema.Types.Mixed, // Can be String or Array
+      },
+    ],
   },
   {
     timestamps: true,

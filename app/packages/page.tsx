@@ -1,133 +1,135 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import Header from "../components/Header";
 
 interface Package {
   _id?: string;
-  id?: string;
   title: string;
   description: string;
-  image: string;
-  price: number;
-  currency: string;
+  fullDescription?: string;
   duration: string;
-  location: string;
-  featured: boolean;
-  active: boolean;
+  startingPoint: string;
+  category: string;
+  badge?: string;
+  image: string;
+  gallery?: string[];
+  price?: number;
+  currency?: string;
+  featured?: boolean;
+  active?: boolean;
 }
 
-export default function PackagesPage() {
+interface Destination {
+  _id?: string;
+  name: string;
+  image: string;
+  packageCount?: number;
+  active?: boolean;
+}
+
+const inrFormatter = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  maximumFractionDigits: 0,
+});
+
+const formatInr = (value: number) =>
+  inrFormatter.format(Math.max(0, Math.round(value)));
+
+export default function Packages() {
   const [packages, setPackages] = useState<Package[]>([]);
+  const [destinations, setDestinations] = useState<Destination[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filteredPackages, setFilteredPackages] = useState<Package[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState<"price-low" | "price-high" | "featured">(
-    "featured"
-  );
+  const [selectedDestination, setSelectedDestination] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<string>("featured");
+  const [priceRange, setPriceRange] = useState<string>("all");
 
   useEffect(() => {
-    const fetchPackages = async () => {
+    const fetchData = async () => {
+      setLoading(true);
       try {
-        const response = await fetch("/api/packages", {
-          method: "GET",
-          cache: "no-store",
-        });
+        const [packagesRes, destinationsRes] = await Promise.all([
+          fetch("/api/packages", { cache: "no-store" }),
+          fetch("/api/destinations", { cache: "no-store" }),
+        ]);
 
-        if (response.ok) {
-          const data = await response.json();
-          setPackages(data);
-          setFilteredPackages(data);
-        } else {
-          console.error("Failed to fetch packages");
+        if (packagesRes.ok) {
+          const data = await packagesRes.json();
+          setPackages(Array.isArray(data) ? data : []);
+        }
+
+        if (destinationsRes.ok) {
+          const data = await destinationsRes.json();
+          setDestinations(Array.isArray(data) ? data : []);
         }
       } catch (error) {
-        console.error("Error fetching packages:", error);
+        console.error("Failed to fetch data:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchPackages();
+    fetchData();
   }, []);
 
-  // Filter and sort packages
-  useEffect(() => {
-    let filtered = packages.filter(
-      (pkg) =>
-        pkg.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        pkg.location.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  const filteredPackages = useMemo(() => {
+    return packages
+      .filter((pkg) => {
+        const matchesSearch = searchQuery
+          ? pkg.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            pkg.description
+              ?.toLowerCase()
+              .includes(searchQuery.toLowerCase()) ||
+            pkg.startingPoint
+              ?.toLowerCase()
+              .includes(searchQuery.toLowerCase()) ||
+            pkg.badge?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            pkg.category?.toLowerCase().includes(searchQuery.toLowerCase())
+          : true;
 
-    filtered.sort((a, b) => {
-      if (sortBy === "price-low") {
-        return a.price - b.price;
-      } else if (sortBy === "price-high") {
-        return b.price - a.price;
-      } else {
-        // Featured first
-        if (a.featured && !b.featured) return -1;
-        if (!a.featured && b.featured) return 1;
-        return 0;
-      }
-    });
+        const matchesPrice = (() => {
+          const price = pkg.price || 0;
+          if (priceRange === "budget") return price < 15000;
+          if (priceRange === "mid") return price >= 15000 && price <= 30000;
+          if (priceRange === "luxury") return price > 30000;
+          return true;
+        })();
 
-    setFilteredPackages(filtered);
-  }, [searchTerm, sortBy, packages]);
-
-  if (loading) {
-    return (
-      <>
-        <Header currentPage="packages" />
-        <div
-          style={{
-            minHeight: "100vh",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "white",
-          }}
-        >
-          <div style={{ textAlign: "center" }}>
-            <div
-              style={{
-                width: "50px",
-                height: "50px",
-                border: "4px solid rgba(0, 102, 204, 0.2)",
-                borderTop: "4px solid #0066cc",
-                borderRadius: "50%",
-                animation: "spin 1s linear infinite",
-                margin: "0 auto 1rem",
-              }}
-            />
-            <p style={{ fontSize: "1.1rem", color: "#666" }}>
-              Loading packages...
-            </p>
-            <style>{`
-              @keyframes spin {
-                to { transform: rotate(360deg); }
-              }
-            `}</style>
-          </div>
-        </div>
-      </>
-    );
-  }
+        return matchesSearch && matchesPrice;
+      })
+      .sort((a, b) => {
+        if (sortBy === "price-low") return (a.price || 0) - (b.price || 0);
+        if (sortBy === "price-high") return (b.price || 0) - (a.price || 0);
+        if (sortBy === "duration") {
+          const durationA = parseInt(a.duration) || 0;
+          const durationB = parseInt(b.duration) || 0;
+          return durationA - durationB;
+        }
+        return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
+      });
+  }, [packages, searchQuery, priceRange, sortBy]);
 
   return (
-    <>
+    <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden">
       <Header currentPage="packages" />
-      <div style={{ minHeight: "100vh", background: "#f5f7fa" }}>
-        {/* ========== HERO SECTION ========== */}
+
+      <main className="flex flex-col items-center w-full">
+        {/* Hero Section */}
         <div
           className="w-full"
-          style={{ background: "transparent", padding: "0 1.5rem" }}
+          style={{
+            background: "transparent",
+            padding: "0 1.5rem",
+          }}
         >
           <div
             className="hero-section"
             style={{
-              backgroundImage: "url('/hero-banner.png')",
+              backgroundImage: "url('/packages-hero.jpg')",
               backgroundSize: "cover",
               backgroundPosition: "center",
             }}
@@ -135,392 +137,580 @@ export default function PackagesPage() {
             <div className="hero-content">
               <h1>Explore Our Travel Packages</h1>
               <p>
-                Discover curated travel experiences designed for unforgettable
-                adventures
+                Discover handpicked adventures across India&apos;s most
+                beautiful destinations
               </p>
             </div>
 
-            {/* Search Form Box */}
+            {/* Search Box */}
             <div className="search-box">
               <div className="search-box-content">
                 <div className="search-item">
                   <span className="material-symbols-outlined">location_on</span>
-                  <span>Location</span>
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ marginLeft: "auto" }}
-                  >
-                    arrow_drop_down
-                  </span>
+                  <input
+                    type="text"
+                    placeholder="Search destinations..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{
+                      border: "none",
+                      outline: "none",
+                      flex: 1,
+                      fontSize: "0.95rem",
+                      background: "transparent",
+                    }}
+                  />
                 </div>
                 <div className="search-item">
-                  <span className="material-symbols-outlined">
-                    calendar_month
-                  </span>
-                  <span>Start Date</span>
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ marginLeft: "auto" }}
+                  <span className="material-symbols-outlined">category</span>
+                  <select
+                    value={priceRange}
+                    onChange={(e) => setPriceRange(e.target.value)}
+                    style={{
+                      border: "none",
+                      outline: "none",
+                      flex: 1,
+                      fontSize: "0.95rem",
+                      background: "transparent",
+                    }}
                   >
-                    arrow_drop_down
-                  </span>
+                    <option value="all">All Budgets</option>
+                    <option value="budget">Under ₹15,000</option>
+                    <option value="mid">₹15,000 - ₹30,000</option>
+                    <option value="luxury">Above ₹30,000</option>
+                  </select>
                 </div>
                 <div className="search-item">
-                  <span className="material-symbols-outlined">
-                    calendar_month
-                  </span>
-                  <span>End Date</span>
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ marginLeft: "auto" }}
+                  <span className="material-symbols-outlined">sort</span>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    style={{
+                      border: "none",
+                      outline: "none",
+                      flex: 1,
+                      fontSize: "0.95rem",
+                      background: "transparent",
+                    }}
                   >
-                    arrow_drop_down
-                  </span>
+                    <option value="featured">Featured</option>
+                    <option value="price-low">Price: Low to High</option>
+                    <option value="price-high">Price: High to Low</option>
+                    <option value="duration">Duration</option>
+                  </select>
                 </div>
-                <div className="search-item">
-                  <span className="material-symbols-outlined">group</span>
-                  <span>Guests</span>
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ marginLeft: "auto" }}
-                  >
-                    arrow_drop_down
-                  </span>
-                </div>
-                <div className="search-item">
-                  <span className="material-symbols-outlined">trending_up</span>
-                  <span>Budget</span>
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ marginLeft: "auto" }}
-                  >
-                    arrow_drop_down
-                  </span>
-                </div>
-                <button className="search-btn">Search</button>
+                <button className="search-btn" onClick={() => {}}>
+                  Search
+                </button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Filters and Search */}
-        <div
+        {/* Destinations Section */}
+        <section
           style={{
+            padding: "3rem 1.5rem",
             maxWidth: "100rem",
-            margin: "0 auto 3rem",
-            padding: "0 1.5rem",
-            display: "none",
+            width: "100%",
+            margin: "0 auto",
+          }}
+        >
+          <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "0.5rem",
+                marginBottom: "0.5rem",
+              }}
+            >
+              <span style={{ fontSize: "2rem" }}>🌍</span>
+              <h2
+                style={{
+                  fontSize: "1.75rem",
+                  fontWeight: 700,
+                  color: "#1f2937",
+                }}
+              >
+                Destinations
+              </h2>
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              gap: "2rem",
+              flexWrap: "wrap",
+            }}
+          >
+            {loading && (
+              <div style={{ textAlign: "center", color: "#64748b" }}>
+                Loading destinations...
+              </div>
+            )}
+            {!loading && destinations.length === 0 && (
+              <div style={{ textAlign: "center", color: "#64748b" }}>
+                No destinations available yet.
+              </div>
+            )}
+            {!loading &&
+              destinations.map((destination) => (
+                <div
+                  key={destination._id || destination.name}
+                  onClick={() =>
+                    setSelectedDestination(
+                      selectedDestination === destination.name
+                        ? ""
+                        : destination.name,
+                    )
+                  }
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    cursor: "pointer",
+                    transition: "transform 0.3s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "scale(1.05)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "scale(1)";
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "120px",
+                      height: "120px",
+                      borderRadius: "50%",
+                      overflow: "hidden",
+                      border:
+                        selectedDestination === destination.name
+                          ? "4px solid #0066cc"
+                          : "4px solid transparent",
+                      boxShadow:
+                        selectedDestination === destination.name
+                          ? "0 8px 25px rgba(0, 102, 204, 0.3)"
+                          : "0 4px 15px rgba(0, 0, 0, 0.1)",
+                      transition: "all 0.3s ease",
+                    }}
+                  >
+                    <img
+                      src={destination.image || "/placeholder-destination.jpg"}
+                      alt={destination.name}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  </div>
+                  <span
+                    style={{
+                      marginTop: "0.75rem",
+                      fontSize: "0.95rem",
+                      fontWeight: 600,
+                      color:
+                        selectedDestination === destination.name
+                          ? "#0066cc"
+                          : "#374151",
+                      textAlign: "center",
+                    }}
+                  >
+                    {destination.name}
+                  </span>
+                </div>
+              ))}
+          </div>
+
+          {selectedDestination && (
+            <div
+              style={{
+                textAlign: "center",
+                marginTop: "1.5rem",
+              }}
+            >
+              <button
+                onClick={() => setSelectedDestination("")}
+                style={{
+                  padding: "0.5rem 1.5rem",
+                  backgroundColor: "#f3f4f6",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "2rem",
+                  fontSize: "0.875rem",
+                  fontWeight: 500,
+                  color: "#4b5563",
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "#e5e7eb";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "#f3f4f6";
+                }}
+              >
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: "1rem" }}
+                >
+                  close
+                </span>
+                Clear filter: {selectedDestination}
+              </button>
+            </div>
+          )}
+        </section>
+
+        {/* Packages Grid */}
+        <section
+          style={{
+            padding: "0 1.5rem 3rem",
+            maxWidth: "100rem",
+            width: "100%",
+            margin: "0 auto",
           }}
         >
           <div
             style={{
               display: "flex",
-              gap: "1.5rem",
-              flexWrap: "wrap",
               alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: "1.5rem",
+              flexWrap: "wrap",
+              gap: "1rem",
             }}
           >
-            {/* Search Input */}
-            <input
-              type="text"
-              placeholder="Search by package name or location..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+            <h2
               style={{
-                flex: "1",
-                minWidth: "250px",
-                padding: "0.75rem 1rem",
-                fontSize: "1rem",
-                border: "2px solid #ddd",
-                borderRadius: "0.5rem",
-                fontFamily: "inherit",
-                transition: "border-color 0.3s",
-              }}
-              onFocus={(e) => (e.currentTarget.style.borderColor = "#0a66c2")}
-              onBlur={(e) => (e.currentTarget.style.borderColor = "#ddd")}
-            />
-
-            {/* Sort Dropdown */}
-            <select
-              value={sortBy}
-              onChange={(e) =>
-                setSortBy(
-                  e.target.value as "price-low" | "price-high" | "featured"
-                )
-              }
-              style={{
-                padding: "0.75rem 1rem",
-                fontSize: "1rem",
-                border: "2px solid #ddd",
-                borderRadius: "0.5rem",
-                background: "white",
-                cursor: "pointer",
-                fontFamily: "inherit",
-                transition: "border-color 0.3s",
+                fontSize: "1.5rem",
+                fontWeight: 700,
+                color: "#1f2937",
               }}
             >
-              <option value="featured">Featured First</option>
-              <option value="price-low">Price: Low to High</option>
-              <option value="price-high">Price: High to Low</option>
-            </select>
-          </div>
-
-          {/* Results Count */}
-          <p
-            style={{
-              marginTop: "1rem",
-              color: "#666",
-              fontSize: "0.95rem",
-            }}
-          >
-            Showing {filteredPackages.length} package
-            {filteredPackages.length !== 1 ? "s" : ""}
-          </p>
-        </div>
-
-        {/* Packages Grid */}
-        <div
-          style={{
-            maxWidth: "100rem",
-            margin: "0 auto",
-            padding: "0 1.5rem 3rem",
-          }}
-        >
-          {filteredPackages.length > 0 ? (
+              {selectedDestination
+                ? `Packages in ${selectedDestination}`
+                : "All Packages"}
+            </h2>
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-                gap: "2rem",
+                fontSize: "0.9rem",
+                color: "#64748b",
+                fontWeight: 600,
+                padding: "0.5rem 1rem",
+                backgroundColor: "#f1f5f9",
+                borderRadius: "8px",
               }}
             >
-              {filteredPackages.map((pkg) => (
+              {filteredPackages.length}{" "}
+              {filteredPackages.length === 1 ? "package" : "packages"} found
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+              gap: "1.5rem",
+            }}
+          >
+            {loading && (
+              <div
+                style={{
+                  gridColumn: "1 / -1",
+                  textAlign: "center",
+                  padding: "3rem",
+                  fontSize: "1rem",
+                  color: "#64748b",
+                }}
+              >
+                Loading packages...
+              </div>
+            )}
+            {!loading && filteredPackages.length === 0 && (
+              <div
+                style={{
+                  gridColumn: "1 / -1",
+                  textAlign: "center",
+                  padding: "3rem",
+                  fontSize: "1rem",
+                  color: "#64748b",
+                }}
+              >
+                {packages.length === 0
+                  ? "No packages available yet. Please add packages from the admin panel."
+                  : "No packages match the selected filters. Try adjusting your search criteria."}
+              </div>
+            )}
+            {!loading &&
+              filteredPackages.map((pkg) => (
                 <Link
-                  key={pkg._id || pkg.id}
-                  href={`/packages/${pkg._id || pkg.id}`}
-                  style={{ textDecoration: "none" }}
+                  key={pkg._id || pkg.title}
+                  href={`/packages/${pkg._id || encodeURIComponent(pkg.title)}`}
+                  style={{
+                    textDecoration: "none",
+                    color: "inherit",
+                  }}
                 >
                   <div
+                    className="package-card"
                     style={{
-                      background: "white",
+                      backgroundColor: "#ffffff",
                       borderRadius: "1rem",
                       overflow: "hidden",
-                      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-                      transition: "all 0.3s ease",
+                      boxShadow: "0 4px 6px rgba(0, 0, 0, 0.08)",
+                      transition: "transform 0.3s ease, box-shadow 0.3s ease",
                       cursor: "pointer",
-                      height: "100%",
-                      display: "flex",
-                      flexDirection: "column",
+                      border: "1px solid #e5e7eb",
                     }}
                     onMouseEnter={(e) => {
-                      const elem = e.currentTarget;
-                      elem.style.boxShadow = "0 12px 24px rgba(0, 0, 0, 0.15)";
-                      elem.style.transform = "translateY(-8px)";
+                      e.currentTarget.style.transform = "translateY(-6px)";
+                      e.currentTarget.style.boxShadow =
+                        "0 20px 40px rgba(0, 0, 0, 0.12)";
                     }}
                     onMouseLeave={(e) => {
-                      const elem = e.currentTarget;
-                      elem.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.1)";
-                      elem.style.transform = "translateY(0)";
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow =
+                        "0 4px 6px rgba(0, 0, 0, 0.08)";
                     }}
                   >
                     {/* Image */}
-                    <div
-                      style={{
-                        position: "relative",
-                        overflow: "hidden",
-                        height: "200px",
-                        background:
-                          "linear-gradient(135deg, #e0e7ff 0%, #f3e8ff 100%)",
-                      }}
-                    >
+                    <div style={{ position: "relative", height: "200px" }}>
                       <img
-                        src={pkg.image}
+                        src={
+                          pkg.image ||
+                          pkg.gallery?.[0] ||
+                          "/placeholder-package.jpg"
+                        }
                         alt={pkg.title}
                         style={{
                           width: "100%",
                           height: "100%",
                           objectFit: "cover",
-                          transition: "transform 0.3s ease",
                         }}
-                        onMouseEnter={(e) =>
-                          ((e.target as HTMLImageElement).style.transform =
-                            "scale(1.1)")
-                        }
-                        onMouseLeave={(e) =>
-                          ((e.target as HTMLImageElement).style.transform =
-                            "scale(1)")
-                        }
                       />
-
-                      {/* Featured Badge */}
-                      {pkg.featured && (
-                        <div
+                      {pkg.badge && (
+                        <span
                           style={{
                             position: "absolute",
                             top: "1rem",
                             right: "1rem",
-                            background: "#fbbf24",
-                            color: "#000",
-                            padding: "0.5rem 1rem",
-                            borderRadius: "9999px",
-                            fontSize: "0.85rem",
-                            fontWeight: 700,
-                            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+                            backgroundColor: "#0066cc",
+                            color: "white",
+                            padding: "0.35rem 0.75rem",
+                            borderRadius: "0.5rem",
+                            fontSize: "0.75rem",
+                            fontWeight: 600,
                           }}
                         >
-                          ⭐ Featured
-                        </div>
+                          {pkg.badge}
+                        </span>
+                      )}
+                      {pkg.category && (
+                        <span
+                          style={{
+                            position: "absolute",
+                            top: "1rem",
+                            left: "1rem",
+                            backgroundColor: "#10b981",
+                            color: "white",
+                            padding: "0.35rem 0.75rem",
+                            borderRadius: "0.5rem",
+                            fontSize: "0.75rem",
+                            fontWeight: 600,
+                          }}
+                        >
+                          {pkg.category}
+                        </span>
                       )}
                     </div>
 
                     {/* Content */}
-                    <div
-                      style={{
-                        padding: "1.5rem",
-                        display: "flex",
-                        flexDirection: "column",
-                        flex: 1,
-                      }}
-                    >
-                      {/* Title */}
-                      <h3
+                    <div style={{ padding: "1.25rem" }}>
+                      <div
                         style={{
-                          fontSize: "1.25rem",
-                          fontWeight: 700,
-                          color: "#1a1a2e",
-                          marginBottom: "0.5rem",
-                          margin: "0 0 0.5rem 0",
-                        }}
-                      >
-                        {pkg.title}
-                      </h3>
-
-                      {/* Location */}
-                      <p
-                        style={{
-                          fontSize: "0.95rem",
-                          color: "#0a66c2",
-                          fontWeight: 600,
-                          marginBottom: "0.75rem",
-                          margin: "0 0 0.75rem 0",
                           display: "flex",
-                          alignItems: "center",
+                          alignItems: "flex-start",
+                          justifyContent: "space-between",
                           gap: "0.5rem",
+                          marginBottom: "0.5rem",
                         }}
                       >
-                        📍 {pkg.location}
-                      </p>
+                        <h3
+                          style={{
+                            fontSize: "1.1rem",
+                            fontWeight: 700,
+                            color: "#1f2937",
+                            lineHeight: 1.3,
+                            flex: 1,
+                          }}
+                        >
+                          {pkg.title}
+                        </h3>
+                      </div>
 
-                      {/* Description */}
                       <p
                         style={{
-                          fontSize: "0.9rem",
-                          color: "#666",
-                          lineHeight: 1.6,
+                          fontSize: "0.875rem",
+                          color: "#6b7280",
                           marginBottom: "1rem",
-                          flex: 1,
-                          overflow: "hidden",
+                          lineHeight: 1.5,
                           display: "-webkit-box",
                           WebkitLineClamp: 2,
                           WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
                         }}
                       >
                         {pkg.description}
                       </p>
 
-                      {/* Duration */}
-                      <p
-                        style={{
-                          fontSize: "0.9rem",
-                          color: "#666",
-                          marginBottom: "1rem",
-                          margin: "0 0 1rem 0",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.5rem",
-                        }}
-                      >
-                        ⏱️ {pkg.duration}
-                      </p>
-
-                      {/* Price Section */}
+                      {/* Details Row */}
                       <div
                         style={{
-                          borderTop: "1px solid #eee",
-                          paddingTop: "1rem",
                           display: "flex",
-                          justifyContent: "space-between",
                           alignItems: "center",
+                          gap: "1rem",
+                          marginBottom: "1rem",
+                          fontSize: "0.85rem",
+                          color: "#6b7280",
                         }}
                       >
-                        <div>
-                          <p
-                            style={{
-                              fontSize: "0.85rem",
-                              color: "#999",
-                              margin: "0 0 0.25rem 0",
-                            }}
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.35rem",
+                          }}
+                        >
+                          <span
+                            className="material-symbols-outlined"
+                            style={{ fontSize: "1.1rem", color: "#9ca3af" }}
                           >
-                            Starting From
-                          </p>
-                          <p
-                            style={{
-                              fontSize: "1.5rem",
-                              fontWeight: 700,
-                              color: "#0a66c2",
-                              margin: 0,
-                            }}
-                          >
-                            {pkg.currency}
-                            {pkg.price.toLocaleString()}
-                          </p>
+                            schedule
+                          </span>
+                          {pkg.duration}
                         </div>
                         <div
                           style={{
-                            background: "#0a66c2",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.35rem",
+                          }}
+                        >
+                          <span
+                            className="material-symbols-outlined"
+                            style={{ fontSize: "1.1rem", color: "#f43f5e" }}
+                          >
+                            location_on
+                          </span>
+                          {pkg.startingPoint}
+                        </div>
+                      </div>
+
+                      {/* Price & CTA */}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          paddingTop: "1rem",
+                          borderTop: "1px solid #f3f4f6",
+                        }}
+                      >
+                        <div>
+                          {pkg.price && pkg.price > 0 ? (
+                            <>
+                              <span
+                                style={{
+                                  fontSize: "1.1rem",
+                                  fontWeight: 700,
+                                  color: "#1f2937",
+                                }}
+                              >
+                                {formatInr(pkg.price)}
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#6b7280",
+                                  marginLeft: "0.25rem",
+                                }}
+                              >
+                                /person
+                              </span>
+                            </>
+                          ) : (
+                            <span
+                              style={{
+                                fontSize: "1rem",
+                                fontWeight: 600,
+                                color: "#0066cc",
+                              }}
+                            >
+                              Enquire
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          style={{
+                            backgroundColor: "#0066cc",
                             color: "white",
-                            padding: "0.5rem 1rem",
+                            border: "none",
+                            padding: "0.6rem 1.25rem",
                             borderRadius: "0.5rem",
-                            fontSize: "0.9rem",
+                            fontSize: "0.85rem",
                             fontWeight: 600,
                             cursor: "pointer",
-                            transition: "background 0.3s",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.35rem",
+                            transition: "background-color 0.2s ease",
                           }}
-                          onMouseEnter={(e) =>
-                            (e.currentTarget.style.background = "#0052a3")
-                          }
-                          onMouseLeave={(e) =>
-                            (e.currentTarget.style.background = "#0a66c2")
-                          }
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = "#0052a3";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = "#0066cc";
+                          }}
                         >
                           View Details
-                        </div>
+                          <span
+                            className="material-symbols-outlined"
+                            style={{ fontSize: "1rem" }}
+                          >
+                            arrow_forward
+                          </span>
+                        </button>
                       </div>
                     </div>
                   </div>
                 </Link>
               ))}
-            </div>
-          ) : (
-            <div
-              style={{
-                textAlign: "center",
-                padding: "4rem 2rem",
-                background: "white",
-                borderRadius: "1rem",
-                color: "#666",
-              }}
-            >
-              <p style={{ fontSize: "1.1rem", marginBottom: "0.5rem" }}>
-                No packages found matching your search.
-              </p>
-              <p style={{ color: "#999" }}>
-                Try adjusting your filters or search terms.
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-    </>
+          </div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer
+        style={{
+          backgroundColor: "#1f2937",
+          color: "white",
+          padding: "2rem 1.5rem",
+          textAlign: "center",
+          marginTop: "auto",
+        }}
+      >
+        <p style={{ fontSize: "0.875rem", color: "#9ca3af" }}>
+          © {new Date().getFullYear()} TravelExpertz. All rights reserved.
+        </p>
+      </footer>
+    </div>
   );
 }

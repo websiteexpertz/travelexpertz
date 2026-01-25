@@ -140,15 +140,15 @@ export async function POST(request: Request) {
     const booking = {
       ...body,
       homestayId: new ObjectId(body.homestayId),
-      userId: body.userId || null,
+      userId: body.userId ? new ObjectId(body.userId) : null,
       nights,
       basePrice,
       taxes,
       platformFee,
       totalPrice,
       bookingReference,
-      paymentStatus: "pending",
-      bookingStatus: "pending",
+      paymentStatus: "completed", // Auto-complete for demo
+      bookingStatus: body.userId ? "confirmed" : "pending", // Auto-confirm if user logged in
       refundStatus: "none",
       createdAt: new Date(),
       updatedAt: new Date(),

@@ -11,16 +11,13 @@ export async function GET(
   let client: MongoClient | null = null;
   try {
     if (!MONGODB_URI) {
-      return NextResponse.json(null, { status: 500 });
+      return NextResponse.json({ error: "Database not configured" }, { status: 500 });
     }
 
     const { id } = await params;
-    console.log(`Fetching package with ID: ${id}`);
 
-    // Validate if id is a valid MongoDB ObjectId
-    if (!ObjectId.isValid(id)) {
-      console.error(`Invalid ObjectId format: ${id}`);
-      return NextResponse.json(null, { status: 404 });
+    if (!id) {
+      return NextResponse.json({ error: "Package ID is required" }, { status: 400 });
     }
 
     client = new MongoClient(MONGODB_URI);
@@ -29,20 +26,22 @@ export async function GET(
     const db = client.db(MONGODB_DB);
     const packagesCollection = db.collection("packages");
 
-    const pkg = await packagesCollection.findOne({
+    // Fetch package from single collection
+    const packageItem = await packagesCollection.findOne({
       _id: new ObjectId(id),
     });
 
-    if (!pkg) {
-      console.error(`Package not found: ${id}`);
-      return NextResponse.json(null, { status: 404 });
+    if (!packageItem) {
+      return NextResponse.json({ error: "Package not found" }, { status: 404 });
     }
 
-    console.log(`Found package: ${pkg.title}`);
-    return NextResponse.json(pkg);
+    return NextResponse.json(packageItem);
   } catch (error) {
     console.error("Error fetching package:", error);
-    return NextResponse.json(null, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch package" },
+      { status: 500 }
+    );
   } finally {
     if (client) {
       await client.close();

@@ -22,6 +22,20 @@ type HeaderProps = {
     | "transactions";
 };
 
+interface Package {
+  _id: string;
+  title?: string;
+  name?: string;
+  description: string;
+  duration: string;
+  location: string;
+  category?: string;
+  badge: string;
+  image: string;
+  price?: number;
+  comingSoon?: boolean;
+}
+
 const navItems: Array<{
   key: NonNullable<HeaderProps["currentPage"]>;
   label: string;
@@ -49,6 +63,24 @@ export default function Header({ currentPage }: HeaderProps) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState("User");
   const [mounted, setMounted] = useState(false);
+  const [packages, setPackages] = useState<Package[]>([]);
+  const [packagesLoading, setPackagesLoading] = useState(false);
+
+  // Fetch packages from packages_list collection
+  const fetchPackages = async () => {
+    try {
+      setPackagesLoading(true);
+      const response = await fetch("/api/packages");
+      if (response.ok) {
+        const data = await response.json();
+        setPackages(Array.isArray(data) ? data : []);
+      }
+    } catch (error) {
+      console.error("Error fetching packages:", error);
+    } finally {
+      setPackagesLoading(false);
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -62,6 +94,8 @@ export default function Header({ currentPage }: HeaderProps) {
         setIsLoggedIn(false);
       }
     }
+    // Fetch packages on mount
+    fetchPackages();
   }, []);
 
   if (!mounted) {
@@ -90,8 +124,8 @@ export default function Header({ currentPage }: HeaderProps) {
             <Image
               src="/logo.webp"
               alt="TravelExpertz"
-              width={40}
-              height={40}
+              width={70}
+              height={70}
               priority
               className="h-10 w-10 rounded-lg"
             />
@@ -107,6 +141,11 @@ export default function Header({ currentPage }: HeaderProps) {
                   href={item.href}
                   aria-current={isActive ? "page" : undefined}
                   className={isActive ? "text-primary" : undefined}
+                  style={{
+                    fontSize: "1.05rem",
+                    fontWeight: "500",
+                    padding: "0.5rem 0.25rem",
+                  }}
                 >
                   {item.label}
                 </Link>
@@ -119,14 +158,14 @@ export default function Header({ currentPage }: HeaderProps) {
               href="/auth/login"
               className="inline-flex items-center justify-center"
               style={{
-                minWidth: "120px",
-                height: "2.75rem",
+                minWidth: "130px",
+                height: "3rem",
                 backgroundColor: "transparent",
                 color: "var(--primary)",
                 border: "2px solid var(--primary)",
                 borderRadius: "0.5rem",
                 fontWeight: 600,
-                fontSize: "0.95rem",
+                fontSize: "1rem",
                 cursor: "pointer",
                 transition: "all 0.2s ease",
                 padding: "0.5rem 1.5rem",
@@ -147,14 +186,14 @@ export default function Header({ currentPage }: HeaderProps) {
               href="/auth/register"
               className="inline-flex items-center justify-center"
               style={{
-                minWidth: "120px",
-                height: "2.75rem",
+                minWidth: "130px",
+                height: "3rem",
                 backgroundColor: "var(--primary)",
                 color: "white",
                 border: "2px solid var(--primary)",
                 borderRadius: "0.5rem",
                 fontWeight: 600,
-                fontSize: "0.95rem",
+                fontSize: "1rem",
                 cursor: "pointer",
                 transition: "all 0.2s ease",
                 padding: "0.5rem 1.5rem",

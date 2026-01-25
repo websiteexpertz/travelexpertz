@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 
 const MONGODB_URI = process.env.MONGODB_URI || "";
 const MONGODB_DB = process.env.MONGODB_DB || "travelexpertz";
@@ -11,14 +11,31 @@ export async function GET(request: NextRequest) {
       return NextResponse.json([], { status: 200 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
     client = new MongoClient(MONGODB_URI);
     await client.connect();
 
     const db = client.db(MONGODB_DB);
     const packagesCollection = db.collection("packages");
 
+    // If ID is provided, fetch single package
+    if (id) {
+      const packageItem = await packagesCollection.findOne({
+        _id: new ObjectId(id),
+      });
+      
+      if (!packageItem) {
+        return NextResponse.json({ error: "Package not found" }, { status: 404 });
+      }
+      
+      return NextResponse.json(packageItem);
+    }
+
+    // Otherwise, fetch all active packages
     const packages = await packagesCollection
-      .find({ active: true })
+      .find({ active: { $ne: false } })
       .sort({ featured: -1, createdAt: -1 })
       .toArray();
 
@@ -37,7 +54,10 @@ export async function POST(request: NextRequest) {
   let client: MongoClient | null = null;
   try {
     if (!MONGODB_URI) {
-      return NextResponse.json({ error: "Database not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Database not configured" },
+        { status: 500 }
+      );
     }
 
     const body = await request.json();
@@ -47,10 +67,12 @@ export async function POST(request: NextRequest) {
     const db = client.db(MONGODB_DB);
     const packagesCollection = db.collection("packages");
 
+    const now = new Date();
     const result = await packagesCollection.insertOne({
       ...body,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      active: true,
+      createdAt: now,
+      updatedAt: now,
     });
 
     return NextResponse.json({ _id: result.insertedId, ...body }, { status: 201 });
@@ -71,17 +93,20 @@ export async function PATCH(request: NextRequest) {
   let client: MongoClient | null = null;
   try {
     if (!MONGODB_URI) {
-      return NextResponse.json({ error: "Database not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Database not configured" },
+        { status: 500 }
+      );
     }
 
-    const { ObjectId } = await import("mongodb");
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ error: "Package ID required" }, { status: 400 });
+    }
+
     const body = await request.json();
-    const { _id, ...updateData } = body;
-
-    if (!_id) {
-      return NextResponse.json({ error: "Package ID is required" }, { status: 400 });
-    }
-
     client = new MongoClient(MONGODB_URI);
     await client.connect();
 
@@ -89,20 +114,15 @@ export async function PATCH(request: NextRequest) {
     const packagesCollection = db.collection("packages");
 
     const result = await packagesCollection.updateOne(
-      { _id: new ObjectId(_id) },
-      {
-        $set: {
-          ...updateData,
-          updatedAt: new Date(),
-        },
-      }
+      { _id: new ObjectId(id) },
+      { $set: { ...body, updatedAt: new Date() } }
     );
 
     if (result.matchedCount === 0) {
       return NextResponse.json({ error: "Package not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ message: "Package updated successfully" });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to update package:", error);
     return NextResponse.json(
@@ -120,15 +140,17 @@ export async function DELETE(request: NextRequest) {
   let client: MongoClient | null = null;
   try {
     if (!MONGODB_URI) {
-      return NextResponse.json({ error: "Database not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Database not configured" },
+        { status: 500 }
+      );
     }
 
-    const { ObjectId } = await import("mongodb");
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json({ error: "Package ID is required" }, { status: 400 });
+      return NextResponse.json({ error: "Package ID required" }, { status: 400 });
     }
 
     client = new MongoClient(MONGODB_URI);
@@ -137,15 +159,13 @@ export async function DELETE(request: NextRequest) {
     const db = client.db(MONGODB_DB);
     const packagesCollection = db.collection("packages");
 
-    const result = await packagesCollection.deleteOne({
-      _id: new ObjectId(id),
-    });
+    const result = await packagesCollection.deleteOne({ _id: new ObjectId(id) });
 
     if (result.deletedCount === 0) {
       return NextResponse.json({ error: "Package not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ message: "Package deleted successfully" });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to delete package:", error);
     return NextResponse.json(

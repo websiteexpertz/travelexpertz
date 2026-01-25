@@ -29,12 +29,19 @@ export async function GET(request: NextRequest) {
     if (status) {
       if (status === "upcoming") {
         query.bookingStatus = "confirmed";
-        query.checkIn = { $gte: new Date() };
+        // Use either checkIn or checkin field
+        query.$or = [
+          { checkIn: { $gte: new Date() } },
+          { checkin: { $gte: new Date() } }
+        ];
       } else if (status === "completed") {
         query.bookingStatus = "completed";
       } else if (status === "cancelled") {
         query.bookingStatus = "cancelled";
       }
+    } else {
+      // Default filter to show confirmed bookings only
+      query.bookingStatus = "confirmed";
     }
 
     const bookings = await bookingsCollection
@@ -42,9 +49,31 @@ export async function GET(request: NextRequest) {
       .sort({ createdAt: -1 })
       .toArray();
 
+    // Transform bookings to match frontend expectations
+    const transformedBookings = bookings.map((booking: any) => ({
+      _id: booking._id,
+      bookingId: booking.bookingReference || booking._id,
+      propertyId:
+        booking.propertyId?.toString() ||
+        booking.homestayId?.toString() ||
+        booking.hotelId?.toString() ||
+        "",
+      propertyName: booking.propertyName || "Property",
+      propertyType: booking.propertyType || "Homestay",
+      city: booking.city || "City",
+      checkIn: booking.checkIn || booking.checkin,
+      checkOut: booking.checkOut || booking.checkout,
+      guests: booking.guests || 1,
+      rooms: 1,
+      totalAmount: booking.totalPrice,
+      bookingStatus: booking.bookingStatus,
+      paymentStatus: booking.paymentStatus,
+      createdAt: booking.createdAt,
+    }));
+
     return NextResponse.json({
-      bookings,
-      count: bookings.length,
+      bookings: transformedBookings,
+      count: transformedBookings.length,
     });
   } catch (error) {
     console.error("Get bookings error:", error);

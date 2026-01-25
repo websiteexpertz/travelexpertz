@@ -17,3 +17,10 @@ export { default as Card_Component } from './Card';
 // Modals
 export { Modal } from './Modal';
 export { default as Modal_Component } from './Modal';
+
+// Loading Spinner
+export { LoadingSpinner } from './loading-spinner';
+
+// Floating Navbar
+export { FloatingNavbar } from './floating-navbar';
+export { default as FloatingNavbar_Component } from './floating-navbar';

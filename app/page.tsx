@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Header from "./components/Header";
+import ReviewForm from "./components/ReviewForm";
+import ImageModal from "./components/ImageModal";
 
 // Types
 interface Service {
@@ -15,50 +17,21 @@ interface Service {
   image: string;
 }
 
-interface Testimonial {
+interface Review {
   _id?: string;
   id?: string;
-  name: string;
-  location: string;
-  image: string;
+  userId: string;
+  userName: string;
+  userImage: string;
+  propertyId: string;
+  propertyName: string;
+  propertyType: string;
   rating: number;
-  text: string;
-  verified?: boolean;
-}
-
-interface FAQ {
-  _id?: string;
-  id?: string;
-  question: string;
-  answer: string;
-  category: string;
-  order: number;
+  reviewText: string;
+  reviewImages: string[];
+  createdAt: string;
+  verified: boolean;
   active: boolean;
-}
-
-interface Package {
-  _id?: string;
-  id?: string;
-  title: string;
-  description: string;
-  fullDescription: string;
-  image: string;
-  price: number;
-  currency: string;
-  duration: string;
-  location: string;
-  highlights: string[];
-  itinerary: Array<{ day: number; title: string; description: string }>;
-  inclusions: string[];
-  exclusions: string[];
-  bestTime: string;
-  difficulty: string;
-  groupSize: string;
-  notes?: string;
-  customFields?: Array<{ label: string; value: string }>;
-  featured: boolean;
-  active: boolean;
-  createdAt?: string;
 }
 
 interface WhyUs {
@@ -78,31 +51,21 @@ export default function Home() {
   const [services, setServices] = useState<Service[]>([]);
   const [servicesLoading, setServicesLoading] = useState(true);
 
-  // Testimonials State
-  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
-  const [currentTestimonialIndex, setCurrentTestimonialIndex] = useState(0);
-  const [testimonialsLoading, setTestimonialsLoading] = useState(true);
-
-  // FAQ State
-  const [faqs, setFAQs] = useState<FAQ[]>([]);
-  const [expandedFAQIndex, setExpandedFAQIndex] = useState<number | null>(null);
-  const [faqSearchQuery, setFAQSearchQuery] = useState("");
-  const [selectedFAQCategory, setSelectedFAQCategory] = useState<string | null>(
-    null
-  );
-  const [faqsLoading, setFAQsLoading] = useState(true);
-
-  // Packages State
-  const [packages, setPackages] = useState<Package[]>([]);
-  const [packagesLoading, setPackagesLoading] = useState(true);
-  const [packageSearchQuery, setPackageSearchQuery] = useState("");
-  const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(
-    null
-  );
-  const [selectedDuration, setSelectedDuration] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<string>("featured");
-  const [priceSort, setPriceSort] = useState<string | null>(null);
-  const [packageSlide, setPackageSlide] = useState(0);
+  // Reviews State
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [selectedPropertyForReview, setSelectedPropertyForReview] = useState<{
+    id: string;
+    name: string;
+    type: string;
+  } | null>(null);
+  const [selectedImageModal, setSelectedImageModal] = useState<{
+    images: string[];
+    index: number;
+  } | null>(null);
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [carouselPaused, setCarouselPaused] = useState(false);
 
   // Why Us State
   const [whyUs, setWhyUs] = useState<WhyUs[]>([]);
@@ -120,8 +83,8 @@ export default function Home() {
           const serviceList = Array.isArray(data)
             ? data
             : Array.isArray(data.data)
-            ? data.data
-            : [];
+              ? data.data
+              : [];
           if (serviceList.length > 0) {
             setServices(serviceList);
           }
@@ -135,91 +98,39 @@ export default function Home() {
     fetchServices();
   }, []);
 
-  // Fetch testimonials
+  // Fetch Reviews
   useEffect(() => {
-    const fetchTestimonials = async () => {
+    const fetchReviews = async () => {
       try {
-        const response = await fetch("/api/testimonials", {
+        const response = await fetch("/api/reviews?limit=4", {
           cache: "no-store",
         });
         if (response.ok) {
           const data = await response.json();
-          const testimonialList = Array.isArray(data)
-            ? data
-            : Array.isArray(data.data)
-            ? data.data
-            : [];
-          if (testimonialList.length > 0) {
-            setTestimonials(testimonialList);
-            const randomIndex = Math.floor(
-              Math.random() * testimonialList.length
-            );
-            setCurrentTestimonialIndex(randomIndex);
+          const reviewList = Array.isArray(data) ? data : [];
+          if (reviewList.length > 0) {
+            setReviews(reviewList);
           }
         }
       } catch (error) {
-        console.log("Using default testimonials", error);
+        console.log("Failed to fetch reviews", error);
       } finally {
-        setTestimonialsLoading(false);
+        setReviewsLoading(false);
       }
     };
-    fetchTestimonials();
+    fetchReviews();
   }, []);
 
-  // Testimonials auto-play
+  // Carousel Auto-Advance
   useEffect(() => {
-    if (testimonials.length === 0) return;
+    if (reviews.length === 0 || carouselPaused) return;
+
     const interval = setInterval(() => {
-      setCurrentTestimonialIndex((prev) => (prev + 1) % testimonials.length);
-    }, 3000);
+      setCarouselIndex((prev) => (prev + 1) % reviews.length);
+    }, 5000); // Auto-advance every 5 seconds
+
     return () => clearInterval(interval);
-  }, [testimonials.length]);
-
-  // Fetch FAQs
-  useEffect(() => {
-    const fetchFAQs = async () => {
-      try {
-        const response = await fetch("/api/faqs", { cache: "no-store" });
-        if (response.ok) {
-          const data = await response.json();
-          const faqList = Array.isArray(data)
-            ? data
-            : Array.isArray(data.data)
-            ? data.data
-            : [];
-          if (faqList.length > 0) setFAQs(faqList);
-        }
-      } catch (error) {
-        console.log("Using default FAQs", error);
-      } finally {
-        setFAQsLoading(false);
-      }
-    };
-    fetchFAQs();
-  }, []);
-
-  // Fetch packages
-  useEffect(() => {
-    const fetchPackages = async () => {
-      try {
-        const response = await fetch("/api/packages", { cache: "no-store" });
-        if (response.ok) {
-          const data = await response.json();
-          const packageList = Array.isArray(data)
-            ? data
-            : Array.isArray(data.data)
-            ? data.data
-            : [];
-          if (packageList.length > 0) setPackages(packageList);
-        }
-      } catch (error) {
-        console.log("Failed to fetch packages", error);
-      } finally {
-        setPackagesLoading(false);
-      }
-    };
-    fetchPackages();
-  }, []);
+  }, [reviews.length, carouselPaused]);
 
   // Fetch Why Us
   useEffect(() => {
@@ -231,8 +142,8 @@ export default function Home() {
           const whyUsList = Array.isArray(data)
             ? data
             : Array.isArray(data.data)
-            ? data.data
-            : [];
+              ? data.data
+              : [];
           if (whyUsList.length > 0) setWhyUs(whyUsList);
         }
       } catch (error) {
@@ -243,200 +154,6 @@ export default function Home() {
     };
     fetchWhyUs();
   }, []);
-
-  // Smart FAQ search - matches individual words and related terms
-  const smartSearch = (text: string, query: string): boolean => {
-    if (!query.trim()) return true;
-
-    const searchText = text.toLowerCase();
-    const searchQuery = query.toLowerCase().trim();
-
-    // Direct match
-    if (searchText.includes(searchQuery)) return true;
-
-    // Split query into individual words (remove common stop words)
-    const stopWords = [
-      "how",
-      "do",
-      "i",
-      "can",
-      "what",
-      "is",
-      "the",
-      "a",
-      "an",
-      "to",
-      "for",
-      "of",
-      "and",
-      "or",
-      "my",
-      "your",
-      "we",
-      "you",
-      "are",
-      "there",
-      "want",
-      "need",
-      "would",
-      "like",
-      "about",
-    ];
-    const queryWords = searchQuery
-      .split(/\s+/)
-      .filter((word) => word.length > 1 && !stopWords.includes(word));
-
-    // Match if any significant word from query is found
-    if (queryWords.length > 0) {
-      const matchCount = queryWords.filter((word) =>
-        searchText.includes(word)
-      ).length;
-      // Match if at least one keyword matches, or partial match for longer queries
-      if (matchCount > 0) return true;
-    }
-
-    // Synonym/related word matching
-    const synonyms: { [key: string]: string[] } = {
-      book: [
-        "booking",
-        "reserve",
-        "reservation",
-        "purchase",
-        "buy",
-        "get",
-        "order",
-      ],
-      cancel: ["cancellation", "cancelled", "refund", "void", "terminate"],
-      modify: ["change", "edit", "update", "alter", "modification", "amend"],
-      pay: ["payment", "paying", "paid", "charge", "fee", "cost", "price"],
-      flight: [
-        "flights",
-        "fly",
-        "flying",
-        "plane",
-        "airplane",
-        "air",
-        "ticket",
-      ],
-      hotel: ["hotels", "stay", "room", "accommodation", "lodge", "lodging"],
-      refund: ["refunds", "money back", "reimburse", "return", "reimbursement"],
-      support: [
-        "help",
-        "contact",
-        "assistance",
-        "customer service",
-        "reach",
-        "call",
-      ],
-      insurance: ["insure", "insured", "protection", "coverage", "policy"],
-      visa: ["visas", "travel document", "documentation", "passport"],
-    };
-
-    // Check if any query word has a synonym match in the text
-    for (const word of queryWords) {
-      for (const [key, syns] of Object.entries(synonyms)) {
-        if (
-          word.includes(key) ||
-          key.includes(word) ||
-          syns.some((s) => word.includes(s))
-        ) {
-          if (
-            searchText.includes(key) ||
-            syns.some((s) => searchText.includes(s))
-          ) {
-            return true;
-          }
-        }
-      }
-    }
-
-    return false;
-  };
-
-  // Filter FAQs
-  const faqCategories = Array.from(
-    new Set(faqs.map((faq) => faq.category))
-  ).sort();
-  const filteredFAQs = faqs.filter((faq) => {
-    const matchesSearch =
-      smartSearch(faq.question, faqSearchQuery) ||
-      smartSearch(faq.answer, faqSearchQuery);
-    const matchesCategory =
-      !selectedFAQCategory || faq.category === selectedFAQCategory;
-    return matchesSearch && matchesCategory;
-  });
-
-  // Limit to 5 FAQs when "All" is selected and no search query
-  const displayedFAQs =
-    !selectedFAQCategory && !faqSearchQuery
-      ? filteredFAQs.slice(0, 5)
-      : filteredFAQs;
-
-  // Filter packages
-  const filteredPackages = packages
-    .filter((pkg) => {
-      const matchesSearch =
-        smartSearch(pkg.title, packageSearchQuery) ||
-        smartSearch(pkg.description, packageSearchQuery) ||
-        smartSearch(pkg.location, packageSearchQuery);
-      const matchesDifficulty =
-        !selectedDifficulty || pkg.difficulty === selectedDifficulty;
-
-      // Duration filters
-      let matchesDuration = true;
-      if (selectedDuration) {
-        const durationDays = parseInt(pkg.duration);
-        switch (selectedDuration) {
-          case "1day":
-            matchesDuration = durationDays === 1;
-            break;
-          case "under5":
-            matchesDuration = durationDays < 5;
-            break;
-          case "under7":
-            matchesDuration = durationDays < 7;
-            break;
-          default:
-            matchesDuration = true;
-        }
-      }
-
-      return matchesSearch && matchesDifficulty && matchesDuration;
-    })
-    .sort((a, b) => {
-      // Sorting logic
-      if (priceSort === "low-high") {
-        return a.price - b.price;
-      } else if (priceSort === "high-low") {
-        return b.price - a.price;
-      } else if (sortBy === "newest") {
-        return (
-          new Date(b.createdAt || 0).getTime() -
-          new Date(a.createdAt || 0).getTime()
-        );
-      }
-      // Default: featured first
-      return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
-    });
-
-  const visiblePackages = 3;
-  const usePackageCarousel = filteredPackages.length >= 4;
-  const maxPackageSlide = Math.max(
-    0,
-    filteredPackages.length - visiblePackages
-  );
-
-  useEffect(() => {
-    if (packageSlide > maxPackageSlide) {
-      setPackageSlide(0);
-    }
-  }, [packageSlide, maxPackageSlide]);
-
-  const displayedPackages = usePackageCarousel
-    ? filteredPackages.slice(packageSlide, packageSlide + visiblePackages)
-    : filteredPackages;
-
-  const currentTestimonial = testimonials[currentTestimonialIndex];
 
   return (
     <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden">
@@ -694,744 +411,6 @@ export default function Home() {
             `}</style>
           </section>
 
-          {/* ========== OUR PACKAGES SECTION ========== */}
-          <section
-            style={{
-              padding: "4rem 1rem",
-              background: "transparent",
-              position: "relative",
-              overflow: "hidden",
-            }}
-          >
-            {/* Soft radial background accents */}
-            <div
-              style={{
-                position: "absolute",
-                top: "-100px",
-                right: "-100px",
-                width: "400px",
-                height: "400px",
-                borderRadius: "50%",
-                background:
-                  "radial-gradient(circle, rgba(0, 102, 204, 0.08) 0%, transparent 70%)",
-                zIndex: 0,
-              }}
-            />
-            <div
-              style={{
-                position: "absolute",
-                bottom: "-150px",
-                left: "-150px",
-                width: "500px",
-                height: "500px",
-                borderRadius: "50%",
-                background:
-                  "radial-gradient(circle, rgba(0, 102, 204, 0.06) 0%, transparent 70%)",
-                zIndex: 0,
-              }}
-            />
-
-            <div
-              style={{
-                maxWidth: "1280px",
-                margin: "0 auto",
-                position: "relative",
-                zIndex: 1,
-              }}
-            >
-              <div style={{ textAlign: "center", marginBottom: "3rem" }}>
-                <h2
-                  style={{
-                    fontSize: "clamp(1.75rem, 4vw, 2.25rem)",
-                    fontWeight: 900,
-                    color: "#1a1a2e",
-                    margin: "0 0 1rem 0",
-                    textShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-                    letterSpacing: "-0.5px",
-                  }}
-                >
-                  Our Packages
-                </h2>
-                <p
-                  style={{
-                    fontSize: "1.1rem",
-                    color: "#666",
-                    maxWidth: "600px",
-                    margin: "0 auto",
-                    lineHeight: 1.6,
-                  }}
-                >
-                  Explore our curated travel packages designed for unforgettable
-                  experiences
-                </p>
-              </div>
-
-              {/* Modern Filter & Search Bar */}
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "1.5rem",
-                  marginBottom: "2.5rem",
-                  maxWidth: "1000px",
-                  margin: "0 auto 2.5rem",
-                }}
-              >
-                {/* Search Bar */}
-                <div style={{ position: "relative" }}>
-                  <input
-                    type="text"
-                    placeholder="Search packages by name, location..."
-                    value={packageSearchQuery}
-                    onChange={(e) => setPackageSearchQuery(e.target.value)}
-                    style={{
-                      width: "100%",
-                      padding: "1rem 1.25rem 1rem 3rem",
-                      borderRadius: "12px",
-                      border: "2px solid rgba(0, 102, 204, 0.2)",
-                      fontSize: "1rem",
-                      fontFamily: "inherit",
-                      transition: "all 0.3s ease",
-                      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)",
-                      backgroundColor: "rgba(255, 255, 255, 0.95)",
-                    }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor =
-                        "rgba(0, 102, 204, 0.5)";
-                      e.currentTarget.style.boxShadow =
-                        "0 4px 16px rgba(0, 102, 204, 0.15)";
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor =
-                        "rgba(0, 102, 204, 0.2)";
-                      e.currentTarget.style.boxShadow =
-                        "0 2px 8px rgba(0, 0, 0, 0.04)";
-                    }}
-                  />
-                  <span
-                    className="material-symbols-outlined"
-                    style={{
-                      position: "absolute",
-                      left: "1rem",
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      color: "#0066cc",
-                      fontSize: "1.25rem",
-                      pointerEvents: "none",
-                    }}
-                  >
-                    search
-                  </span>
-                </div>
-
-                {/* Filter Buttons */}
-                <div
-                  className="filter-buttons"
-                  style={{
-                    display: "flex",
-                    gap: "0.75rem",
-                    flexWrap: "wrap",
-                    alignItems: "center",
-                  }}
-                >
-                  {/* Sort Dropdown */}
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    style={{
-                      padding: "0.6rem 1rem",
-                      borderRadius: "50px",
-                      border: "2px solid #e0e7ff",
-                      fontSize: "0.9rem",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      backgroundColor: "#f0f4ff",
-                      color: "#1f2937",
-                      transition: "all 0.3s ease",
-                    }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = "#6366f1";
-                      e.currentTarget.style.backgroundColor = "#e0e7ff";
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = "#e0e7ff";
-                      e.currentTarget.style.backgroundColor = "#f0f4ff";
-                    }}
-                  >
-                    <option value="featured">Featured</option>
-                    <option value="newest">Newest</option>
-                  </select>
-
-                  {/* Price Sort Dropdown */}
-                  <select
-                    value={priceSort || ""}
-                    onChange={(e) => setPriceSort(e.target.value || null)}
-                    style={{
-                      padding: "0.6rem 1rem",
-                      borderRadius: "50px",
-                      border: "2px solid #fce7f3",
-                      fontSize: "0.9rem",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      backgroundColor: "#fdf2f8",
-                      color: "#1f2937",
-                      transition: "all 0.3s ease",
-                    }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = "#ec4899";
-                      e.currentTarget.style.backgroundColor = "#fce7f3";
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = "#fce7f3";
-                      e.currentTarget.style.backgroundColor = "#fdf2f8";
-                    }}
-                  >
-                    <option value="">Price: All</option>
-                    <option value="low-high">Price: Low to High</option>
-                    <option value="high-low">Price: High to Low</option>
-                  </select>
-
-                  {/* Difficulty Dropdown */}
-                  <select
-                    value={selectedDifficulty || ""}
-                    onChange={(e) =>
-                      setSelectedDifficulty(e.target.value || null)
-                    }
-                    style={{
-                      padding: "0.6rem 1rem",
-                      borderRadius: "50px",
-                      border: "2px solid #dbeafe",
-                      fontSize: "0.9rem",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      backgroundColor: "#f0f9ff",
-                      color: "#1f2937",
-                      transition: "all 0.3s ease",
-                    }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = "#0284c7";
-                      e.currentTarget.style.backgroundColor = "#e0f2fe";
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = "#dbeafe";
-                      e.currentTarget.style.backgroundColor = "#f0f9ff";
-                    }}
-                  >
-                    <option value="">Difficulty: All</option>
-                    <option value="Easy">Easy</option>
-                    <option value="Moderate">Moderate</option>
-                    <option value="Difficult">Difficult</option>
-                  </select>
-
-                  {/* Duration Dropdown */}
-                  <select
-                    value={selectedDuration || ""}
-                    onChange={(e) =>
-                      setSelectedDuration(e.target.value || null)
-                    }
-                    style={{
-                      padding: "0.6rem 1rem",
-                      borderRadius: "50px",
-                      border: "2px solid #dcfce7",
-                      fontSize: "0.9rem",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      backgroundColor: "#f0fdf4",
-                      color: "#1f2937",
-                      transition: "all 0.3s ease",
-                    }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = "#16a34a";
-                      e.currentTarget.style.backgroundColor = "#dcfce7";
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = "#dcfce7";
-                      e.currentTarget.style.backgroundColor = "#f0fdf4";
-                    }}
-                  >
-                    <option value="">Duration: All</option>
-                    <option value="1day">1 Day</option>
-                    <option value="under5">Under 5 Days</option>
-                    <option value="under7">Under 7 Days</option>
-                  </select>
-
-                  {/* Reset Filters Button */}
-                  <button
-                    onClick={() => {
-                      setPackageSearchQuery("");
-                      setSelectedDifficulty(null);
-                      setSelectedDuration(null);
-                      setSortBy("featured");
-                      setPriceSort(null);
-                    }}
-                    style={{
-                      padding: "0.6rem 1.5rem",
-                      borderRadius: "50px",
-                      border: "2px solid #fca5a5",
-                      fontSize: "0.9rem",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      backgroundColor: "#fef2f2",
-                      color: "#dc2626",
-                      transition: "all 0.3s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = "#fee2e2";
-                      e.currentTarget.style.borderColor = "#dc2626";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = "#fef2f2";
-                      e.currentTarget.style.borderColor = "#fca5a5";
-                    }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = "#dc2626";
-                      e.currentTarget.style.backgroundColor = "#fee2e2";
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = "#fca5a5";
-                      e.currentTarget.style.backgroundColor = "#fef2f2";
-                    }}
-                  >
-                    ✕ Reset
-                  </button>
-                </div>
-              </div>
-
-              {/* Packages Grid */}
-              <div
-                className="packages-grid"
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-                  gap: "1rem",
-                  maxWidth: "1000px",
-                  margin: "0 auto",
-                }}
-              >
-                {displayedPackages.map((pkg, index) => {
-                  const customFields = (pkg.customFields || []).filter(
-                    (cf) => cf.label && cf.value
-                  );
-                  const globalIndex = usePackageCarousel
-                    ? packageSlide + index
-                    : index;
-
-                  return (
-                    <div
-                      key={pkg._id || pkg.id || index}
-                      className="package-card"
-                      style={{
-                        cursor: "pointer",
-                        borderRadius: "24px",
-                        overflow: "hidden",
-                        background: "rgba(255, 255, 255, 0.85)",
-                        backdropFilter: "blur(20px)",
-                        WebkitBackdropFilter: "blur(20px)",
-                        border: "1px solid rgba(255, 255, 255, 0.9)",
-                        boxShadow:
-                          "0 12px 40px rgba(0, 102, 204, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05)",
-                        transition:
-                          "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-                        position: "relative",
-                        animation: `fadeInUp 0.6s ease-out ${
-                          globalIndex * 0.1
-                        }s both`,
-                        display: "flex",
-                        flexDirection: "column",
-                        height: "100%",
-                      }}
-                      onClick={() => {
-                        window.location.href = `/packages/${pkg._id || pkg.id}`;
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform =
-                          "translateY(-16px) scale(1.02)";
-                        e.currentTarget.style.boxShadow =
-                          "0 24px 60px rgba(0, 102, 204, 0.18), 0 8px 24px rgba(0, 0, 0, 0.1)";
-                        e.currentTarget.style.border =
-                          "1px solid rgba(0, 102, 204, 0.3)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform =
-                          "translateY(0) scale(1)";
-                        e.currentTarget.style.boxShadow =
-                          "0 12px 40px rgba(0, 102, 204, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05)";
-                        e.currentTarget.style.border =
-                          "1px solid rgba(255, 255, 255, 0.9)";
-                      }}
-                    >
-                      {/* Image Container */}
-                      <div
-                        style={{
-                          width: "100%",
-                          height: "160px",
-                          overflow: "hidden",
-                          position: "relative",
-                          background:
-                            "linear-gradient(135deg, rgba(0, 102, 204, 0.1) 0%, rgba(0, 153, 255, 0.05) 100%)",
-                        }}
-                      >
-                        <div
-                          style={{
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            background:
-                              "linear-gradient(180deg, transparent 50%, rgba(0, 0, 0, 0.05) 100%)",
-                            zIndex: 1,
-                          }}
-                        />
-                        <img
-                          src={pkg.image}
-                          alt={pkg.title}
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                            transition: "transform 0.5s ease",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = "scale(1.08)";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = "scale(1)";
-                          }}
-                        />
-
-                        {/* Featured Badge */}
-                        {pkg.featured && (
-                          <div
-                            style={{
-                              position: "absolute",
-                              top: "8px",
-                              right: "8px",
-                              background:
-                                "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
-                              color: "white",
-                              padding: "0.35rem 0.75rem",
-                              borderRadius: "999px",
-                              fontSize: "0.65rem",
-                              fontWeight: 700,
-                              textTransform: "uppercase",
-                              letterSpacing: "0.3px",
-                              boxShadow: "0 2px 10px rgba(0, 102, 204, 0.2)",
-                              zIndex: 2,
-                            }}
-                          >
-                            Featured
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Content */}
-                      <div
-                        style={{
-                          padding: "1.25rem",
-                          flex: 1,
-                          display: "flex",
-                          flexDirection: "column",
-                        }}
-                      >
-                        <h3
-                          style={{
-                            fontSize: "1.1rem",
-                            fontWeight: 700,
-                            color: "#1a1a2e",
-                            margin: "0 0 0.5rem 0",
-                            transition: "color 0.3s ease",
-                          }}
-                        >
-                          {pkg.title}
-                        </h3>
-
-                        <p
-                          style={{
-                            fontSize: "0.85rem",
-                            color: "#666",
-                            margin: "0 0 1rem 0",
-                            lineHeight: 1.5,
-                            flex: 1,
-                          }}
-                        >
-                          {pkg.description}
-                        </p>
-
-                        {customFields.length > 0 && (
-                          <div
-                            style={{
-                              display: "flex",
-                              flexWrap: "wrap",
-                              gap: "0.35rem",
-                              marginBottom: "0.9rem",
-                            }}
-                          >
-                            {customFields.slice(0, 3).map((cf, idx) => (
-                              <span
-                                key={idx}
-                                style={{
-                                  padding: "0.3rem 0.6rem",
-                                  borderRadius: "999px",
-                                  background: "#eef2ff",
-                                  color: "#312e81",
-                                  fontSize: "0.8rem",
-                                  border: "1px solid #c7d2fe",
-                                }}
-                              >
-                                {cf.label}: {cf.value}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Package Details Grid */}
-                        <div
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "1fr 1fr",
-                            gap: "0.75rem",
-                            marginBottom: "1rem",
-                            paddingBottom: "1rem",
-                            borderBottom: "1px solid rgba(0, 0, 0, 0.08)",
-                          }}
-                        >
-                          <div>
-                            <div
-                              style={{
-                                fontSize: "0.7rem",
-                                color: "#999",
-                                fontWeight: 600,
-                                textTransform: "uppercase",
-                                letterSpacing: "0.3px",
-                                marginBottom: "0.2rem",
-                              }}
-                            >
-                              Duration
-                            </div>
-                            <div
-                              style={{
-                                fontSize: "0.9rem",
-                                fontWeight: 700,
-                                color: "#0066cc",
-                              }}
-                            >
-                              {pkg.duration}
-                            </div>
-                          </div>
-                          <div>
-                            <div
-                              style={{
-                                fontSize: "0.7rem",
-                                color: "#999",
-                                fontWeight: 600,
-                                textTransform: "uppercase",
-                                letterSpacing: "0.3px",
-                                marginBottom: "0.2rem",
-                              }}
-                            >
-                              Location
-                            </div>
-                            <div
-                              style={{
-                                fontSize: "0.9rem",
-                                fontWeight: 700,
-                                color: "#1a1a2e",
-                              }}
-                            >
-                              {pkg.location}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Price and CTA */}
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            gap: "0.75rem",
-                          }}
-                        >
-                          <div>
-                            <div
-                              style={{
-                                fontSize: "0.7rem",
-                                color: "#999",
-                                fontWeight: 600,
-                                marginBottom: "0.15rem",
-                              }}
-                            >
-                              {pkg.price === 0 ? "Price" : "Starting From"}
-                            </div>
-                            <div
-                              style={{
-                                fontSize: "1.2rem",
-                                fontWeight: 900,
-                                background:
-                                  "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
-                                WebkitBackgroundClip: "text",
-                                WebkitTextFillColor: "transparent",
-                                backgroundClip: "text",
-                              }}
-                            >
-                              {pkg.price === 0
-                                ? "On Request"
-                                : `${pkg.currency}${pkg.price}`}
-                            </div>
-                          </div>
-                          <button
-                            style={{
-                              padding: "0.75rem 1.5rem",
-                              background:
-                                "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
-                              color: "white",
-                              border: "none",
-                              borderRadius: "12px",
-                              fontSize: "0.9rem",
-                              fontWeight: 700,
-                              cursor: "pointer",
-                              transition: "all 0.3s ease",
-                              boxShadow: "0 4px 15px rgba(0, 102, 204, 0.25)",
-                            }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              window.location.href = `/packages/${
-                                pkg._id || pkg.id
-                              }`;
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.transform =
-                                "translateY(-2px)";
-                              e.currentTarget.style.boxShadow =
-                                "0 6px 25px rgba(0, 102, 204, 0.35)";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.transform = "translateY(0)";
-                              e.currentTarget.style.boxShadow =
-                                "0 4px 15px rgba(0, 102, 204, 0.25)";
-                            }}
-                          >
-                            {pkg.price === 0 ? "View Details" : "View Details"}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {usePackageCarousel && (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "0.75rem",
-                    marginTop: "1rem",
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setPackageSlide((prev) =>
-                        prev === 0 ? maxPackageSlide : prev - 1
-                      )
-                    }
-                    style={{
-                      padding: "0.5rem 0.9rem",
-                      borderRadius: "999px",
-                      border: "1px solid #ddd",
-                      background: "white",
-                      cursor: "pointer",
-                      boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                    }}
-                  >
-                    ‹
-                  </button>
-                  <span style={{ color: "#666", fontSize: "0.9rem" }}>
-                    {packageSlide + 1} / {maxPackageSlide + 1}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setPackageSlide((prev) =>
-                        prev === maxPackageSlide ? 0 : prev + 1
-                      )
-                    }
-                    style={{
-                      padding: "0.5rem 0.9rem",
-                      borderRadius: "999px",
-                      border: "1px solid #ddd",
-                      background: "white",
-                      cursor: "pointer",
-                      boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                    }}
-                  >
-                    ›
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <style>{`
-              @keyframes fadeInUp {
-                from {
-                  opacity: 0;
-                  transform: translateY(40px);
-                }
-                to {
-                  opacity: 1;
-                  transform: translateY(0);
-                }
-              }
-              
-              /* Mobile responsive styles for packages */
-              @media (max-width: 768px) {
-                .packages-grid {
-                  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) !important;
-                  gap: 0.75rem !important;
-                  padding: 0 0.5rem;
-                }
-                
-                .package-card {
-                  border-radius: 16px !important;
-                }
-                
-                .filter-buttons {
-                  gap: 0.5rem !important;
-                  justify-content: center;
-                }
-                
-                .filter-buttons button,
-                .filter-buttons select {
-                  padding: 0.5rem 0.75rem !important;
-                  font-size: 0.875rem !important;
-                  min-height: 44px !important;
-                }
-              }
-              
-              @media (max-width: 480px) {
-                .packages-grid {
-                  grid-template-columns: 1fr !important;
-                  gap: 0.75rem !important;
-                }
-                
-                .filter-buttons {
-                  width: 100%;
-                }
-                
-                .filter-buttons button,
-                .filter-buttons select {
-                  flex: 1;
-                  min-width: calc(50% - 0.25rem);
-                  text-align: center;
-                  justify-content: center;
-                }
-              }
-            `}</style>
-          </section>
-
           {/* ========== WHY US SECTION ========== */}
           <section style={{ padding: "3rem 1rem", background: "transparent" }}>
             <h2
@@ -1545,7 +524,7 @@ export default function Home() {
                     letterSpacing: "-0.5px",
                   }}
                 >
-                  Create Your Next Memory
+                  Souvenirs of the Soul
                 </h2>
                 <p
                   style={{
@@ -1559,521 +538,710 @@ export default function Home() {
                     lineHeight: 1.8,
                   }}
                 >
-                  Join thousands of travelers who have experienced exceptional
-                  travel moments with us.
+                  Discover experiences from real travelers who have explored our
+                  properties
                 </p>
               </div>
 
-              {!testimonialsLoading && currentTestimonial && (
-                <div
+              {/* Write Review Button */}
+              <div style={{ textAlign: "center", marginBottom: "3rem" }}>
+                <button
+                  onClick={() => {
+                    setShowReviewForm(true);
+                    setSelectedPropertyForReview({
+                      id: "new",
+                      name: "Select Property",
+                      type: "Property",
+                    });
+                  }}
                   style={{
-                    maxWidth: "800px",
-                    margin: "0 auto",
-                    background: "rgba(255, 255, 255, 0.96)",
-                    borderRadius: "24px",
-                    padding: "2.5rem 2.75rem",
-                    boxShadow:
-                      "0 18px 45px rgba(15, 23, 42, 0.08), 0 8px 20px rgba(15, 23, 42, 0.05)",
-                    border: "1px solid rgba(226, 232, 240, 0.9)",
-                    backdropFilter: "blur(18px)",
-                    WebkitBackdropFilter: "blur(18px)",
-                    animation:
-                      "slideInFromRight 0.7s cubic-bezier(0.34, 1.56, 0.64, 1)",
-                    position: "relative",
-                    overflow: "hidden",
+                    padding: "0.75rem 2rem",
+                    background:
+                      "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "12px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    fontSize: "0.95rem",
+                    transition: "all 0.3s",
+                    boxShadow: "0 4px 15px rgba(0, 102, 204, 0.25)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.boxShadow =
+                      "0 6px 25px rgba(0, 102, 204, 0.35)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow =
+                      "0 4px 15px rgba(0, 102, 204, 0.25)";
                   }}
                 >
-                  {/* Decorative quote mark */}
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: "-10px",
-                      right: "1.5rem",
-                      fontSize: "5rem",
-                      color: "rgba(0, 102, 204, 0.06)",
-                      pointerEvents: "none",
-                    }}
-                  >
-                    “
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "1rem",
-                      marginBottom: "1.5rem",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: "70px",
-                        height: "70px",
-                        borderRadius: "999px",
-                        background:
-                          "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        boxShadow:
-                          "0 10px 30px rgba(0, 102, 204, 0.25), 0 0 0 4px rgba(255, 255, 255, 0.9)",
-                      }}
-                    >
-                      <img
-                        src={currentTestimonial.image}
-                        alt={currentTestimonial.name}
-                        style={{
-                          width: "60px",
-                          height: "60px",
-                          borderRadius: "50%",
-                          border: "2px solid rgba(255, 255, 255, 0.9)",
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <h3
-                        style={{
-                          fontWeight: 700,
-                          margin: 0,
-                          fontSize: "1.1rem",
-                          color: "#111827",
-                        }}
-                      >
-                        {currentTestimonial.name}
-                      </h3>
-                      <p
-                        style={{
-                          fontSize: "0.9rem",
-                          color: "#6b7280",
-                          margin: "0.1rem 0 0.3rem 0",
-                        }}
-                      >
-                        {currentTestimonial.location}
-                      </p>
-                      <span
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "0.35rem",
-                          fontSize: "0.75rem",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.14em",
-                          color: "#059669",
-                          background:
-                            "linear-gradient(135deg, rgba(16, 185, 129, 0.09) 0%, rgba(16, 185, 129, 0.02) 100%)",
-                          borderRadius: "999px",
-                          padding: "0.2rem 0.7rem",
-                        }}
-                      >
-                        <span
-                          style={{
-                            width: "6px",
-                            height: "6px",
-                            borderRadius: "50%",
-                            backgroundColor: "#22c55e",
-                          }}
-                        />
-                        Verified traveler
-                      </span>
-                    </div>
-                  </div>
-                  <div style={{ marginBottom: "1rem" }}>
-                    {[...Array(currentTestimonial.rating)].map((_, i) => (
-                      <span
-                        key={i}
-                        style={{ color: "#fbbf24", fontSize: "1.25rem" }}
-                      >
-                        ★
-                      </span>
-                    ))}
-                  </div>
-                  <p
-                    style={{
-                      fontSize: "1.02rem",
-                      color: "#4b5563",
-                      lineHeight: 1.8,
-                      margin: 0,
-                    }}
-                  >
-                    {currentTestimonial.text}
-                  </p>
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* ========== FAQ SECTION ========== */}
-          <section
-            style={{
-              padding: "6rem 1.5rem",
-              background: "transparent",
-              position: "relative",
-              overflow: "hidden",
-            }}
-          >
-            {/* Soft background accents */}
-            <div
-              style={{
-                position: "absolute",
-                top: "-120px",
-                right: "-80px",
-                width: "260px",
-                height: "260px",
-                borderRadius: "50%",
-                background:
-                  "radial-gradient(circle, rgba(0, 102, 204, 0.06) 0%, transparent 70%)",
-                zIndex: 0,
-              }}
-            />
-            <div
-              style={{
-                position: "absolute",
-                bottom: "-140px",
-                left: "-80px",
-                width: "320px",
-                height: "320px",
-                borderRadius: "50%",
-                background:
-                  "radial-gradient(circle, rgba(15, 23, 42, 0.05) 0%, transparent 70%)",
-                zIndex: 0,
-              }}
-            />
-            <div
-              style={{
-                maxWidth: "1280px",
-                margin: "0 auto",
-                position: "relative",
-                zIndex: 1,
-                padding: "3rem 2rem",
-                borderRadius: "24px",
-                background: "rgba(255, 255, 255, 0.96)",
-                boxShadow:
-                  "0 18px 45px rgba(15, 23, 42, 0.06), 0 8px 20px rgba(15, 23, 42, 0.04)",
-                border: "1px solid rgba(226, 232, 240, 0.9)",
-              }}
-            >
-              <div style={{ textAlign: "center", marginBottom: "2.5rem" }}>
-                <h2
-                  style={{
-                    fontSize: "clamp(1.75rem, 4vw, 2.25rem)",
-                    fontWeight: 900,
-                    textAlign: "center",
-                    color: "#000000",
-                    margin: "0 0 0.75rem 0",
-                    letterSpacing: "-1px",
-                    display: "inline-block",
-                    width: "100%",
-                  }}
-                >
-                  Frequently Asked Questions
-                </h2>
-              </div>
-              <p
-                style={{
-                  fontSize: "1.1rem",
-                  textAlign: "center",
-                  color: "#666",
-                  margin: "0 0 2.5rem 0",
-                  maxWidth: "700px",
-                  marginLeft: "auto",
-                  marginRight: "auto",
-                  lineHeight: 1.8,
-                }}
-              >
-                Find answers to common questions about booking flights, hotels,
-                and managing your travel plans.
-              </p>
-
-              {/* Search Bar */}
-              <div
-                style={{
-                  position: "relative",
-                  maxWidth: "600px",
-                  margin: "0 auto 2rem",
-                  display: "flex",
-                  alignItems: "center",
-                }}
-              >
-                <input
-                  type="text"
-                  placeholder="Search FAQs..."
-                  value={faqSearchQuery}
-                  onChange={(e) => {
-                    setFAQSearchQuery(e.target.value);
-                    setExpandedFAQIndex(null);
-                  }}
-                  style={{
-                    width: "100%",
-                    padding: "1.2rem 1.5rem 1.2rem 3.5rem",
-                    border: "1px solid rgba(0, 102, 204, 0.2)",
-                    borderRadius: "16px",
-                    fontSize: "1rem",
-                    color: "#333",
-                    background: "rgba(255, 255, 255, 0.8)",
-                    transition: "all 0.4s",
-                    fontWeight: 500,
-                    letterSpacing: "0.3px",
-                    boxShadow: "0 4px 24px rgba(0, 102, 204, 0.08)",
-                  }}
-                />
-                <span
-                  style={{
-                    position: "absolute",
-                    left: "1.2rem",
-                    fontSize: "1.2rem",
-                    color: "#0066cc",
-                    pointerEvents: "none",
-                  }}
-                >
-                  🔍
-                </span>
+                  + Write a Review
+                </button>
               </div>
 
-              {/* Category Filters */}
-              {faqCategories.length > 0 && (
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: "0.6rem",
-                    justifyContent: "center",
-                    marginBottom: "2rem",
-                    maxWidth: "700px",
-                    marginLeft: "auto",
-                    marginRight: "auto",
-                  }}
-                >
-                  <button
-                    onClick={() => {
-                      setSelectedFAQCategory(null);
-                      setExpandedFAQIndex(null);
-                    }}
-                    style={{
-                      padding: "0.5rem 1.2rem",
-                      border: "none",
-                      background: !selectedFAQCategory
-                        ? "linear-gradient(135deg, #0066cc 0%, #0088ee 100%)"
-                        : "rgba(255, 255, 255, 0.9)",
-                      color: !selectedFAQCategory ? "white" : "#555",
-                      borderRadius: "50px",
-                      cursor: "pointer",
-                      fontWeight: 600,
-                      fontSize: "0.85rem",
-                      transition: "all 0.3s",
-                      boxShadow: !selectedFAQCategory
-                        ? "0 4px 16px rgba(0, 102, 204, 0.3)"
-                        : "0 2px 8px rgba(0, 0, 0, 0.06)",
-                    }}
-                  >
-                    All
-                  </button>
-                  {faqCategories.map((category) => (
-                    <button
-                      key={category}
-                      onClick={() => {
-                        setSelectedFAQCategory(category);
-                        setExpandedFAQIndex(null);
-                      }}
-                      style={{
-                        padding: "0.5rem 1.2rem",
-                        border: "none",
-                        background:
-                          selectedFAQCategory === category
-                            ? "linear-gradient(135deg, #0066cc 0%, #0088ee 100%)"
-                            : "rgba(255, 255, 255, 0.9)",
-                        color:
-                          selectedFAQCategory === category ? "white" : "#555",
-                        borderRadius: "50px",
-                        cursor: "pointer",
-                        fontWeight: 600,
-                        fontSize: "0.85rem",
-                        transition: "all 0.3s",
-                        boxShadow:
-                          selectedFAQCategory === category
-                            ? "0 4px 16px rgba(0, 102, 204, 0.3)"
-                            : "0 2px 8px rgba(0, 0, 0, 0.06)",
-                      }}
-                    >
-                      {category}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* FAQ Items */}
+              {/* Reviews Carousel - 2 Cards */}
               <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr",
-                  gap: "1.2rem",
-                  maxWidth: "850px",
+                  maxWidth: "1200px",
                   margin: "0 auto",
+                  position: "relative",
                 }}
+                onMouseEnter={() => setCarouselPaused(true)}
+                onMouseLeave={() => setCarouselPaused(false)}
               >
-                {displayedFAQs.length > 0 ? (
-                  displayedFAQs.map((faq, index) => (
+                {!reviewsLoading && reviews.length > 0 ? (
+                  <>
+                    {/* Carousel Container - Grid for 2 cards */}
                     <div
-                      key={faq._id || faq.id || index}
                       style={{
-                        borderRadius: "20px",
-                        overflow: "hidden",
-                        background: "rgba(255, 255, 255, 0.85)",
-                        boxShadow:
-                          "0 4px 24px rgba(0, 102, 204, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)",
-                        transition: "all 0.4s",
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: "2rem",
                         position: "relative",
-                        border: "1px solid rgba(255, 255, 255, 0.9)",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = "translateY(-4px)";
-                        e.currentTarget.style.boxShadow =
-                          "0 10px 30px rgba(15, 23, 42, 0.12)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = "translateY(0)";
-                        e.currentTarget.style.boxShadow =
-                          "0 4px 24px rgba(0, 102, 204, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)";
+                        minHeight: "550px",
                       }}
                     >
-                      <button
-                        onClick={() =>
-                          setExpandedFAQIndex(
-                            expandedFAQIndex === index ? null : index
-                          )
-                        }
-                        style={{
-                          width: "100%",
-                          padding: "1.6rem 1.8rem",
-                          border: "none",
-                          cursor: "pointer",
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          gap: "1.5rem",
-                          fontSize: "1.1rem",
-                          fontWeight: 600,
-                          color:
-                            expandedFAQIndex === index ? "white" : "#1a1a2e",
-                          textAlign: "left",
-                          transition: "all 0.4s",
-                          position: "relative",
-                          zIndex: 1,
-                          letterSpacing: "-0.2px",
-                          minHeight: "72px",
-                          background:
-                            expandedFAQIndex === index
-                              ? "linear-gradient(135deg, #0066cc 0%, #0077dd 100%)"
-                              : "transparent",
-                        }}
-                      >
-                        <span
-                          style={{
-                            flex: 1,
-                            fontSize: "1rem",
-                            lineHeight: 1.6,
-                            display: "block",
-                            transition: "color 0.3s",
-                          }}
-                        >
-                          {faq.question}
-                        </span>
-                        <span
-                          style={{
-                            fontSize: "1.4rem",
-                            fontWeight: 500,
-                            transition: "transform 0.2s ease, color 0.2s ease",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color:
-                              expandedFAQIndex === index
-                                ? "#ffffff"
-                                : "#0066cc",
-                            transform:
-                              expandedFAQIndex === index
-                                ? "rotate(45deg)"
-                                : "rotate(0deg)",
-                          }}
-                        >
-                          +
-                        </span>
-                      </button>
-                      {expandedFAQIndex === index && (
-                        <div
-                          style={{
-                            padding: "0 2rem",
-                            background:
-                              "linear-gradient(180deg, rgba(0, 102, 204, 0.02) 0%, rgba(255, 255, 255, 0.9) 100%)",
-                            borderTop: "1px solid rgba(0, 102, 204, 0.1)",
-                            animation: "slideDown 0.5s",
-                            lineHeight: 1.8,
-                            color: "#555",
-                            maxHeight: "500px",
-                            overflow: "hidden",
-                            position: "relative",
-                            zIndex: 1,
-                          }}
-                        >
-                          <p
+                      {/* First Review Card */}
+                      {(() => {
+                        const review = reviews[carouselIndex];
+                        return (
+                          <div
+                            key={`review-first-${carouselIndex}-${review._id || review.propertyId}`}
+                            onClick={() => {
+                              window.location.href = `/hotels/${review.propertyId}`;
+                            }}
                             style={{
-                              margin: "1.5rem 0 1.75rem 0",
-                              fontSize: "0.95rem",
-                              color: "#555",
-                              fontWeight: 450,
-                              letterSpacing: "0.1px",
-                              lineHeight: 1.8,
+                              background: "rgba(255, 255, 255, 0.96)",
+                              borderRadius: "16px",
+                              overflow: "hidden",
+                              boxShadow:
+                                "0 10px 30px rgba(0, 102, 204, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05)",
+                              border: "1px solid rgba(226, 232, 240, 0.9)",
+                              cursor: "pointer",
+                              display: "flex",
+                              flexDirection: "column",
+                              transition: "all 0.6s ease-in-out",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform =
+                                "translateY(-8px)";
+                              e.currentTarget.style.boxShadow =
+                                "0 20px 50px rgba(0, 102, 204, 0.2)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = "translateY(0)";
+                              e.currentTarget.style.boxShadow =
+                                "0 10px 30px rgba(0, 102, 204, 0.1)";
                             }}
                           >
-                            {faq.answer}
-                          </p>
-                        </div>
-                      )}
+                            {/* Image Gallery */}
+                            {review.reviewImages &&
+                              review.reviewImages.length > 0 && (
+                                <div
+                                  style={{
+                                    position: "relative",
+                                    width: "100%",
+                                    height: "200px",
+                                    overflow: "hidden",
+                                    background:
+                                      "linear-gradient(135deg, rgba(0, 102, 204, 0.1) 0%, rgba(0, 153, 255, 0.05) 100%)",
+                                  }}
+                                >
+                                  <img
+                                    src={review.reviewImages[0]}
+                                    alt={review.propertyName}
+                                    style={{
+                                      width: "100%",
+                                      height: "100%",
+                                      objectFit: "cover",
+                                    }}
+                                  />
+                                  {review.reviewImages.length > 1 && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedImageModal({
+                                          images: review.reviewImages,
+                                          index: 0,
+                                        });
+                                      }}
+                                      style={{
+                                        position: "absolute",
+                                        bottom: "0.75rem",
+                                        right: "0.75rem",
+                                        background: "rgba(0, 0, 0, 0.6)",
+                                        color: "white",
+                                        border: "none",
+                                        borderRadius: "8px",
+                                        padding: "0.5rem 1rem",
+                                        fontSize: "0.85rem",
+                                        fontWeight: 600,
+                                        cursor: "pointer",
+                                        transition: "all 0.3s",
+                                        backdropFilter: "blur(8px)",
+                                      }}
+                                      onMouseEnter={(e) => {
+                                        e.currentTarget.style.background =
+                                          "rgba(0, 0, 0, 0.8)";
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        e.currentTarget.style.background =
+                                          "rgba(0, 0, 0, 0.6)";
+                                      }}
+                                    >
+                                      📷 {review.reviewImages.length}
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+
+                            {/* Content */}
+                            <div
+                              style={{
+                                padding: "1.5rem",
+                                flex: 1,
+                                display: "flex",
+                                flexDirection: "column",
+                              }}
+                            >
+                              {/* Property Info */}
+                              <div style={{ marginBottom: "1rem" }}>
+                                <h3
+                                  style={{
+                                    fontSize: "1.1rem",
+                                    fontWeight: 700,
+                                    color: "#0066cc",
+                                    margin: "0 0 0.25rem 0",
+                                  }}
+                                >
+                                  {review.propertyName}
+                                </h3>
+                                <p
+                                  style={{
+                                    fontSize: "0.85rem",
+                                    color: "#999",
+                                    margin: 0,
+                                  }}
+                                >
+                                  {review.propertyType}
+                                </p>
+                              </div>
+
+                              {/* User Info */}
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.75rem",
+                                  marginBottom: "1rem",
+                                }}
+                              >
+                                {review.userImage ? (
+                                  <img
+                                    src={review.userImage}
+                                    alt={review.userName}
+                                    style={{
+                                      width: "40px",
+                                      height: "40px",
+                                      borderRadius: "50%",
+                                      objectFit: "cover",
+                                    }}
+                                  />
+                                ) : (
+                                  <div
+                                    style={{
+                                      width: "40px",
+                                      height: "40px",
+                                      borderRadius: "50%",
+                                      background:
+                                        "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      color: "white",
+                                      fontWeight: "bold",
+                                      fontSize: "0.9rem",
+                                    }}
+                                  >
+                                    {review.userName?.charAt(0).toUpperCase() ||
+                                      "U"}
+                                  </div>
+                                )}
+                                <div>
+                                  <p
+                                    style={{
+                                      fontWeight: 600,
+                                      margin: 0,
+                                      color: "#1a1a2e",
+                                      fontSize: "0.95rem",
+                                    }}
+                                  >
+                                    {review.userName}
+                                  </p>
+                                  <p
+                                    style={{
+                                      fontSize: "0.8rem",
+                                      color: "#999",
+                                      margin: "0.1rem 0 0 0",
+                                    }}
+                                  >
+                                    {new Date(
+                                      review.createdAt,
+                                    ).toLocaleDateString("en-US", {
+                                      month: "short",
+                                      day: "numeric",
+                                      year: "numeric",
+                                    })}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Rating */}
+                              <div style={{ marginBottom: "0.75rem" }}>
+                                {[...Array(5)].map((_, i) => (
+                                  <span
+                                    key={i}
+                                    style={{
+                                      color:
+                                        i < review.rating
+                                          ? "#fbbf24"
+                                          : "#e5e7eb",
+                                      fontSize: "1rem",
+                                    }}
+                                  >
+                                    ★
+                                  </span>
+                                ))}
+                              </div>
+
+                              {/* Review Text */}
+                              <p
+                                style={{
+                                  fontSize: "0.95rem",
+                                  color: "#555",
+                                  lineHeight: 1.6,
+                                  margin: 0,
+                                  flex: 1,
+                                  display: "-webkit-box",
+                                  WebkitLineClamp: 3,
+                                  WebkitBoxOrient: "vertical",
+                                  overflow: "hidden",
+                                }}
+                              >
+                                {review.reviewText}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Second Review Card */}
+                      {(() => {
+                        const nextIndex = (carouselIndex + 1) % reviews.length;
+                        const review = reviews[nextIndex];
+                        return (
+                          <div
+                            key={`review-second-${nextIndex}-${review._id || review.propertyId}`}
+                            onClick={() => {
+                              window.location.href = `/hotels/${review.propertyId}`;
+                            }}
+                            style={{
+                              background: "rgba(255, 255, 255, 0.96)",
+                              borderRadius: "16px",
+                              overflow: "hidden",
+                              boxShadow:
+                                "0 10px 30px rgba(0, 102, 204, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05)",
+                              border: "1px solid rgba(226, 232, 240, 0.9)",
+                              cursor: "pointer",
+                              display: "flex",
+                              flexDirection: "column",
+                              transition: "all 0.6s ease-in-out",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform =
+                                "translateY(-8px)";
+                              e.currentTarget.style.boxShadow =
+                                "0 20px 50px rgba(0, 102, 204, 0.2)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = "translateY(0)";
+                              e.currentTarget.style.boxShadow =
+                                "0 10px 30px rgba(0, 102, 204, 0.1)";
+                            }}
+                          >
+                            {/* Image Gallery */}
+                            {review.reviewImages &&
+                              review.reviewImages.length > 0 && (
+                                <div
+                                  style={{
+                                    position: "relative",
+                                    width: "100%",
+                                    height: "200px",
+                                    overflow: "hidden",
+                                    background:
+                                      "linear-gradient(135deg, rgba(0, 102, 204, 0.1) 0%, rgba(0, 153, 255, 0.05) 100%)",
+                                  }}
+                                >
+                                  <img
+                                    src={review.reviewImages[0]}
+                                    alt={review.propertyName}
+                                    style={{
+                                      width: "100%",
+                                      height: "100%",
+                                      objectFit: "cover",
+                                    }}
+                                  />
+                                  {review.reviewImages.length > 1 && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedImageModal({
+                                          images: review.reviewImages,
+                                          index: 0,
+                                        });
+                                      }}
+                                      style={{
+                                        position: "absolute",
+                                        bottom: "0.75rem",
+                                        right: "0.75rem",
+                                        background: "rgba(0, 0, 0, 0.6)",
+                                        color: "white",
+                                        border: "none",
+                                        borderRadius: "8px",
+                                        padding: "0.5rem 1rem",
+                                        fontSize: "0.85rem",
+                                        fontWeight: 600,
+                                        cursor: "pointer",
+                                        transition: "all 0.3s",
+                                        backdropFilter: "blur(8px)",
+                                      }}
+                                      onMouseEnter={(e) => {
+                                        e.currentTarget.style.background =
+                                          "rgba(0, 0, 0, 0.8)";
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        e.currentTarget.style.background =
+                                          "rgba(0, 0, 0, 0.6)";
+                                      }}
+                                    >
+                                      📷 {review.reviewImages.length}
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+
+                            {/* Content */}
+                            <div
+                              style={{
+                                padding: "1.5rem",
+                                flex: 1,
+                                display: "flex",
+                                flexDirection: "column",
+                              }}
+                            >
+                              {/* Property Info */}
+                              <div style={{ marginBottom: "1rem" }}>
+                                <h3
+                                  style={{
+                                    fontSize: "1.1rem",
+                                    fontWeight: 700,
+                                    color: "#0066cc",
+                                    margin: "0 0 0.25rem 0",
+                                  }}
+                                >
+                                  {review.propertyName}
+                                </h3>
+                                <p
+                                  style={{
+                                    fontSize: "0.85rem",
+                                    color: "#999",
+                                    margin: 0,
+                                  }}
+                                >
+                                  {review.propertyType}
+                                </p>
+                              </div>
+
+                              {/* User Info */}
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.75rem",
+                                  marginBottom: "1rem",
+                                }}
+                              >
+                                {review.userImage ? (
+                                  <img
+                                    src={review.userImage}
+                                    alt={review.userName}
+                                    style={{
+                                      width: "40px",
+                                      height: "40px",
+                                      borderRadius: "50%",
+                                      objectFit: "cover",
+                                    }}
+                                  />
+                                ) : (
+                                  <div
+                                    style={{
+                                      width: "40px",
+                                      height: "40px",
+                                      borderRadius: "50%",
+                                      background:
+                                        "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      color: "white",
+                                      fontWeight: "bold",
+                                      fontSize: "0.9rem",
+                                    }}
+                                  >
+                                    {review.userName?.charAt(0).toUpperCase() ||
+                                      "U"}
+                                  </div>
+                                )}
+                                <div>
+                                  <p
+                                    style={{
+                                      fontWeight: 600,
+                                      margin: 0,
+                                      color: "#1a1a2e",
+                                      fontSize: "0.95rem",
+                                    }}
+                                  >
+                                    {review.userName}
+                                  </p>
+                                  <p
+                                    style={{
+                                      fontSize: "0.8rem",
+                                      color: "#999",
+                                      margin: "0.1rem 0 0 0",
+                                    }}
+                                  >
+                                    {new Date(
+                                      review.createdAt,
+                                    ).toLocaleDateString("en-US", {
+                                      month: "short",
+                                      day: "numeric",
+                                      year: "numeric",
+                                    })}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Rating */}
+                              <div style={{ marginBottom: "0.75rem" }}>
+                                {[...Array(5)].map((_, i) => (
+                                  <span
+                                    key={i}
+                                    style={{
+                                      color:
+                                        i < review.rating
+                                          ? "#fbbf24"
+                                          : "#e5e7eb",
+                                      fontSize: "1rem",
+                                    }}
+                                  >
+                                    ★
+                                  </span>
+                                ))}
+                              </div>
+
+                              {/* Review Text */}
+                              <p
+                                style={{
+                                  fontSize: "0.95rem",
+                                  color: "#555",
+                                  lineHeight: 1.6,
+                                  margin: 0,
+                                  flex: 1,
+                                  display: "-webkit-box",
+                                  WebkitLineClamp: 3,
+                                  WebkitBoxOrient: "vertical",
+                                  overflow: "hidden",
+                                }}
+                              >
+                                {review.reviewText}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
-                  ))
-                ) : (
+
+                    {/* Navigation Arrows */}
+                    {reviews.length > 2 && (
+                      <>
+                        <button
+                          onClick={() =>
+                            setCarouselIndex((prev) =>
+                              prev === 0 ? reviews.length - 1 : prev - 1,
+                            )
+                          }
+                          style={{
+                            position: "absolute",
+                            left: "-70px",
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            background:
+                              "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "50%",
+                            width: "50px",
+                            height: "50px",
+                            fontSize: "1.5rem",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            transition: "all 0.3s",
+                            boxShadow: "0 4px 15px rgba(0, 102, 204, 0.25)",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform =
+                              "translateY(-50%) scale(1.1)";
+                            e.currentTarget.style.boxShadow =
+                              "0 6px 25px rgba(0, 102, 204, 0.35)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform =
+                              "translateY(-50%) scale(1)";
+                            e.currentTarget.style.boxShadow =
+                              "0 4px 15px rgba(0, 102, 204, 0.25)";
+                          }}
+                        >
+                          ‹
+                        </button>
+                        <button
+                          onClick={() =>
+                            setCarouselIndex((prev) =>
+                              prev === reviews.length - 1 ? 0 : prev + 1,
+                            )
+                          }
+                          style={{
+                            position: "absolute",
+                            right: "-70px",
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            background:
+                              "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "50%",
+                            width: "50px",
+                            height: "50px",
+                            fontSize: "1.5rem",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            transition: "all 0.3s",
+                            boxShadow: "0 4px 15px rgba(0, 102, 204, 0.25)",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform =
+                              "translateY(-50%) scale(1.1)";
+                            e.currentTarget.style.boxShadow =
+                              "0 6px 25px rgba(0, 102, 204, 0.35)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform =
+                              "translateY(-50%) scale(1)";
+                            e.currentTarget.style.boxShadow =
+                              "0 4px 15px rgba(0, 102, 204, 0.25)";
+                          }}
+                        >
+                          ›
+                        </button>
+                      </>
+                    )}
+
+                    {/* Carousel Indicators */}
+                    {reviews.length > 2 && (
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "center",
+                          gap: "0.5rem",
+                          marginTop: "2rem",
+                        }}
+                      >
+                        {reviews.map((_, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setCarouselIndex(idx)}
+                            style={{
+                              width: idx === carouselIndex ? "32px" : "12px",
+                              height: "12px",
+                              borderRadius: "6px",
+                              border: "none",
+                              background:
+                                idx === carouselIndex
+                                  ? "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)"
+                                  : "#d1d5db",
+                              cursor: "pointer",
+                              transition: "all 0.3s",
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : !reviewsLoading ? (
                   <div
                     style={{
                       textAlign: "center",
-                      padding: "4rem 2rem",
-                      background: "rgba(255, 255, 255, 0.6)",
-                      borderRadius: "20px",
-                      border: "1px solid rgba(255, 255, 255, 0.8)",
+                      padding: "3rem 2rem",
+                      background: "rgba(255, 255, 255, 0.5)",
+                      borderRadius: "16px",
+                      border: "1px dashed rgba(0, 102, 204, 0.2)",
                     }}
                   >
                     <p
                       style={{
-                        fontSize: "3rem",
-                        margin: "0 0 1rem 0",
-                        opacity: 0.5,
-                      }}
-                    >
-                      🔍
-                    </p>
-                    <p
-                      style={{
                         fontSize: "1.1rem",
-                        margin: "0 0 0.8rem 0",
-                        fontWeight: 600,
-                        color: "#1a1a2e",
+                        color: "#666",
+                        margin: 0,
                       }}
                     >
-                      No FAQs found matching your search.
-                    </p>
-                    <p
-                      style={{
-                        fontSize: "0.9rem",
-                        color: "#777",
-                        fontWeight: 400,
-                      }}
-                    >
-                      Try different keywords or select another category.
+                      No reviews yet. Be the first to share your experience!
                     </p>
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
           </section>
         </div>
       </main>
+
+      {/* Review Form Modal */}
+      {showReviewForm && (
+        <ReviewForm
+          propertyId={selectedPropertyForReview?.id || ""}
+          propertyName={selectedPropertyForReview?.name || ""}
+          propertyType={selectedPropertyForReview?.type || ""}
+          onSubmit={(newReview: any) => {
+            setReviews((prev) => [newReview, ...prev]);
+            setShowReviewForm(false);
+          }}
+          onClose={() => setShowReviewForm(false)}
+        />
+      )}
+
+      {/* Image Modal */}
+      {selectedImageModal && (
+        <ImageModal
+          images={selectedImageModal.images}
+          initialIndex={selectedImageModal.index}
+          onClose={() => setSelectedImageModal(null)}
+        />
+      )}
 
       {/* ========== FOOTER ========== */}
       <footer>
@@ -2217,11 +1385,6 @@ export default function Home() {
           section > div[style*="maxWidth: \"800px\""] {
             padding: 1.5rem 1rem !important;
             border-radius: 16px !important;
-          }
-          
-          /* FAQ section mobile */
-          section > div[style*="maxWidth: \"1280px\""] {
-            padding: 1.5rem 1rem !important;
           }
           
           /* Why Us cards */

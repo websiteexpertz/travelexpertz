@@ -29,10 +29,37 @@ function BookingPageContent() {
     specialRequests: "",
   });
   const [processing, setProcessing] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null); // Store full user profile from initial auth check
 
   useEffect(() => {
+    checkAuth();
     loadBookingData();
   }, []);
+
+  const checkAuth = async () => {
+    try {
+      const response = await fetch("/api/auth/user-profile", {
+        credentials: "include",
+      });
+      if (response.ok) {
+        const user = await response.json();
+        setUserProfile(user); // Store the full profile
+        setIsAuthenticated(true);
+        setGuestDetails((prev) => ({
+          ...prev,
+          name: user.name || prev.name,
+          email: user.email || prev.email,
+          phone: user.mobile || prev.phone,
+        }));
+      } else {
+        setIsAuthenticated(false);
+      }
+    } catch (err) {
+      console.error("Auth check failed:", err);
+      setIsAuthenticated(false);
+    }
+  };
 
   const loadBookingData = async () => {
     try {
@@ -48,11 +75,21 @@ function BookingPageContent() {
         return;
       }
 
-      // Fetch homestay details
-      const response = await fetch(`/api/homestays?id=${homestayId}`);
-      if (!response.ok) throw new Error("Failed to fetch homestay");
+      // Try to fetch from both APIs (homestays and hotels)
+      let response = await fetch(`/api/homestays?id=${homestayId}`);
+      let data;
 
-      const homestay = await response.json();
+      if (!response.ok) {
+        // Try hotels API if homestays fails
+        response = await fetch(`/api/hotels?id=${homestayId}`);
+      }
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch property details");
+      }
+
+      data = await response.json();
+      const homestay = data;
       const room = homestay.rooms?.find((r: any) => r.id === roomId);
 
       if (!room) {
@@ -65,7 +102,8 @@ function BookingPageContent() {
       const checkinDate = new Date(checkin);
       const checkoutDate = new Date(checkout);
       const nights = Math.ceil(
-        (checkoutDate.getTime() - checkinDate.getTime()) / (1000 * 60 * 60 * 24)
+        (checkoutDate.getTime() - checkinDate.getTime()) /
+          (1000 * 60 * 60 * 24),
       );
 
       const basePrice = room.price * nights;
@@ -87,7 +125,7 @@ function BookingPageContent() {
       });
     } catch (error) {
       console.error("Error loading booking data:", error);
-      alert("Failed to load booking information");
+      alert("Failed to load booking information. Please try again.");
       router.push("/homestays");
     } finally {
       setLoading(false);
@@ -95,6 +133,12 @@ function BookingPageContent() {
   };
 
   const handleConfirmBooking = async () => {
+    if (!isAuthenticated) {
+      alert("Please log in to make a booking");
+      router.push("/auth/login");
+      return;
+    }
+
     if (!guestDetails.name || !guestDetails.email || !guestDetails.phone) {
       alert("Please fill in all required fields");
       return;
@@ -105,12 +149,25 @@ function BookingPageContent() {
     setProcessing(true);
 
     try {
-      // Create booking
+      // Use the user profile already fetched during auth check
+      if (!userProfile || !userProfile._id) {
+        throw new Error("User profile not available");
+      }
+
+      console.log("Using stored user profile:", {
+        userId: userProfile._id,
+        name: userProfile.name,
+      });
+
+      // Create booking (will be auto-confirmed for logged in users)
       const response = await fetch("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           homestayId: bookingData.homestay._id,
+          propertyName: bookingData.homestay.name,
+          propertyType: "Homestay",
           roomId: bookingData.room.id,
           guestName: guestDetails.name,
           guestEmail: guestDetails.email,
@@ -118,8 +175,11 @@ function BookingPageContent() {
           specialRequests: guestDetails.specialRequests,
           checkin: bookingData.checkin,
           checkout: bookingData.checkout,
+          checkIn: bookingData.checkin,
+          checkOut: bookingData.checkout,
           guests: bookingData.guests,
           basePrice: bookingData.room.price,
+          userId: userProfile._id,
         }),
       });
 
@@ -129,9 +189,10 @@ function BookingPageContent() {
       }
 
       const booking = await response.json();
+      alert("Booking confirmed successfully!");
 
-      // Redirect to payment (for now, just confirmation)
-      router.push(`/booking/confirm?bookingId=${booking._id}`);
+      // Redirect to my bookings
+      router.push("/user/bookings");
     } catch (error: any) {
       console.error("Error creating booking:", error);
       alert(error.message || "Failed to create booking");

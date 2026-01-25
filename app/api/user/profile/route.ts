@@ -37,16 +37,34 @@ export async function GET(request: NextRequest) {
 
     const profile = await profilesCollection.findOne({ userId: new ObjectId(user.userId) });
 
+    // Merge user data with profile data, prioritizing profile data if it exists
+    const mergedProfile = {
+      name: profile?.name || userDoc.name || "",
+      email: profile?.email || userDoc.email || "",
+      gender: profile?.gender || "",
+      dateOfBirth: profile?.dateOfBirth || "",
+      nationality: profile?.nationality || "",
+      maritalStatus: profile?.maritalStatus || "",
+      anniversaryDate: profile?.anniversaryDate || "",
+      alternateContact: profile?.alternateContact || "",
+      city: profile?.city || "",
+      state: profile?.state || "",
+      profileImage: profile?.profileImage || "",
+    };
+
     return NextResponse.json({
       user: {
         id: userDoc._id,
+        _id: userDoc._id,
         mobile: userDoc.mobile,
         mobileVerified: userDoc.mobileVerified,
         isActive: userDoc.isActive,
         role: userDoc.role,
         createdAt: userDoc.createdAt,
+        image: profile?.profileImage || "",
+        email: userDoc.email,
       },
-      profile: profile || {},
+      profile: mergedProfile,
     });
   } catch (error) {
     console.error("Get profile error:", error);

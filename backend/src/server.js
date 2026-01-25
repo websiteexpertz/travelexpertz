@@ -10,6 +10,7 @@ import whyusRoutes from "./routes/whyusRoutes.js";
 import aboutRoutes from "./routes/aboutRoutes.js";
 import homestayRoutes from "./routes/homestayRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
+import categoryRoutes from "./routes/category.js";
 
 dotenv.config({ path: ".env.local" });
 
@@ -32,6 +33,7 @@ app.use("/api/whyus", whyusRoutes);
 app.use("/api/about", aboutRoutes);
 app.use("/api/homestays", homestayRoutes);
 app.use("/api/bookings", bookingRoutes);
+app.use("/api/categories", categoryRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => {

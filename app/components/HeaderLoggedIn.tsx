@@ -74,6 +74,11 @@ export default function HeaderLoggedIn({
                   href={item.href}
                   aria-current={isActive ? "page" : undefined}
                   className={isActive ? "text-primary" : undefined}
+                  style={{
+                    fontSize: "1.05rem",
+                    fontWeight: "500",
+                    padding: "0.5rem 0.25rem",
+                  }}
                 >
                   {item.label}
                 </Link>
@@ -169,10 +174,10 @@ export default function HeaderLoggedIn({
                     backgroundColor: "transparent",
                     border: "2px solid var(--primary)",
                     borderRadius: "0.5rem",
-                    padding: "0.5rem 0.75rem",
+                    padding: "0.6rem 0.85rem",
                     cursor: "pointer",
                     fontWeight: 600,
-                    fontSize: "0.9rem",
+                    fontSize: "0.95rem",
                     color: "var(--primary)",
                     transition: "all 0.2s ease",
                     whiteSpace: "nowrap",
