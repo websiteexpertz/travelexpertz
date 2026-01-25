@@ -76,6 +76,7 @@ export default function AdminLayout({
     { label: "Deals", href: "/admin/deals", icon: "🎁" },
     { label: "Why Us", href: "/admin/whyus", icon: "💡" },
     { label: "About Us", href: "/admin/about", icon: "ℹ️" },
+    { label: "Form Fields", href: "/admin/form-fields", icon: "⚙️" },
   ];
 
   return (
