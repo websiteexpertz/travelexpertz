@@ -118,7 +118,7 @@ export default function FormFieldsManagement() {
         alert(
           editingId
             ? "Field updated successfully!"
-            : "Field created successfully!"
+            : "Field created successfully!",
         );
       } else {
         const error = await response.json();
@@ -183,8 +183,10 @@ export default function FormFieldsManagement() {
   };
 
   const filteredFields = fields.filter((field) => {
-    if (filterEntity !== "all" && field.entityType !== filterEntity) return false;
-    if (filterSection !== "all" && field.section !== filterSection) return false;
+    if (filterEntity !== "all" && field.entityType !== filterEntity)
+      return false;
+    if (filterSection !== "all" && field.section !== filterSection)
+      return false;
     return true;
   });
 
@@ -222,7 +224,13 @@ export default function FormFieldsManagement() {
             <span className="material-symbols-outlined">settings</span>
             Form Control Center
           </h1>
-          <p style={{ color: "#94a3b8", fontSize: "0.9rem", margin: "0.5rem 0 0" }}>
+          <p
+            style={{
+              color: "#94a3b8",
+              fontSize: "0.9rem",
+              margin: "0.5rem 0 0",
+            }}
+          >
             Manage reusable form fields across all sections
           </p>
         </div>
@@ -259,7 +267,15 @@ export default function FormFieldsManagement() {
         }}
       >
         <div style={{ flex: 1 }}>
-          <label style={{ fontSize: "0.85rem", fontWeight: 600, color: "#64748b", marginBottom: "0.5rem", display: "block" }}>
+          <label
+            style={{
+              fontSize: "0.85rem",
+              fontWeight: 600,
+              color: "#64748b",
+              marginBottom: "0.5rem",
+              display: "block",
+            }}
+          >
             Entity Type
           </label>
           <select
@@ -282,7 +298,15 @@ export default function FormFieldsManagement() {
           </select>
         </div>
         <div style={{ flex: 1 }}>
-          <label style={{ fontSize: "0.85rem", fontWeight: 600, color: "#64748b", marginBottom: "0.5rem", display: "block" }}>
+          <label
+            style={{
+              fontSize: "0.85rem",
+              fontWeight: 600,
+              color: "#64748b",
+              marginBottom: "0.5rem",
+              display: "block",
+            }}
+          >
             Section
           </label>
           <select
@@ -298,11 +322,13 @@ export default function FormFieldsManagement() {
           >
             <option value="all">All Sections</option>
             {filterEntity !== "all" &&
-              SECTIONS[filterEntity as keyof typeof SECTIONS]?.map((section) => (
-                <option key={section.value} value={section.value}>
-                  {section.label}
-                </option>
-              ))}
+              SECTIONS[filterEntity as keyof typeof SECTIONS]?.map(
+                (section) => (
+                  <option key={section.value} value={section.value}>
+                    {section.label}
+                  </option>
+                ),
+              )}
           </select>
         </div>
       </div>
@@ -335,7 +361,13 @@ export default function FormFieldsManagement() {
               overflowY: "auto",
             }}
           >
-            <h2 style={{ fontSize: "1.5rem", marginBottom: "1.5rem", color: "#1a1a2e" }}>
+            <h2
+              style={{
+                fontSize: "1.5rem",
+                marginBottom: "1.5rem",
+                color: "#1a1a2e",
+              }}
+            >
               {editingId ? "Edit Field" : "Add New Field"}
             </h2>
 
@@ -343,13 +375,23 @@ export default function FormFieldsManagement() {
               <div style={{ display: "grid", gap: "1.25rem" }}>
                 {/* Field Name */}
                 <div>
-                  <label style={{ fontSize: "0.9rem", fontWeight: 600, color: "#374151", marginBottom: "0.5rem", display: "block" }}>
+                  <label
+                    style={{
+                      fontSize: "0.9rem",
+                      fontWeight: 600,
+                      color: "#374151",
+                      marginBottom: "0.5rem",
+                      display: "block",
+                    }}
+                  >
                     Field Name *
                   </label>
                   <input
                     type="text"
                     value={formData.fieldName}
-                    onChange={(e) => setFormData({ ...formData, fieldName: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, fieldName: e.target.value })
+                    }
                     required
                     placeholder="e.g., Nearby Attractions"
                     style={{
@@ -364,12 +406,26 @@ export default function FormFieldsManagement() {
 
                 {/* Entity Type */}
                 <div>
-                  <label style={{ fontSize: "0.9rem", fontWeight: 600, color: "#374151", marginBottom: "0.5rem", display: "block" }}>
+                  <label
+                    style={{
+                      fontSize: "0.9rem",
+                      fontWeight: 600,
+                      color: "#374151",
+                      marginBottom: "0.5rem",
+                      display: "block",
+                    }}
+                  >
                     Entity Type *
                   </label>
                   <select
                     value={formData.entityType}
-                    onChange={(e) => setFormData({ ...formData, entityType: e.target.value, section: "overview" })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        entityType: e.target.value,
+                        section: "overview",
+                      })
+                    }
                     required
                     style={{
                       width: "100%",
@@ -389,12 +445,22 @@ export default function FormFieldsManagement() {
 
                 {/* Section */}
                 <div>
-                  <label style={{ fontSize: "0.9rem", fontWeight: 600, color: "#374151", marginBottom: "0.5rem", display: "block" }}>
+                  <label
+                    style={{
+                      fontSize: "0.9rem",
+                      fontWeight: 600,
+                      color: "#374151",
+                      marginBottom: "0.5rem",
+                      display: "block",
+                    }}
+                  >
                     Section *
                   </label>
                   <select
                     value={formData.section}
-                    onChange={(e) => setFormData({ ...formData, section: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, section: e.target.value })
+                    }
                     required
                     style={{
                       width: "100%",
@@ -404,7 +470,9 @@ export default function FormFieldsManagement() {
                       fontSize: "0.95rem",
                     }}
                   >
-                    {SECTIONS[formData.entityType as keyof typeof SECTIONS]?.map((section) => (
+                    {SECTIONS[
+                      formData.entityType as keyof typeof SECTIONS
+                    ]?.map((section) => (
                       <option key={section.value} value={section.value}>
                         {section.label}
                       </option>
@@ -414,12 +482,25 @@ export default function FormFieldsManagement() {
 
                 {/* Field Type */}
                 <div>
-                  <label style={{ fontSize: "0.9rem", fontWeight: 600, color: "#374151", marginBottom: "0.5rem", display: "block" }}>
+                  <label
+                    style={{
+                      fontSize: "0.9rem",
+                      fontWeight: 600,
+                      color: "#374151",
+                      marginBottom: "0.5rem",
+                      display: "block",
+                    }}
+                  >
                     Field Type *
                   </label>
                   <select
                     value={formData.fieldType}
-                    onChange={(e) => setFormData({ ...formData, fieldType: e.target.value as any })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        fieldType: e.target.value as any,
+                      })
+                    }
                     required
                     style={{
                       width: "100%",
@@ -439,13 +520,23 @@ export default function FormFieldsManagement() {
 
                 {/* Placeholder */}
                 <div>
-                  <label style={{ fontSize: "0.9rem", fontWeight: 600, color: "#374151", marginBottom: "0.5rem", display: "block" }}>
+                  <label
+                    style={{
+                      fontSize: "0.9rem",
+                      fontWeight: 600,
+                      color: "#374151",
+                      marginBottom: "0.5rem",
+                      display: "block",
+                    }}
+                  >
                     Placeholder
                   </label>
                   <input
                     type="text"
                     value={formData.placeholder}
-                    onChange={(e) => setFormData({ ...formData, placeholder: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, placeholder: e.target.value })
+                    }
                     placeholder="e.g., Enter nearby places..."
                     style={{
                       width: "100%",
@@ -459,13 +550,23 @@ export default function FormFieldsManagement() {
 
                 {/* Help Text */}
                 <div>
-                  <label style={{ fontSize: "0.9rem", fontWeight: 600, color: "#374151", marginBottom: "0.5rem", display: "block" }}>
+                  <label
+                    style={{
+                      fontSize: "0.9rem",
+                      fontWeight: 600,
+                      color: "#374151",
+                      marginBottom: "0.5rem",
+                      display: "block",
+                    }}
+                  >
                     Help Text
                   </label>
                   <input
                     type="text"
                     value={formData.helpText}
-                    onChange={(e) => setFormData({ ...formData, helpText: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, helpText: e.target.value })
+                    }
                     placeholder="Additional guidance for users"
                     style={{
                       width: "100%",
@@ -480,11 +581,26 @@ export default function FormFieldsManagement() {
                 {/* Options for select field */}
                 {formData.fieldType === "select" && (
                   <div>
-                    <label style={{ fontSize: "0.9rem", fontWeight: 600, color: "#374151", marginBottom: "0.5rem", display: "block" }}>
+                    <label
+                      style={{
+                        fontSize: "0.9rem",
+                        fontWeight: 600,
+                        color: "#374151",
+                        marginBottom: "0.5rem",
+                        display: "block",
+                      }}
+                    >
                       Options
                     </label>
                     {formData.options.map((option, idx) => (
-                      <div key={idx} style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                      <div
+                        key={idx}
+                        style={{
+                          display: "flex",
+                          gap: "0.5rem",
+                          marginBottom: "0.5rem",
+                        }}
+                      >
                         <input
                           type="text"
                           value={option}
@@ -533,35 +649,70 @@ export default function FormFieldsManagement() {
 
                 {/* Checkboxes */}
                 <div style={{ display: "flex", gap: "1.5rem" }}>
-                  <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      cursor: "pointer",
+                    }}
+                  >
                     <input
                       type="checkbox"
                       checked={formData.required}
-                      onChange={(e) => setFormData({ ...formData, required: e.target.checked })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, required: e.target.checked })
+                      }
                       style={{ width: "16px", height: "16px" }}
                     />
-                    <span style={{ fontSize: "0.9rem", color: "#374151" }}>Required</span>
+                    <span style={{ fontSize: "0.9rem", color: "#374151" }}>
+                      Required
+                    </span>
                   </label>
-                  <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      cursor: "pointer",
+                    }}
+                  >
                     <input
                       type="checkbox"
                       checked={formData.active}
-                      onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, active: e.target.checked })
+                      }
                       style={{ width: "16px", height: "16px" }}
                     />
-                    <span style={{ fontSize: "0.9rem", color: "#374151" }}>Active</span>
+                    <span style={{ fontSize: "0.9rem", color: "#374151" }}>
+                      Active
+                    </span>
                   </label>
                 </div>
 
                 {/* Order */}
                 <div>
-                  <label style={{ fontSize: "0.9rem", fontWeight: 600, color: "#374151", marginBottom: "0.5rem", display: "block" }}>
+                  <label
+                    style={{
+                      fontSize: "0.9rem",
+                      fontWeight: 600,
+                      color: "#374151",
+                      marginBottom: "0.5rem",
+                      display: "block",
+                    }}
+                  >
                     Display Order
                   </label>
                   <input
                     type="number"
                     value={formData.order}
-                    onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        order: parseInt(e.target.value) || 0,
+                      })
+                    }
                     min="0"
                     style={{
                       width: "100%",
@@ -623,52 +774,117 @@ export default function FormFieldsManagement() {
         }}
       >
         {loading ? (
-          <div style={{ padding: "3rem", textAlign: "center", color: "#64748b" }}>
+          <div
+            style={{ padding: "3rem", textAlign: "center", color: "#64748b" }}
+          >
             Loading fields...
           </div>
         ) : filteredFields.length === 0 ? (
-          <div style={{ padding: "3rem", textAlign: "center", color: "#64748b" }}>
+          <div
+            style={{ padding: "3rem", textAlign: "center", color: "#64748b" }}
+          >
             No form fields found. Create one to get started!
           </div>
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ backgroundColor: "#f8fafc", borderBottom: "2px solid #e2e8f0" }}>
-                <th style={{ padding: "1rem", textAlign: "left", fontWeight: 600, color: "#475569" }}>
+              <tr
+                style={{
+                  backgroundColor: "#f8fafc",
+                  borderBottom: "2px solid #e2e8f0",
+                }}
+              >
+                <th
+                  style={{
+                    padding: "1rem",
+                    textAlign: "left",
+                    fontWeight: 600,
+                    color: "#475569",
+                  }}
+                >
                   Field Name
                 </th>
-                <th style={{ padding: "1rem", textAlign: "left", fontWeight: 600, color: "#475569" }}>
+                <th
+                  style={{
+                    padding: "1rem",
+                    textAlign: "left",
+                    fontWeight: 600,
+                    color: "#475569",
+                  }}
+                >
                   Type
                 </th>
-                <th style={{ padding: "1rem", textAlign: "left", fontWeight: 600, color: "#475569" }}>
+                <th
+                  style={{
+                    padding: "1rem",
+                    textAlign: "left",
+                    fontWeight: 600,
+                    color: "#475569",
+                  }}
+                >
                   Entity
                 </th>
-                <th style={{ padding: "1rem", textAlign: "left", fontWeight: 600, color: "#475569" }}>
+                <th
+                  style={{
+                    padding: "1rem",
+                    textAlign: "left",
+                    fontWeight: 600,
+                    color: "#475569",
+                  }}
+                >
                   Section
                 </th>
-                <th style={{ padding: "1rem", textAlign: "left", fontWeight: 600, color: "#475569" }}>
+                <th
+                  style={{
+                    padding: "1rem",
+                    textAlign: "left",
+                    fontWeight: 600,
+                    color: "#475569",
+                  }}
+                >
                   Status
                 </th>
-                <th style={{ padding: "1rem", textAlign: "center", fontWeight: 600, color: "#475569" }}>
+                <th
+                  style={{
+                    padding: "1rem",
+                    textAlign: "center",
+                    fontWeight: 600,
+                    color: "#475569",
+                  }}
+                >
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody>
               {filteredFields.map((field) => (
-                <tr key={field._id} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                <tr
+                  key={field._id}
+                  style={{ borderBottom: "1px solid #e2e8f0" }}
+                >
                   <td style={{ padding: "1rem" }}>
                     <div>
-                      <div style={{ fontWeight: 600, color: "#1e293b" }}>{field.fieldName}</div>
+                      <div style={{ fontWeight: 600, color: "#1e293b" }}>
+                        {field.fieldName}
+                      </div>
                       {field.helpText && (
-                        <div style={{ fontSize: "0.8rem", color: "#64748b", marginTop: "0.25rem" }}>
+                        <div
+                          style={{
+                            fontSize: "0.8rem",
+                            color: "#64748b",
+                            marginTop: "0.25rem",
+                          }}
+                        >
                           {field.helpText}
                         </div>
                       )}
                     </div>
                   </td>
                   <td style={{ padding: "1rem", color: "#475569" }}>
-                    {FIELD_TYPES.find((t) => t.value === field.fieldType)?.label}
+                    {
+                      FIELD_TYPES.find((t) => t.value === field.fieldType)
+                        ?.label
+                    }
                   </td>
                   <td style={{ padding: "1rem" }}>
                     <span
@@ -681,7 +897,10 @@ export default function FormFieldsManagement() {
                         fontWeight: 500,
                       }}
                     >
-                      {ENTITY_TYPES.find((t) => t.value === field.entityType)?.label}
+                      {
+                        ENTITY_TYPES.find((t) => t.value === field.entityType)
+                          ?.label
+                      }
                     </span>
                   </td>
                   <td style={{ padding: "1rem", color: "#475569" }}>
@@ -702,7 +921,13 @@ export default function FormFieldsManagement() {
                     </span>
                   </td>
                   <td style={{ padding: "1rem" }}>
-                    <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "0.5rem",
+                        justifyContent: "center",
+                      }}
+                    >
                       <button
                         onClick={() => handleEdit(field)}
                         style={{

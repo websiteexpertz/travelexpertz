@@ -214,11 +214,156 @@ export default function AdminLayout({
         style={{
           marginLeft: sidebarOpen ? "280px" : "80px",
           flex: 1,
-          padding: "1rem",
           transition: "margin-left 0.3s ease",
+          display: "flex",
+          flexDirection: "column",
+          minHeight: "100vh",
         }}
       >
-        {children}
+        {/* Admin Header */}
+        <header
+          style={{
+            background: "white",
+            borderBottom: "1px solid #e5e7eb",
+            padding: "1rem 2rem",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+            <h2
+              style={{
+                fontSize: "1.25rem",
+                fontWeight: "600",
+                color: "#1a1a2e",
+                margin: 0,
+              }}
+            >
+              {menuItems.find((item) => item.href === pathname)?.label ||
+                "Admin Dashboard"}
+            </h2>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
+            {/* Quick Actions */}
+            <button
+              onClick={() => router.push("/")}
+              style={{
+                padding: "0.5rem 1rem",
+                background: "#f3f4f6",
+                color: "#374151",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontSize: "0.875rem",
+                fontWeight: "500",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                transition: "background 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#e5e7eb";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "#f3f4f6";
+              }}
+              title="View Site"
+            >
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: "1.1rem" }}
+              >
+                language
+              </span>
+              View Site
+            </button>
+
+            {/* Admin Profile Dropdown */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.75rem",
+                padding: "0.5rem 1rem",
+                background: "#f9fafb",
+                borderRadius: "8px",
+                border: "1px solid #e5e7eb",
+              }}
+            >
+              <div
+                style={{
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "50%",
+                  background:
+                    "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "white",
+                  fontWeight: "600",
+                  fontSize: "0.9rem",
+                }}
+              >
+                {adminUsername.charAt(0).toUpperCase()}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <span
+                  style={{
+                    fontSize: "0.875rem",
+                    fontWeight: "600",
+                    color: "#1a1a2e",
+                  }}
+                >
+                  {adminUsername}
+                </span>
+                <span style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                  Administrator
+                </span>
+              </div>
+            </div>
+
+            {/* Logout Button */}
+            <button
+              onClick={handleLogout}
+              style={{
+                padding: "0.5rem 1rem",
+                background: "#dc3545",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontSize: "0.875rem",
+                fontWeight: "500",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                transition: "background 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#c82333";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "#dc3545";
+              }}
+              title="Logout"
+            >
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: "1.1rem" }}
+              >
+                logout
+              </span>
+              Logout
+            </button>
+          </div>
+        </header>
+
+        {/* Page Content */}
+        <div style={{ flex: 1, padding: "1rem" }}>{children}</div>
       </main>
     </div>
   );

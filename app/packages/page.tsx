@@ -129,7 +129,7 @@ export default function Packages() {
           <div
             className="hero-section"
             style={{
-              backgroundImage: "url('/packages-hero.jpg')",
+              backgroundImage: "url('/hero-background.webp')",
               backgroundSize: "cover",
               backgroundPosition: "center",
             }}

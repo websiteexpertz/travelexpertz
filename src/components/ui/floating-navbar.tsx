@@ -39,10 +39,7 @@ export const FloatingNavbar: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
-          <Link
-            href="/"
-            className="flex items-center gap-2 z-10 relative"
-          >
+          <Link href="/" className="flex items-center gap-2 z-10 relative">
             <div className="text-lg md:text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
               Travel Expertz
             </div>

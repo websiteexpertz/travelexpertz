@@ -26,6 +26,20 @@ interface CustomField {
   value: string | string[];
 }
 
+interface GlobalFormField {
+  _id: string;
+  fieldName: string;
+  fieldType: "text" | "textarea" | "number" | "list" | "select" | "checkbox";
+  section: string;
+  entityType: string;
+  placeholder?: string;
+  helpText?: string;
+  required: boolean;
+  options: string[];
+  active: boolean;
+  order: number;
+}
+
 interface Package {
   _id?: string;
   // Basic Details
@@ -515,6 +529,14 @@ export default function AdminPackages() {
     null,
   );
 
+  // Global form fields state
+  const [globalFormFields, setGlobalFormFields] = useState<GlobalFormField[]>(
+    [],
+  );
+  const [formFieldValues, setFormFieldValues] = useState<Record<string, any>>(
+    {},
+  );
+
   const formatPrice = (price: number | null, currency: string) => {
     if (price === null || price === 0) {
       return null;
@@ -529,6 +551,23 @@ export default function AdminPackages() {
     return `$${price}`;
   };
 
+  useEffect(() => {
+    fetchPackages();
+    fetchCategories();
+    fetchGlobalFormFields();
+  }, []);
+
+  const fetchGlobalFormFields = async () => {
+    try {
+      const response = await fetch("/api/admin/form-fields?entityType=package");
+      if (response.ok) {
+        const data = await response.json();
+        setGlobalFormFields(Array.isArray(data) ? data : []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch global form fields:", error);
+    }
+  };
   useEffect(() => {
     fetchPackages();
     fetchCategories();
@@ -567,12 +606,16 @@ export default function AdminPackages() {
     e: React.ChangeEvent<HTMLInputElement>,
     field: "image" | "gallery",
   ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     setUploadingImage(true);
     const formDataUpload = new FormData();
-    formDataUpload.append("file", file);
+
+    // Add all files to FormData
+    for (let i = 0; i < files.length; i++) {
+      formDataUpload.append("file", files[i]);
+    }
 
     try {
       const response = await fetch("/api/upload", {
@@ -582,12 +625,20 @@ export default function AdminPackages() {
 
       if (response.ok) {
         const data = await response.json();
+
         if (field === "image") {
-          setFormData({ ...formData, image: data.url });
+          // For cover image, use first file only
+          const url = data.url || data.files?.[0]?.url;
+          setFormData({ ...formData, image: url });
         } else if (field === "gallery") {
+          // For gallery, handle single or multiple files
+          const urls = data.files
+            ? data.files.map((f: any) => f.url)
+            : [data.url];
+
           setFormData({
             ...formData,
-            gallery: [...formData.gallery, data.url],
+            gallery: [...formData.gallery, ...urls],
           });
         }
       }
@@ -596,11 +647,57 @@ export default function AdminPackages() {
       alert("Failed to upload image");
     } finally {
       setUploadingImage(false);
+      // Reset input so same files can be selected again
+      e.target.value = "";
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Merge global form fields into customFields
+    const mergedCustomFields = [...(formData.customFields || [])];
+
+    // Add global form field values
+    globalFormFields.forEach((field) => {
+      const fieldKey = `${field.section}_${field._id}`;
+      const value = formFieldValues[fieldKey];
+
+      // Only add if there's a value
+      if (
+        value !== undefined &&
+        value !== "" &&
+        !(Array.isArray(value) && value.length === 0)
+      ) {
+        // Remove existing entry if any
+        const existingIndex = mergedCustomFields.findIndex(
+          (cf) =>
+            cf.fieldName === field.fieldName && cf.section === field.section,
+        );
+        if (existingIndex >= 0) {
+          mergedCustomFields.splice(existingIndex, 1);
+        }
+
+        // Add new entry
+        mergedCustomFields.push({
+          id: field._id,
+          fieldName: field.fieldName,
+          fieldType:
+            field.fieldType === "number" ||
+            field.fieldType === "select" ||
+            field.fieldType === "checkbox"
+              ? "text"
+              : field.fieldType,
+          section: field.section as any,
+          value: value,
+        });
+      }
+    });
+
+    const dataToSave = {
+      ...formData,
+      customFields: mergedCustomFields,
+    };
 
     const url = editingId
       ? `/api/admin/packages/${editingId}`
@@ -611,7 +708,7 @@ export default function AdminPackages() {
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(dataToSave),
       });
 
       if (response.ok) {
@@ -656,6 +753,21 @@ export default function AdminPackages() {
       refundPolicyNotes: pkg.refundPolicyNotes || "",
       customFields: pkg.customFields || [],
     });
+
+    // Load global form field values
+    const fieldValues: Record<string, any> = {};
+    globalFormFields.forEach((field) => {
+      const existingCustomField = pkg.customFields?.find(
+        (cf) =>
+          cf.fieldName === field.fieldName && cf.section === field.section,
+      );
+      if (existingCustomField) {
+        fieldValues[`${field.section}_${field._id}`] =
+          existingCustomField.value;
+      }
+    });
+    setFormFieldValues(fieldValues);
+
     setEditingId(pkg._id || null);
     setShowForm(true);
     setActiveTab("basic");
@@ -686,6 +798,7 @@ export default function AdminPackages() {
     setEditingId(null);
     setShowForm(false);
     setActiveTab("basic");
+    setFormFieldValues({});
   };
 
   // Itinerary handlers
@@ -1103,6 +1216,309 @@ export default function AdminPackages() {
             create one.
           </p>
         )}
+      </div>
+    );
+  };
+
+  // Render global form fields section
+  const renderGlobalFormFields = (section: string) => {
+    const sectionFields = globalFormFields.filter(
+      (field) => field.section === section && field.active,
+    );
+
+    if (sectionFields.length === 0) return null;
+
+    return (
+      <div
+        style={{
+          marginTop: "2rem",
+          padding: "1.5rem",
+          backgroundColor: "#ecfdf5",
+          borderRadius: "12px",
+          border: "2px solid #10b981",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            marginBottom: "1.5rem",
+          }}
+        >
+          <span
+            className="material-symbols-outlined"
+            style={{ color: "#059669", fontSize: "1.5rem" }}
+          >
+            settings
+          </span>
+          <h4
+            style={{
+              margin: 0,
+              fontSize: "1.1rem",
+              fontWeight: 700,
+              color: "#059669",
+            }}
+          >
+            Global Form Fields
+          </h4>
+          <span
+            style={{
+              fontSize: "0.75rem",
+              color: "#6b7280",
+              marginLeft: "0.5rem",
+            }}
+          >
+            (Managed in Form Control Center)
+          </span>
+        </div>
+
+        <div style={{ display: "grid", gap: "1.25rem" }}>
+          {sectionFields.map((field) => {
+            const fieldKey = `${field.section}_${field._id}`;
+            const value = formFieldValues[fieldKey] || "";
+
+            return (
+              <div key={field._id}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.9rem",
+                    fontWeight: 600,
+                    color: "#374151",
+                    marginBottom: "0.5rem",
+                  }}
+                >
+                  {field.fieldName}
+                  {field.required && (
+                    <span style={{ color: "#dc2626", marginLeft: "0.25rem" }}>
+                      *
+                    </span>
+                  )}
+                </label>
+                {field.helpText && (
+                  <p
+                    style={{
+                      fontSize: "0.8rem",
+                      color: "#6b7280",
+                      margin: "0 0 0.5rem 0",
+                    }}
+                  >
+                    {field.helpText}
+                  </p>
+                )}
+
+                {/* Text input */}
+                {field.fieldType === "text" && (
+                  <input
+                    type="text"
+                    value={value}
+                    onChange={(e) =>
+                      setFormFieldValues({
+                        ...formFieldValues,
+                        [fieldKey]: e.target.value,
+                      })
+                    }
+                    placeholder={field.placeholder}
+                    required={field.required}
+                    style={{
+                      width: "100%",
+                      padding: "0.75rem",
+                      borderRadius: "8px",
+                      border: "1px solid #d1d5db",
+                      fontSize: "0.95rem",
+                    }}
+                  />
+                )}
+
+                {/* Textarea */}
+                {field.fieldType === "textarea" && (
+                  <textarea
+                    value={value}
+                    onChange={(e) =>
+                      setFormFieldValues({
+                        ...formFieldValues,
+                        [fieldKey]: e.target.value,
+                      })
+                    }
+                    placeholder={field.placeholder}
+                    required={field.required}
+                    rows={4}
+                    style={{
+                      width: "100%",
+                      padding: "0.75rem",
+                      borderRadius: "8px",
+                      border: "1px solid #d1d5db",
+                      fontSize: "0.95rem",
+                      resize: "vertical",
+                    }}
+                  />
+                )}
+
+                {/* Number input */}
+                {field.fieldType === "number" && (
+                  <input
+                    type="number"
+                    value={value}
+                    onChange={(e) =>
+                      setFormFieldValues({
+                        ...formFieldValues,
+                        [fieldKey]: e.target.value,
+                      })
+                    }
+                    placeholder={field.placeholder}
+                    required={field.required}
+                    style={{
+                      width: "100%",
+                      padding: "0.75rem",
+                      borderRadius: "8px",
+                      border: "1px solid #d1d5db",
+                      fontSize: "0.95rem",
+                    }}
+                  />
+                )}
+
+                {/* List input */}
+                {field.fieldType === "list" && (
+                  <div>
+                    {(Array.isArray(value) ? value : []).map(
+                      (item: string, idx: number) => (
+                        <div
+                          key={idx}
+                          style={{
+                            display: "flex",
+                            gap: "0.5rem",
+                            marginBottom: "0.5rem",
+                          }}
+                        >
+                          <input
+                            type="text"
+                            value={item}
+                            onChange={(e) => {
+                              const newList = [
+                                ...(Array.isArray(value) ? value : []),
+                              ];
+                              newList[idx] = e.target.value;
+                              setFormFieldValues({
+                                ...formFieldValues,
+                                [fieldKey]: newList,
+                              });
+                            }}
+                            placeholder={`Item ${idx + 1}`}
+                            style={{
+                              flex: 1,
+                              padding: "0.625rem",
+                              borderRadius: "8px",
+                              border: "1px solid #d1d5db",
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newList = (
+                                Array.isArray(value) ? value : []
+                              ).filter((_: any, i: number) => i !== idx);
+                              setFormFieldValues({
+                                ...formFieldValues,
+                                [fieldKey]: newList,
+                              });
+                            }}
+                            style={{
+                              padding: "0.625rem 1rem",
+                              backgroundColor: "#fee2e2",
+                              color: "#dc2626",
+                              border: "none",
+                              borderRadius: "8px",
+                              cursor: "pointer",
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ),
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const currentList = Array.isArray(value) ? value : [];
+                        setFormFieldValues({
+                          ...formFieldValues,
+                          [fieldKey]: [...currentList, ""],
+                        });
+                      }}
+                      style={{
+                        padding: "0.625rem 1rem",
+                        backgroundColor: "#f1f5f9",
+                        color: "#475569",
+                        border: "none",
+                        borderRadius: "8px",
+                        cursor: "pointer",
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      + Add Item
+                    </button>
+                  </div>
+                )}
+
+                {/* Select dropdown */}
+                {field.fieldType === "select" && (
+                  <select
+                    value={value}
+                    onChange={(e) =>
+                      setFormFieldValues({
+                        ...formFieldValues,
+                        [fieldKey]: e.target.value,
+                      })
+                    }
+                    required={field.required}
+                    style={{
+                      width: "100%",
+                      padding: "0.75rem",
+                      borderRadius: "8px",
+                      border: "1px solid #d1d5db",
+                      fontSize: "0.95rem",
+                    }}
+                  >
+                    <option value="">Select an option</option>
+                    {field.options.map((option, idx) => (
+                      <option key={idx} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                )}
+
+                {/* Checkbox */}
+                {field.fieldType === "checkbox" && (
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={value === true || value === "true"}
+                      onChange={(e) =>
+                        setFormFieldValues({
+                          ...formFieldValues,
+                          [fieldKey]: e.target.checked,
+                        })
+                      }
+                      style={{ width: "18px", height: "18px" }}
+                    />
+                    <span style={{ fontSize: "0.9rem", color: "#374151" }}>
+                      {field.placeholder || "Enable this option"}
+                    </span>
+                  </label>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   };
@@ -1527,6 +1943,9 @@ export default function AdminPackages() {
 
                   {/* Custom Fields for Basic Info */}
                   {renderCustomFieldsSection("overview")}
+
+                  {/* Global Form Fields */}
+                  {renderGlobalFormFields("overview")}
                 </div>
               )}
 
@@ -1554,10 +1973,22 @@ export default function AdminPackages() {
                     <input
                       type="file"
                       accept="image/*"
+                      multiple
                       onChange={(e) => handleImageUpload(e, "gallery")}
                       disabled={uploadingImage}
                       style={styles.input}
                     />
+                    {uploadingImage && (
+                      <p
+                        style={{
+                          color: "#0066cc",
+                          fontSize: "0.9rem",
+                          marginTop: "0.5rem",
+                        }}
+                      >
+                        Uploading images...
+                      </p>
+                    )}
                     {formData.gallery.length > 0 && (
                       <div style={styles.galleryGrid}>
                         {formData.gallery.map((img, index) => (
@@ -1582,6 +2013,9 @@ export default function AdminPackages() {
 
                   {/* Custom Fields for Overview Section */}
                   {renderCustomFieldsSection("overview")}
+
+                  {/* Global Form Fields */}
+                  {renderGlobalFormFields("overview")}
                 </div>
               )}
 
@@ -1680,6 +2114,9 @@ export default function AdminPackages() {
 
                   {/* Custom Fields for Itinerary */}
                   {renderCustomFieldsSection("itinerary")}
+
+                  {/* Global Form Fields */}
+                  {renderGlobalFormFields("itinerary")}
                 </div>
               )}
 
@@ -1919,6 +2356,9 @@ export default function AdminPackages() {
 
                   {/* Custom Fields for Inclusions/Exclusions */}
                   {renderCustomFieldsSection("inclusions")}
+
+                  {/* Global Form Fields */}
+                  {renderGlobalFormFields("inclusions")}
                 </div>
               )}
 
@@ -2093,6 +2533,9 @@ export default function AdminPackages() {
 
                   {/* Custom Fields for Policy & Notes */}
                   {renderCustomFieldsSection("policies")}
+
+                  {/* Global Form Fields */}
+                  {renderGlobalFormFields("policies")}
                 </div>
               )}
             </div>

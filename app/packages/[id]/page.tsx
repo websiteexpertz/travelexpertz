@@ -661,65 +661,6 @@ export default function PackageDetails() {
                     {pkg.fullDescription || pkg.description}
                   </p>
 
-                  {/* Important Notes */}
-                  {pkg.importantNotes && pkg.importantNotes.length > 0 && (
-                    <div style={{ marginTop: "1.5rem" }}>
-                      <h4
-                        style={{
-                          fontSize: "1.1rem",
-                          fontWeight: 700,
-                          marginBottom: "1rem",
-                          color: "#1f2937",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.5rem",
-                        }}
-                      >
-                        <span
-                          className="material-symbols-outlined"
-                          style={{ color: "#f59e0b" }}
-                        >
-                          info
-                        </span>
-                        Important Notes
-                      </h4>
-                      <ul
-                        style={{
-                          listStyle: "none",
-                          padding: 0,
-                          display: "grid",
-                          gridTemplateColumns:
-                            "repeat(auto-fill, minmax(250px, 1fr))",
-                          gap: "0.75rem",
-                        }}
-                      >
-                        {pkg.importantNotes.map((note, idx) => (
-                          <li
-                            key={idx}
-                            style={{
-                              display: "flex",
-                              alignItems: "flex-start",
-                              gap: "0.5rem",
-                              color: "#4b5563",
-                            }}
-                          >
-                            <span
-                              className="material-symbols-outlined"
-                              style={{
-                                color: "#f59e0b",
-                                fontSize: "1.25rem",
-                                flexShrink: 0,
-                              }}
-                            >
-                              warning
-                            </span>
-                            {note}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
                   {/* Starting Point Info */}
                   <div
                     style={{
