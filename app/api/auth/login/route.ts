@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 // Simple admin credentials (in production, store these securely in environment variables)
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "expertz123";
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
 // Simple JWT token generation
