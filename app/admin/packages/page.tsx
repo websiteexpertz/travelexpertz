@@ -1970,6 +1970,16 @@ export default function AdminPackages() {
 
                   <div style={{ marginTop: "1.5rem" }}>
                     <h3 style={styles.sectionTitle}>🖼️ Gallery Images</h3>
+                    <p
+                      style={{
+                        color: "#64748b",
+                        fontSize: "0.85rem",
+                        marginBottom: "0.5rem",
+                      }}
+                    >
+                      💡 Hold Ctrl (Windows) or Cmd (Mac) to select multiple
+                      images at once
+                    </p>
                     <input
                       type="file"
                       accept="image/*"
