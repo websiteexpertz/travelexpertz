@@ -33,8 +33,12 @@ export default function AdminLoginPage() {
         document.cookie = `adminToken=${data.token}; max-age=${
           7 * 24 * 60 * 60
         }; path=/; SameSite=Strict`;
-        // Redirect to admin dashboard
-        router.push("/admin");
+        
+        // Small delay to ensure cookie is set before redirect
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Use window.location for a full page reload to ensure middleware picks up cookie
+        window.location.href = "/admin";
       } else {
         setError(data.message || "Invalid credentials");
       }
