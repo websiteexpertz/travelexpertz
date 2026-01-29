@@ -57,6 +57,7 @@ interface Package {
   // Deep Details
   fullDescription: string;
   importantNotes: string[];
+  termsConditions: string[];
   itinerary: ItineraryDay[];
   gallery: string[];
   inclusions: string[];
@@ -81,6 +82,7 @@ const emptyPackage: Package = {
   active: true,
   fullDescription: "",
   importantNotes: [],
+  termsConditions: [],
   itinerary: [],
   gallery: [],
   inclusions: [],
@@ -697,6 +699,12 @@ export default function AdminPackages() {
     const dataToSave = {
       ...formData,
       customFields: mergedCustomFields,
+      // Filter out empty notes, inclusions, exclusions
+      importantNotes: formData.importantNotes.filter(
+        (note) => note.trim().length > 0,
+      ),
+      inclusions: formData.inclusions.filter((inc) => inc.trim().length > 0),
+      exclusions: formData.exclusions.filter((exc) => exc.trim().length > 0),
     };
 
     const url = editingId
@@ -748,6 +756,7 @@ export default function AdminPackages() {
 
     setFormData({
       ...pkg,
+      termsConditions: pkg.termsConditions || [],
       thingsToCarry: normalizedThingsToCarry,
       refundTiers: pkg.refundTiers || [],
       refundPolicyNotes: pkg.refundPolicyNotes || "",
@@ -831,13 +840,13 @@ export default function AdminPackages() {
 
   // Array field handlers
   const addArrayItem = (
-    field: "importantNotes" | "inclusions" | "exclusions" | "thingsToCarry",
+    field: "importantNotes" | "termsConditions" | "inclusions" | "exclusions" | "thingsToCarry",
   ) => {
     setFormData({ ...formData, [field]: [...formData[field], ""] });
   };
 
   const updateArrayItem = (
-    field: "importantNotes" | "inclusions" | "exclusions" | "thingsToCarry",
+    field: "importantNotes" | "termsConditions" | "inclusions" | "exclusions" | "thingsToCarry",
     index: number,
     value: string,
   ) => {
@@ -847,12 +856,52 @@ export default function AdminPackages() {
   };
 
   const removeArrayItem = (
-    field: "importantNotes" | "inclusions" | "exclusions" | "thingsToCarry",
+    field: "importantNotes" | "termsConditions" | "inclusions" | "exclusions" | "thingsToCarry",
     index: number,
   ) => {
     setFormData({
       ...formData,
       [field]: formData[field].filter((_, i) => i !== index),
+    });
+  };
+
+  const bulkAddItems = (
+    field: "inclusions" | "exclusions" | "importantNotes" | "termsConditions",
+    bulkText: string,
+  ) => {
+    if (!bulkText.trim()) return;
+
+    let items: string[] = [];
+
+    // Check if text has newlines or bullets on same line
+    if (bulkText.includes("\n")) {
+      // Split by newlines
+      items = bulkText.split("\n");
+    } else if (bulkText.includes("•")) {
+      // Split by bullet character if no newlines
+      items = bulkText.split("•");
+    } else {
+      // Just use as single item
+      items = [bulkText];
+    }
+
+    // Clean up items
+    items = items
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .map((line) => {
+        // Remove leading bullet points, dashes, asterisks, numbers
+        return line
+          .replace(/^[•\-*]\s*/, "")
+          .replace(/^\d+\.\s*/, "")
+          .trim();
+      })
+      .filter((line) => line.length > 0);
+
+    // Add to existing items
+    setFormData({
+      ...formData,
+      [field]: [...formData[field], ...items],
     });
   };
 
@@ -2136,6 +2185,71 @@ export default function AdminPackages() {
                   {/* Inclusions */}
                   <div style={{ marginBottom: "2rem" }}>
                     <h3 style={styles.sectionTitle}>✅ Inclusions</h3>
+
+                    {/* Bulk Add Section */}
+                    <div
+                      style={{
+                        marginBottom: "1.5rem",
+                        padding: "1rem",
+                        backgroundColor: "#f0f9ff",
+                        borderRadius: "8px",
+                        border: "1px solid #bae6fd",
+                      }}
+                    >
+                      <label
+                        style={{
+                          display: "block",
+                          marginBottom: "0.5rem",
+                          fontSize: "0.9rem",
+                          fontWeight: 600,
+                          color: "#0369a1",
+                        }}
+                      >
+                        📋 Quick Add Multiple Items
+                      </label>
+                      <p
+                        style={{
+                          fontSize: "0.8rem",
+                          color: "#64748b",
+                          marginBottom: "0.75rem",
+                        }}
+                      >
+                        Paste multiple items (one per line). Lines starting with
+                        •, -, or * will be automatically cleaned.
+                      </p>
+                      <textarea
+                        id="bulkInclusionsInput"
+                        style={{
+                          ...styles.input,
+                          minHeight: "120px",
+                          fontFamily: "monospace",
+                          fontSize: "0.85rem",
+                          resize: "vertical",
+                        }}
+                        placeholder="• Accommodation in guesthouses&#10;• All meals during the trek&#10;• Private air-conditioned transportation&#10;• Certified trek leader"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const textarea = document.getElementById(
+                            "bulkInclusionsInput",
+                          ) as HTMLTextAreaElement;
+                          if (textarea && textarea.value.trim()) {
+                            bulkAddItems("inclusions", textarea.value);
+                            textarea.value = "";
+                          }
+                        }}
+                        style={{
+                          ...styles.addItemButton,
+                          marginTop: "0.5rem",
+                          background:
+                            "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)",
+                        }}
+                      >
+                        ➕ Add All Items
+                      </button>
+                    </div>
+
                     {formData.inclusions.map((item, index) => (
                       <div key={index} style={styles.arrayItemRow}>
                         <input
@@ -2168,6 +2282,71 @@ export default function AdminPackages() {
                   {/* Exclusions */}
                   <div style={{ marginBottom: "2rem" }}>
                     <h3 style={styles.sectionTitle}>❌ Exclusions</h3>
+
+                    {/* Bulk Add Section */}
+                    <div
+                      style={{
+                        marginBottom: "1.5rem",
+                        padding: "1rem",
+                        backgroundColor: "#fef2f2",
+                        borderRadius: "8px",
+                        border: "1px solid #fecaca",
+                      }}
+                    >
+                      <label
+                        style={{
+                          display: "block",
+                          marginBottom: "0.5rem",
+                          fontSize: "0.9rem",
+                          fontWeight: 600,
+                          color: "#b91c1c",
+                        }}
+                      >
+                        📋 Quick Add Multiple Items
+                      </label>
+                      <p
+                        style={{
+                          fontSize: "0.8rem",
+                          color: "#64748b",
+                          marginBottom: "0.75rem",
+                        }}
+                      >
+                        Paste multiple items (one per line). Lines starting with
+                        •, -, or * will be automatically cleaned.
+                      </p>
+                      <textarea
+                        id="bulkExclusionsInput"
+                        style={{
+                          ...styles.input,
+                          minHeight: "120px",
+                          fontFamily: "monospace",
+                          fontSize: "0.85rem",
+                          resize: "vertical",
+                        }}
+                        placeholder="• Travel insurance&#10;• Personal expenses&#10;• Tips and gratuities&#10;• Any services not mentioned"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const textarea = document.getElementById(
+                            "bulkExclusionsInput",
+                          ) as HTMLTextAreaElement;
+                          if (textarea && textarea.value.trim()) {
+                            bulkAddItems("exclusions", textarea.value);
+                            textarea.value = "";
+                          }
+                        }}
+                        style={{
+                          ...styles.addItemButton,
+                          marginTop: "0.5rem",
+                          background:
+                            "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+                        }}
+                      >
+                        ➕ Add All Items
+                      </button>
+                    </div>
+
                     {formData.exclusions.map((item, index) => (
                       <div key={index} style={styles.arrayItemRow}>
                         <input
@@ -2378,6 +2557,107 @@ export default function AdminPackages() {
                   {/* Important Notes */}
                   <div style={{ marginBottom: "2rem" }}>
                     <h3 style={styles.sectionTitle}>📝 Important Notes</h3>
+
+                    {/* Bulk Add Section */}
+                    <div
+                      style={{
+                        marginBottom: "1.5rem",
+                        padding: "1rem",
+                        backgroundColor: "#fefce8",
+                        borderRadius: "8px",
+                        border: "1px solid #fde047",
+                      }}
+                    >
+                      <label
+                        style={{
+                          display: "block",
+                          marginBottom: "0.5rem",
+                          fontSize: "0.9rem",
+                          fontWeight: 600,
+                          color: "#a16207",
+                        }}
+                      >
+                        📋 Quick Add Multiple Notes
+                      </label>
+                      <p
+                        style={{
+                          fontSize: "0.8rem",
+                          color: "#64748b",
+                          marginBottom: "0.75rem",
+                        }}
+                      >
+                        Paste multiple notes (one per line). Lines starting with
+                        •, -, or * will be automatically cleaned.
+                      </p>
+                      <textarea
+                        id="bulkImportantNotesInput"
+                        style={{
+                          ...styles.input,
+                          minHeight: "120px",
+                          fontFamily: "monospace",
+                          fontSize: "0.85rem",
+                          resize: "vertical",
+                        }}
+                        placeholder="• Carry valid ID proof&#10;• Inform about medical conditions&#10;• Follow guide instructions&#10;• Respect local customs"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const textarea = document.getElementById(
+                            "bulkImportantNotesInput",
+                          ) as HTMLTextAreaElement;
+                          if (textarea && textarea.value.trim()) {
+                            bulkAddItems("importantNotes", textarea.value);
+                            textarea.value = "";
+                          }
+                        }}
+                        style={{
+                          ...styles.addItemButton,
+                          marginTop: "0.5rem",
+                          background:
+                            "linear-gradient(135deg, #facc15 0%, #eab308 100%)",
+                        }}
+                      >
+                        ➕ Add All Notes
+                      </button>
+                    </div>
+
+                    {/* Individual Notes List */}
+                    <div
+                      style={{
+                        marginTop: "1.5rem",
+                        paddingTop: "1.5rem",
+                        borderTop: "2px solid #e5e7eb",
+                      }}
+                    >
+                      <p
+                        style={{
+                          fontSize: "0.85rem",
+                          color: "#64748b",
+                          marginBottom: "1rem",
+                          fontWeight: 500,
+                        }}
+                      >
+                        📝 Individual Notes (edit or remove)
+                      </p>
+                      {formData.importantNotes.length === 0 && (
+                        <p
+                          style={{
+                            fontSize: "0.9rem",
+                            color: "#94a3b8",
+                            fontStyle: "italic",
+                            padding: "1rem",
+                            backgroundColor: "#f8fafc",
+                            borderRadius: "6px",
+                            textAlign: "center",
+                          }}
+                        >
+                          No notes added yet. Use the bulk add feature above or
+                          add individual notes below.
+                        </p>
+                      )}
+                    </div>
+
                     {formData.importantNotes.map((note, index) => (
                       <div key={index} style={styles.arrayItemRow}>
                         <input
@@ -2390,6 +2670,19 @@ export default function AdminPackages() {
                               e.target.value,
                             )
                           }
+                          onPaste={(e) => {
+                            const pastedText = e.clipboardData.getData("text");
+                            // If pasting multiple lines, show alert
+                            if (
+                              pastedText.includes("\n") ||
+                              pastedText.includes("•")
+                            ) {
+                              e.preventDefault();
+                              alert(
+                                '📋 Tip: For pasting multiple notes at once, use the "Quick Add Multiple Notes" bulk textarea above! It will automatically split your list into individual notes.',
+                              );
+                            }
+                          }}
                           style={{ ...styles.input, flex: 1 }}
                           placeholder="Important note"
                         />
@@ -2410,6 +2703,157 @@ export default function AdminPackages() {
                       style={styles.addItemButton}
                     >
                       + Add Note
+                    </button>
+                  </div>
+
+                  {/* Terms & Conditions */}
+                  <div style={{ marginBottom: "2rem" }}>
+                    <h3 style={styles.sectionTitle}>📜 Terms & Conditions</h3>
+
+                    {/* Bulk Add Section */}
+                    <div
+                      style={{
+                        marginBottom: "1.5rem",
+                        padding: "1rem",
+                        backgroundColor: "#f0f9ff",
+                        borderRadius: "8px",
+                        border: "1px solid #bae6fd",
+                      }}
+                    >
+                      <label
+                        style={{
+                          display: "block",
+                          marginBottom: "0.5rem",
+                          fontSize: "0.9rem",
+                          fontWeight: 600,
+                          color: "#075985",
+                        }}
+                      >
+                        📋 Quick Add Multiple Terms
+                      </label>
+                      <p
+                        style={{
+                          fontSize: "0.8rem",
+                          color: "#64748b",
+                          marginBottom: "0.75rem",
+                        }}
+                      >
+                        Paste multiple terms (one per line or separated by •). Lines starting with •, -, or * will be automatically cleaned.
+                      </p>
+                      <textarea
+                        id="bulkTermsConditionsInput"
+                        style={{
+                          ...styles.input,
+                          minHeight: "150px",
+                          fontFamily: "monospace",
+                          fontSize: "0.85rem",
+                          resize: "vertical",
+                        }}
+                        placeholder="• A 50% advance payment is required&#10;• The remaining 50% balance must be paid 15 days prior&#10;• Failure to clear balance may result in cancellation&#10;• Booking confirmation implies acceptance of all terms"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const textarea = document.getElementById(
+                            "bulkTermsConditionsInput",
+                          ) as HTMLTextAreaElement;
+                          if (textarea && textarea.value.trim()) {
+                            bulkAddItems("termsConditions", textarea.value);
+                            textarea.value = "";
+                          }
+                        }}
+                        style={{
+                          ...styles.addItemButton,
+                          marginTop: "0.5rem",
+                          background:
+                            "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)",
+                        }}
+                      >
+                        ➕ Add All Terms
+                      </button>
+                    </div>
+
+                    {/* Individual Terms List */}
+                    <div
+                      style={{
+                        marginTop: "1.5rem",
+                        paddingTop: "1.5rem",
+                        borderTop: "2px solid #e5e7eb",
+                      }}
+                    >
+                      <p
+                        style={{
+                          fontSize: "0.85rem",
+                          color: "#64748b",
+                          marginBottom: "1rem",
+                          fontWeight: 500,
+                        }}
+                      >
+                        📝 Individual Terms (edit or remove)
+                      </p>
+                      {formData.termsConditions.length === 0 && (
+                        <p
+                          style={{
+                            fontSize: "0.9rem",
+                            color: "#94a3b8",
+                            fontStyle: "italic",
+                            padding: "1rem",
+                            backgroundColor: "#f8fafc",
+                            borderRadius: "6px",
+                            textAlign: "center",
+                          }}
+                        >
+                          No terms added yet. Use the bulk add feature above or
+                          add individual terms below.
+                        </p>
+                      )}
+                    </div>
+
+                    {formData.termsConditions.map((term, index) => (
+                      <div key={index} style={styles.arrayItemRow}>
+                        <input
+                          type="text"
+                          value={term}
+                          onChange={(e) =>
+                            updateArrayItem(
+                              "termsConditions",
+                              index,
+                              e.target.value,
+                            )
+                          }
+                          onPaste={(e) => {
+                            const pastedText = e.clipboardData.getData("text");
+                            // If pasting multiple lines, show alert
+                            if (
+                              pastedText.includes("\n") ||
+                              pastedText.includes("•")
+                            ) {
+                              e.preventDefault();
+                              alert(
+                                '📋 Tip: For pasting multiple terms at once, use the "Quick Add Multiple Terms" bulk textarea above! It will automatically split your list into individual terms.',
+                              );
+                            }
+                          }}
+                          style={{ ...styles.input, flex: 1 }}
+                          placeholder="Terms & conditions item"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            removeArrayItem("termsConditions", index)
+                          }
+                          style={styles.removeButton}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => addArrayItem("termsConditions")}
+                      style={styles.addItemButton}
+                    >
+                      + Add Term
                     </button>
                   </div>
 
@@ -2520,24 +2964,77 @@ export default function AdminPackages() {
                           marginBottom: "0.5rem",
                         }}
                       >
-                        Enter additional policy terms (numbered points will be
-                        auto-formatted)
+                        📋 Paste bullet points below - the system will
+                        automatically clean and format them (removes •, -, *)
                       </p>
+                      <div
+                        style={{
+                          marginBottom: "0.75rem",
+                          padding: "0.75rem",
+                          backgroundColor: "#eff6ff",
+                          borderRadius: "6px",
+                          fontSize: "0.8rem",
+                          color: "#1e40af",
+                          border: "1px solid #bfdbfe",
+                        }}
+                      >
+                        💡 <strong>Tip:</strong> Paste your bullet-pointed list
+                        and click "Format & Apply". Each line will become a
+                        clean policy point.
+                      </div>
                       <textarea
-                        value={formData.refundPolicyNotes}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            refundPolicyNotes: e.target.value,
-                          })
-                        }
-                        style={{ ...styles.textarea, minHeight: "300px" }}
-                        placeholder="1. Cancellation charges will be calculated on the total trip cost, not on the advance or token amount paid.
-2. The full trip amount must be cleared at least 15 days before departure.
-3. Failure to complete payment may lead to automatic cancellation without refund.
-..."
+                        id="policyBulkInput"
+                        style={{
+                          ...styles.textarea,
+                          minHeight: "300px",
+                          fontFamily: "monospace",
+                          fontSize: "0.9rem",
+                        }}
+                        placeholder="Paste your policy terms here, like:&#10;• A 50% advance payment is required at the time of booking&#10;• The remaining 50% balance must be paid 15 days prior&#10;• No refunds for missed sightseeing due to delays&#10;&#10;Or type directly..."
                         rows={12}
+                        defaultValue={formData.refundPolicyNotes}
                       />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const textarea = document.getElementById(
+                            "policyBulkInput",
+                          ) as HTMLTextAreaElement;
+                          if (textarea) {
+                            // Clean and format the text
+                            const lines = textarea.value
+                              .split("\n")
+                              .map((line) => line.trim())
+                              .filter((line) => line.length > 0)
+                              .map((line) => {
+                                // Remove leading bullet points (•, -, *, numbers)
+                                return line
+                                  .replace(/^[•\-*]\s*/, "")
+                                  .replace(/^\d+\.\s*/, "")
+                                  .trim();
+                              })
+                              .filter((line) => line.length > 0);
+
+                            // Join with newlines and update form data
+                            const formatted = lines
+                              .map((line, idx) => `${idx + 1}. ${line}`)
+                              .join("\n");
+                            setFormData({
+                              ...formData,
+                              refundPolicyNotes: formatted,
+                            });
+                            textarea.value = formatted;
+                          }
+                        }}
+                        style={{
+                          ...styles.addItemButton,
+                          marginTop: "0.5rem",
+                          background:
+                            "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
+                        }}
+                      >
+                        ✨ Format & Apply (Auto-number)
+                      </button>
                     </div>
                   </div>
 

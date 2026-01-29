@@ -83,6 +83,7 @@ export async function PUT(
           // Deep Details
           fullDescription: updateData.fullDescription || "",
           importantNotes: updateData.importantNotes || [],
+          termsConditions: updateData.termsConditions || [],
           itinerary: updateData.itinerary || [],
           gallery: updateData.gallery || [],
           inclusions: updateData.inclusions || [],

@@ -65,6 +65,7 @@ export async function POST(request: NextRequest) {
       // Deep Details
       fullDescription: body.fullDescription || "",
       importantNotes: body.importantNotes || [],
+      termsConditions: body.termsConditions || [],
       itinerary: body.itinerary || [],
       gallery: body.gallery || [],
       inclusions: body.inclusions || [],

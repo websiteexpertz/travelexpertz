@@ -28,6 +28,7 @@ interface PackageDetail {
     description?: string;
   }[];
   importantNotes?: string[];
+  termsConditions?: string[];
   thingsToCarry?:
     | string[]
     | {
@@ -1620,6 +1621,70 @@ export default function PackageDetails() {
                       )
                     )}
                   </div>
+
+                  {/* Terms & Conditions */}
+                  {pkg.termsConditions && pkg.termsConditions.length > 0 && (
+                    <div
+                      style={{
+                        backgroundColor: "#eff6ff",
+                        padding: "1.25rem",
+                        borderRadius: "0.75rem",
+                        marginBottom: "1.5rem",
+                        border: "1px solid #bfdbfe",
+                      }}
+                    >
+                      <h4
+                        style={{
+                          fontSize: "1rem",
+                          fontWeight: 700,
+                          marginBottom: "1rem",
+                          color: "#1e40af",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                        }}
+                      >
+                        <span className="material-symbols-outlined">
+                          description
+                        </span>
+                        Terms & Conditions
+                      </h4>
+                      <ul
+                        style={{
+                          listStyle: "none",
+                          padding: 0,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "0.5rem",
+                        }}
+                      >
+                        {pkg.termsConditions.map((term, idx) => (
+                          <li
+                            key={idx}
+                            style={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: "0.5rem",
+                              color: "#374151",
+                              fontSize: "0.9rem",
+                            }}
+                          >
+                            <span
+                              className="material-symbols-outlined"
+                              style={{
+                                color: "#3b82f6",
+                                fontSize: "1rem",
+                                flexShrink: 0,
+                              }}
+                            >
+                              arrow_right
+                            </span>
+                            {term}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
                   {/* Custom Fields for Policies */}
                   {pkg.customFields &&
