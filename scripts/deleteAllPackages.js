@@ -4,6 +4,14 @@ const MONGODB_URI = "mongodb+srv://websiteexpertz:expertz%402021@cluster0.hzqb0u
 const MONGODB_DB = "travelexpertz";
 
 async function deleteAllPackages() {
+  console.log("\n⚠️  WARNING: This will DELETE ALL PACKAGES from the database!");
+  console.log("⚠️  This includes packages with images stored in MongoDB GridFS.");
+  console.log("⚠️  The images will remain in GridFS but will be orphaned.\n");
+  console.log("🛑 THIS ACTION CANNOT BE UNDONE!\n");
+  console.log("If you're sure you want to proceed, uncomment the deletion code.\n");
+  
+  return; // Comment this line to actually run the deletion
+  
   const client = new MongoClient(MONGODB_URI);
 
   try {

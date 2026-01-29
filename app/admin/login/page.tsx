@@ -9,6 +9,7 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,10 +34,10 @@ export default function AdminLoginPage() {
         document.cookie = `adminToken=${data.token}; max-age=${
           7 * 24 * 60 * 60
         }; path=/; SameSite=Strict`;
-        
+
         // Small delay to ensure cookie is set before redirect
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
         // Use window.location for a full page reload to ensure middleware picks up cookie
         window.location.href = "/admin";
       } else {
@@ -147,32 +148,57 @@ export default function AdminLoginPage() {
             >
               Password
             </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter admin password"
-              style={{
-                width: "100%",
-                padding: "0.5rem",
-                borderRadius: "8px",
-                border: "2px solid #e0e0e0",
-                fontSize: "0.9rem",
-                fontFamily: "inherit",
-                transition: "all 0.3s ease",
-                boxSizing: "border-box",
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = "#667eea";
-                e.currentTarget.style.boxShadow =
-                  "0 0 0 3px rgba(102, 126, 234, 0.1)";
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = "#e0e0e0";
-                e.currentTarget.style.boxShadow = "none";
-              }}
-              disabled={loading}
-            />
+            <div style={{ position: "relative" }}>
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter admin password"
+                style={{
+                  width: "100%",
+                  padding: "0.5rem",
+                  paddingRight: "2.5rem",
+                  borderRadius: "8px",
+                  border: "2px solid #e0e0e0",
+                  fontSize: "0.9rem",
+                  fontFamily: "inherit",
+                  transition: "all 0.3s ease",
+                  boxSizing: "border-box",
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = "#667eea";
+                  e.currentTarget.style.boxShadow =
+                    "0 0 0 3px rgba(102, 126, 234, 0.1)";
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = "#e0e0e0";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+                disabled={loading}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: "absolute",
+                  right: "0.5rem",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "0.25rem",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#666",
+                  fontSize: "1.2rem",
+                }}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? "👁️" : "👁️‍🗨️"}
+              </button>
+            </div>
           </div>
 
           {error && (

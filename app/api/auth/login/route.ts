@@ -23,6 +23,13 @@ export async function POST(request: NextRequest) {
   try {
     const { username, password } = await request.json();
 
+    console.log('Login attempt:', { 
+      receivedUsername: username, 
+      receivedPassword: password,
+      expectedUsername: ADMIN_USERNAME,
+      expectedPassword: ADMIN_PASSWORD 
+    });
+
     // Validate input
     if (!username || !password) {
       return NextResponse.json(
@@ -31,9 +38,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check credentials
-    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+    // Check credentials (trim whitespace for safety)
+    if (username.trim() === ADMIN_USERNAME && password.trim() === ADMIN_PASSWORD) {
       const token = generateToken(username);
+      console.log('Login successful for:', username);
       return NextResponse.json(
         {
           message: "Login successful",
@@ -43,6 +51,7 @@ export async function POST(request: NextRequest) {
         { status: 200 }
       );
     } else {
+      console.log('Login failed - credentials mismatch');
       return NextResponse.json(
         { message: "Invalid username or password" },
         { status: 401 }

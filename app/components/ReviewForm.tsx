@@ -152,41 +152,47 @@ export default function ReviewForm({
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files) return;
+    if (!files || files.length === 0) return;
 
-    // Upload each file to the server
-    const uploadedUrls: string[] = [];
-    for (const file of Array.from(files)) {
-      try {
-        const uploadFormData = new FormData();
-        uploadFormData.append("file", file);
+    try {
+      const uploadFormData = new FormData();
 
-        const response = await fetch("/api/upload", {
-          method: "POST",
-          body: uploadFormData,
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          uploadedUrls.push(data.url);
-          console.log("Image uploaded:", data.url);
-        } else {
-          console.error("Failed to upload image:", file.name);
-          setError(`Failed to upload image: ${file.name}`);
-        }
-      } catch (err) {
-        console.error("Image upload error:", err);
-        setError("Failed to upload some images. Please try again.");
+      // Add all files to FormData at once
+      for (let i = 0; i < files.length; i++) {
+        uploadFormData.append("file", files[i]);
       }
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: uploadFormData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        // Handle single or multiple file response
+        const urls = data.files
+          ? data.files.map((f: any) => f.url)
+          : [data.url];
+
+        // Add uploaded URLs to form data
+        setFormData((prev) => ({
+          ...prev,
+          reviewImages: [...prev.reviewImages, ...urls],
+        }));
+
+        console.log("Images uploaded:", urls);
+      } else {
+        console.error("Failed to upload images");
+        setError("Failed to upload images. Please try again.");
+      }
+    } catch (err) {
+      console.error("Image upload error:", err);
+      setError("Failed to upload images. Please try again.");
     }
 
-    // Add uploaded URLs to form data
-    if (uploadedUrls.length > 0) {
-      setFormData((prev) => ({
-        ...prev,
-        reviewImages: [...prev.reviewImages, ...uploadedUrls],
-      }));
-    }
+    // Reset input so same files can be selected again
+    e.target.value = "";
   };
 
   const removeImage = (index: number) => {
