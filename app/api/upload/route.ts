@@ -58,8 +58,8 @@ export async function POST(request: NextRequest) {
 
       // Upload to GridFS
       const uploadStream = bucket.openUploadStream(filename, {
-        contentType: file.type,
         metadata: {
+          contentType: file.type,
           originalName: file.name,
           uploadedAt: new Date(),
         },

@@ -45,8 +45,8 @@ async function migrateImages() {
         const contentType = contentTypes[ext] || 'application/octet-stream';
         
         const uploadStream = bucket.openUploadStream(filename, {
-          contentType,
           metadata: {
+            contentType,
             originalName: filename,
             migratedAt: new Date(),
             originalPath: `/uploads/${filename}`
