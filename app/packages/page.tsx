@@ -91,6 +91,10 @@ export default function Packages() {
             pkg.category?.toLowerCase().includes(searchQuery.toLowerCase())
           : true;
 
+        const matchesDestination = selectedDestination
+          ? pkg.badge?.toLowerCase() === selectedDestination.toLowerCase()
+          : true;
+
         const matchesPrice = (() => {
           const price = pkg.price || 0;
           if (priceRange === "budget") return price < 15000;
@@ -99,7 +103,7 @@ export default function Packages() {
           return true;
         })();
 
-        return matchesSearch && matchesPrice;
+        return matchesSearch && matchesDestination && matchesPrice;
       })
       .sort((a, b) => {
         if (sortBy === "price-low") return (a.price || 0) - (b.price || 0);
@@ -111,7 +115,7 @@ export default function Packages() {
         }
         return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
       });
-  }, [packages, searchQuery, priceRange, sortBy]);
+  }, [packages, searchQuery, priceRange, sortBy, selectedDestination]);
 
   return (
     <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden">
