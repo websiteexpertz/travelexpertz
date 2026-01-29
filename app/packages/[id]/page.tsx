@@ -735,8 +735,7 @@ export default function PackageDetails() {
                             </span>
                             {field.fieldName}
                           </h4>
-                          {field.fieldType === "list" &&
-                          Array.isArray(field.value) ? (
+                          {field.fieldType === "list" ? (
                             <ul
                               style={{
                                 listStyle: "none",
@@ -746,29 +745,56 @@ export default function PackageDetails() {
                                 gap: "0.5rem",
                               }}
                             >
-                              {field.value.map((item, idx) => (
-                                <li
-                                  key={idx}
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "flex-start",
-                                    gap: "0.5rem",
-                                    color: "#4b5563",
-                                    fontSize: "0.95rem",
-                                  }}
-                                >
-                                  <span
+                              {(() => {
+                                // Handle both array and string with bullets
+                                let items: string[] = [];
+                                if (Array.isArray(field.value)) {
+                                  items = field.value;
+                                } else if (typeof field.value === "string") {
+                                  // Split by bullets or newlines
+                                  if (field.value.includes("•")) {
+                                    items = field.value.split("•");
+                                  } else if (field.value.includes("\n")) {
+                                    items = field.value.split("\n");
+                                  } else {
+                                    items = [field.value];
+                                  }
+                                  // Clean up items
+                                  items = items
+                                    .map((item) => item.trim())
+                                    .filter((item) => item.length > 0)
+                                    .map((item) =>
+                                      item
+                                        .replace(/^[•\-*]\s*/, "")
+                                        .replace(/^\d+\.\s*/, "")
+                                        .trim()
+                                    )
+                                    .filter((item) => item.length > 0);
+                                }
+                                return items.map((item, idx) => (
+                                  <li
+                                    key={idx}
                                     style={{
-                                      color: "#10b981",
-                                      fontSize: "0.75rem",
-                                      marginTop: "0.4rem",
+                                      display: "flex",
+                                      alignItems: "flex-start",
+                                      gap: "0.5rem",
+                                      color: "#4b5563",
+                                      fontSize: "0.95rem",
                                     }}
                                   >
-                                    •
-                                  </span>
-                                  {item}
-                                </li>
-                              ))}
+                                    <span
+                                      style={{
+                                        color: "#10b981",
+                                        fontSize: "0.75rem",
+                                        marginTop: "0.4rem",
+                                      }}
+                                    >
+                                      •
+                                    </span>
+                                    {item}
+                                  </li>
+                                ));
+                              })()}
                             </ul>
                           ) : (
                             <p

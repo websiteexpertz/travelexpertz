@@ -840,13 +840,23 @@ export default function AdminPackages() {
 
   // Array field handlers
   const addArrayItem = (
-    field: "importantNotes" | "termsConditions" | "inclusions" | "exclusions" | "thingsToCarry",
+    field:
+      | "importantNotes"
+      | "termsConditions"
+      | "inclusions"
+      | "exclusions"
+      | "thingsToCarry",
   ) => {
     setFormData({ ...formData, [field]: [...formData[field], ""] });
   };
 
   const updateArrayItem = (
-    field: "importantNotes" | "termsConditions" | "inclusions" | "exclusions" | "thingsToCarry",
+    field:
+      | "importantNotes"
+      | "termsConditions"
+      | "inclusions"
+      | "exclusions"
+      | "thingsToCarry",
     index: number,
     value: string,
   ) => {
@@ -856,7 +866,12 @@ export default function AdminPackages() {
   };
 
   const removeArrayItem = (
-    field: "importantNotes" | "termsConditions" | "inclusions" | "exclusions" | "thingsToCarry",
+    field:
+      | "importantNotes"
+      | "termsConditions"
+      | "inclusions"
+      | "exclusions"
+      | "thingsToCarry",
     index: number,
   ) => {
     setFormData({
@@ -1430,6 +1445,128 @@ export default function AdminPackages() {
                 {/* List input */}
                 {field.fieldType === "list" && (
                   <div>
+                    {/* Bulk Add Section */}
+                    <div
+                      style={{
+                        marginBottom: "1rem",
+                        padding: "0.875rem",
+                        backgroundColor: "#f0fdf4",
+                        borderRadius: "8px",
+                        border: "1px solid #bbf7d0",
+                      }}
+                    >
+                      <label
+                        style={{
+                          display: "block",
+                          marginBottom: "0.5rem",
+                          fontSize: "0.85rem",
+                          fontWeight: 600,
+                          color: "#15803d",
+                        }}
+                      >
+                        📋 Quick Add Multiple Items
+                      </label>
+                      <p
+                        style={{
+                          fontSize: "0.75rem",
+                          color: "#64748b",
+                          marginBottom: "0.5rem",
+                        }}
+                      >
+                        Paste multiple items (one per line or separated by •).
+                        Bullets will be automatically cleaned.
+                      </p>
+                      <textarea
+                        id={`bulk-${fieldKey}`}
+                        style={{
+                          width: "100%",
+                          padding: "0.625rem",
+                          borderRadius: "6px",
+                          border: "1px solid #d1d5db",
+                          fontSize: "0.85rem",
+                          fontFamily: "monospace",
+                          resize: "vertical",
+                          minHeight: "80px",
+                        }}
+                        placeholder="• Item 1&#10;• Item 2&#10;• Item 3"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const textarea = document.getElementById(
+                            `bulk-${fieldKey}`,
+                          ) as HTMLTextAreaElement;
+                          if (textarea && textarea.value.trim()) {
+                            let items: string[] = [];
+
+                            // Check if text has newlines or bullets on same line
+                            if (textarea.value.includes("\n")) {
+                              items = textarea.value.split("\n");
+                            } else if (textarea.value.includes("•")) {
+                              items = textarea.value.split("•");
+                            } else {
+                              items = [textarea.value];
+                            }
+
+                            // Clean up items
+                            items = items
+                              .map((line) => line.trim())
+                              .filter((line) => line.length > 0)
+                              .map((line) => {
+                                return line
+                                  .replace(/^[•\-*]\s*/, "")
+                                  .replace(/^\d+\.\s*/, "")
+                                  .trim();
+                              })
+                              .filter((line) => line.length > 0);
+
+                            // Add to existing items
+                            const currentList = Array.isArray(value)
+                              ? value
+                              : [];
+                            setFormFieldValues({
+                              ...formFieldValues,
+                              [fieldKey]: [...currentList, ...items],
+                            });
+                            textarea.value = "";
+                          }
+                        }}
+                        style={{
+                          marginTop: "0.5rem",
+                          padding: "0.5rem 1rem",
+                          backgroundColor: "#22c55e",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "6px",
+                          cursor: "pointer",
+                          fontSize: "0.85rem",
+                          fontWeight: 600,
+                        }}
+                      >
+                        ➕ Add All Items
+                      </button>
+                    </div>
+
+                    {/* Individual Items List */}
+                    <div
+                      style={{
+                        marginBottom: "0.75rem",
+                        paddingBottom: "0.75rem",
+                        borderBottom: "1px solid #e5e7eb",
+                      }}
+                    >
+                      <p
+                        style={{
+                          fontSize: "0.8rem",
+                          color: "#64748b",
+                          marginBottom: "0.5rem",
+                          fontWeight: 500,
+                        }}
+                      >
+                        Individual Items (edit or remove)
+                      </p>
+                    </div>
+
                     {(Array.isArray(value) ? value : []).map(
                       (item: string, idx: number) => (
                         <div
@@ -1452,6 +1589,19 @@ export default function AdminPackages() {
                                 ...formFieldValues,
                                 [fieldKey]: newList,
                               });
+                            }}
+                            onPaste={(e) => {
+                              const pastedText =
+                                e.clipboardData.getData("text");
+                              if (
+                                pastedText.includes("\n") ||
+                                pastedText.includes("•")
+                              ) {
+                                e.preventDefault();
+                                alert(
+                                  '📋 Tip: For pasting multiple items at once, use the "Quick Add Multiple Items" bulk textarea above!',
+                                );
+                              }
                             }}
                             placeholder={`Item ${idx + 1}`}
                             style={{
@@ -2738,7 +2888,9 @@ export default function AdminPackages() {
                           marginBottom: "0.75rem",
                         }}
                       >
-                        Paste multiple terms (one per line or separated by •). Lines starting with •, -, or * will be automatically cleaned.
+                        Paste multiple terms (one per line or separated by •).
+                        Lines starting with •, -, or * will be automatically
+                        cleaned.
                       </p>
                       <textarea
                         id="bulkTermsConditionsInput"
