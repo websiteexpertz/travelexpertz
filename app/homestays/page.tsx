@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Header from "../components/Header";
+import Footer from "../components/Footer";
 
 interface Homestay {
   _id?: string;
@@ -32,7 +33,7 @@ const formatInr = (value: number) =>
 const normalizeHomestay = (homestay: Partial<Homestay>): Homestay => {
   const rawId = (homestay as { _id?: unknown })._id;
   const images = Array.isArray(homestay.images) ? homestay.images : [];
-  const primaryImage = images.length > 0 ? images[0] : homestay.image ?? "";
+  const primaryImage = images.length > 0 ? images[0] : (homestay.image ?? "");
 
   return {
     _id: typeof rawId === "string" ? rawId : rawId ? String(rawId) : undefined,
@@ -79,7 +80,7 @@ export default function Homestays() {
         if (response.ok) {
           const data = await response.json();
           const normalized = (Array.isArray(data) ? data : []).map((item) =>
-            normalizeHomestay(item)
+            normalizeHomestay(item),
           );
           setHomestays(normalized);
         }
@@ -785,77 +786,7 @@ export default function Homestays() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer style={{ marginTop: "3rem" }}>
-        <div className="footer-container">
-          <div className="footer-grid">
-            <div className="footer-brand">
-              <h2>
-                <Image
-                  src="/logo.webp"
-                  alt="TravelExpertz"
-                  width={32}
-                  height={32}
-                  className="inline-block"
-                  style={{ marginRight: "0.5rem" }}
-                />
-                TravelExpertz
-              </h2>
-              <p>
-                Your trusted partner in creating unforgettable travel
-                experiences.
-              </p>
-            </div>
-            <div>
-              <h4>Company</h4>
-              <ul className="footer-links">
-                <li>
-                  <a href="#">About Us</a>
-                </li>
-                <li>
-                  <a href="#">Careers</a>
-                </li>
-                <li>
-                  <a href="#">Press</a>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4>Support</h4>
-              <ul className="footer-links">
-                <li>
-                  <a href="#">Contact Us</a>
-                </li>
-                <li>
-                  <a href="#">FAQ</a>
-                </li>
-                <li>
-                  <a href="#">Help Center</a>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4>Destinations</h4>
-              <ul className="footer-links">
-                <li>
-                  <a href="#">Hotels</a>
-                </li>
-                <li>
-                  <a href="#">Top Cities</a>
-                </li>
-                <li>
-                  <a href="#">Top Hotels</a>
-                </li>
-              </ul>
-            </div>
-          </div>
-          <div className="footer-bottom">
-            <p className="footer-copyright">
-              © 2024 TravelExpertz. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

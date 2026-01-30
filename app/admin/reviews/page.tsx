@@ -124,10 +124,77 @@ export default function AdminReviews() {
   }
 
   return (
-    <div style={{ padding: "2rem", maxWidth: "1400px", margin: "0 auto" }}>
-      <h1 style={{ fontSize: "2rem", fontWeight: 700, marginBottom: "2rem" }}>
+    <div
+      style={{
+        padding: "2rem",
+        paddingTop: "5rem",
+        maxWidth: "1400px",
+        margin: "0 auto",
+      }}
+    >
+      <h1 style={{ fontSize: "2rem", fontWeight: 700, marginBottom: "1rem" }}>
         Guest Reviews Management
       </h1>
+
+      {/* Stats */}
+      <div
+        style={{
+          display: "flex",
+          gap: "1rem",
+          marginBottom: "2rem",
+          flexWrap: "wrap",
+        }}
+      >
+        <div
+          style={{
+            background: "#fef3c7",
+            padding: "1rem 1.5rem",
+            borderRadius: "8px",
+            border: "1px solid #fcd34d",
+          }}
+        >
+          <div
+            style={{ fontSize: "1.5rem", fontWeight: 700, color: "#d97706" }}
+          >
+            {reviews.filter((r) => !r.active).length}
+          </div>
+          <div style={{ fontSize: "0.875rem", color: "#92400e" }}>
+            Pending Approval
+          </div>
+        </div>
+        <div
+          style={{
+            background: "#d1fae5",
+            padding: "1rem 1.5rem",
+            borderRadius: "8px",
+            border: "1px solid #6ee7b7",
+          }}
+        >
+          <div
+            style={{ fontSize: "1.5rem", fontWeight: 700, color: "#059669" }}
+          >
+            {reviews.filter((r) => r.active).length}
+          </div>
+          <div style={{ fontSize: "0.875rem", color: "#065f46" }}>Approved</div>
+        </div>
+        <div
+          style={{
+            background: "#f3f4f6",
+            padding: "1rem 1.5rem",
+            borderRadius: "8px",
+            border: "1px solid #d1d5db",
+          }}
+        >
+          <div
+            style={{ fontSize: "1.5rem", fontWeight: 700, color: "#374151" }}
+          >
+            {reviews.length}
+          </div>
+          <div style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+            Total Reviews
+          </div>
+        </div>
+      </div>
 
       {/* Filters & Sorting */}
       <div
@@ -154,8 +221,8 @@ export default function AdminReviews() {
             }}
           >
             <option value="all">All Reviews</option>
-            <option value="active">Active Only</option>
-            <option value="inactive">Inactive Only</option>
+            <option value="active">Approved Only</option>
+            <option value="inactive">Pending Approval</option>
           </select>
         </div>
 
@@ -181,7 +248,7 @@ export default function AdminReviews() {
         </div>
 
         <div style={{ marginLeft: "auto", fontWeight: 600 }}>
-          Total: {filteredReviews.length} reviews
+          Showing: {filteredReviews.length} reviews
         </div>
       </div>
 
@@ -209,13 +276,37 @@ export default function AdminReviews() {
             <div
               key={review._id}
               style={{
-                background: "white",
-                border: `2px solid ${review.active ? "#10b981" : "#ef4444"}`,
+                background: review.active ? "white" : "#fffbeb",
+                border: `2px solid ${review.active ? "#10b981" : "#f59e0b"}`,
                 borderRadius: "8px",
                 padding: "1.5rem",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                boxShadow: review.active
+                  ? "0 2px 4px rgba(0,0,0,0.1)"
+                  : "0 2px 8px rgba(245, 158, 11, 0.2)",
+                position: "relative",
               }}
             >
+              {/* Pending Badge */}
+              {!review.active && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "-10px",
+                    right: "20px",
+                    background:
+                      "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+                    color: "white",
+                    padding: "4px 12px",
+                    borderRadius: "12px",
+                    fontSize: "0.75rem",
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}
+                >
+                  Needs Approval
+                </div>
+              )}
               {/* Header */}
               <div
                 style={{
@@ -352,22 +443,50 @@ export default function AdminReviews() {
                   gap: "1rem",
                   paddingTop: "1rem",
                   borderTop: "1px solid #eee",
+                  alignItems: "center",
                 }}
               >
-                <button
-                  onClick={() => handleToggleActive(review._id, review.active)}
-                  style={{
-                    padding: "0.5rem 1rem",
-                    borderRadius: "4px",
-                    border: "none",
-                    background: review.active ? "#ef4444" : "#10b981",
-                    color: "white",
-                    cursor: "pointer",
-                    fontWeight: 600,
-                  }}
-                >
-                  {review.active ? "Deactivate" : "Activate"}
-                </button>
+                {!review.active ? (
+                  <button
+                    onClick={() =>
+                      handleToggleActive(review._id, review.active)
+                    }
+                    style={{
+                      padding: "0.75rem 1.5rem",
+                      borderRadius: "4px",
+                      border: "none",
+                      background:
+                        "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                      color: "white",
+                      cursor: "pointer",
+                      fontWeight: 700,
+                      fontSize: "1rem",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      boxShadow: "0 2px 8px rgba(16, 185, 129, 0.3)",
+                    }}
+                  >
+                    ✓ Approve Review
+                  </button>
+                ) : (
+                  <button
+                    onClick={() =>
+                      handleToggleActive(review._id, review.active)
+                    }
+                    style={{
+                      padding: "0.5rem 1rem",
+                      borderRadius: "4px",
+                      border: "none",
+                      background: "#ef4444",
+                      color: "white",
+                      cursor: "pointer",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Unapprove
+                  </button>
+                )}
                 <button
                   onClick={() => handleDeleteReview(review._id)}
                   style={{
@@ -386,14 +505,16 @@ export default function AdminReviews() {
                   style={{
                     marginLeft: "auto",
                     padding: "0.5rem 1rem",
-                    background: review.active ? "#d1fae5" : "#fee2e2",
+                    background: review.active ? "#d1fae5" : "#fef3c7",
                     borderRadius: "4px",
                     fontSize: "0.9rem",
                     fontWeight: 600,
-                    color: review.active ? "#065f46" : "#991b1b",
+                    color: review.active ? "#065f46" : "#d97706",
                   }}
                 >
-                  {review.active ? "✓ Active" : "✗ Inactive"}
+                  {review.active
+                    ? "✓ Approved & Visible"
+                    : "⏳ Pending Approval"}
                 </div>
               </div>
             </div>

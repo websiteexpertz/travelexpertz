@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Header from "./components/Header";
+import Footer from "./components/Footer";
 import ReviewForm from "./components/ReviewForm";
 import ImageModal from "./components/ImageModal";
 
@@ -164,7 +165,7 @@ export default function Home() {
         {/* ========== HERO SECTION ========== */}
         <div
           className="w-full"
-          style={{ background: "transparent", padding: "0 1.5rem" }}
+          style={{ background: "transparent", padding: "0 0.75rem" }}
         >
           <div
             className="hero-section"
@@ -172,18 +173,175 @@ export default function Home() {
               backgroundImage: "url('/hero-banner.png')",
               backgroundSize: "cover",
               backgroundPosition: "center",
+              position: "relative",
+              overflow: "hidden",
             }}
           >
-            <div className="hero-content">
-              <h1>Find and Book Your Perfect Stay</h1>
-              <p>
+            {/* Animated Background Overlay */}
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background:
+                  "linear-gradient(135deg, rgba(10, 102, 194, 0.1) 0%, rgba(0, 82, 163, 0.2) 100%)",
+                zIndex: 0,
+              }}
+            />
+
+            {/* Floating Decorative Elements - Hidden on very small screens */}
+            <div
+              className="hidden sm:block"
+              style={{
+                position: "absolute",
+                top: "10%",
+                left: "5%",
+                width: "clamp(40px, 8vw, 80px)",
+                height: "clamp(40px, 8vw, 80px)",
+                borderRadius: "50%",
+                background: "rgba(255, 255, 255, 0.1)",
+                backdropFilter: "blur(10px)",
+                animation: "float 6s ease-in-out infinite",
+                zIndex: 1,
+              }}
+            />
+            <div
+              className="hidden md:block"
+              style={{
+                position: "absolute",
+                bottom: "15%",
+                right: "8%",
+                width: "clamp(30px, 6vw, 60px)",
+                height: "clamp(30px, 6vw, 60px)",
+                borderRadius: "50%",
+                background: "rgba(255, 255, 255, 0.08)",
+                backdropFilter: "blur(8px)",
+                animation: "float 8s ease-in-out infinite reverse",
+                zIndex: 1,
+              }}
+            />
+            <div
+              className="hidden lg:block"
+              style={{
+                position: "absolute",
+                top: "40%",
+                right: "15%",
+                width: "40px",
+                height: "40px",
+                borderRadius: "50%",
+                background: "rgba(255, 255, 255, 0.06)",
+                backdropFilter: "blur(6px)",
+                animation: "float 5s ease-in-out infinite",
+                animationDelay: "1s",
+                zIndex: 1,
+              }}
+            />
+
+            <div
+              className="hero-content"
+              style={{ position: "relative", zIndex: 2 }}
+            >
+              <h1
+                style={{
+                  animation: "fadeInUp 0.8s ease-out",
+                  animationDelay: "0.2s",
+                  animationFillMode: "both",
+                }}
+              >
+                Find and Book Your Perfect Stay
+              </h1>
+              <p
+                style={{
+                  animation: "fadeInUp 0.8s ease-out",
+                  animationDelay: "0.4s",
+                  animationFillMode: "both",
+                }}
+              >
                 Discover the best hotels, homestays, and luxury accommodations
                 around the world.
               </p>
+
+              {/* Trust Indicators */}
+              <div
+                className="trust-indicators"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "clamp(0.5rem, 2vw, 1.5rem)",
+                  marginTop: "clamp(0.75rem, 2vw, 1.5rem)",
+                  flexWrap: "wrap",
+                  animation: "fadeInUp 0.8s ease-out",
+                  animationDelay: "0.6s",
+                  animationFillMode: "both",
+                  padding: "0 0.5rem",
+                }}
+              >
+                {[
+                  {
+                    icon: "verified",
+                    text: "Verified",
+                    fullText: "Verified Properties",
+                  },
+                  {
+                    icon: "support_agent",
+                    text: "24/7",
+                    fullText: "24/7 Support",
+                  },
+                  { icon: "lock", text: "Secure", fullText: "Secure Booking" },
+                ].map((item, index) => (
+                  <div
+                    key={index}
+                    className="trust-item"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "clamp(0.25rem, 1vw, 0.4rem)",
+                      padding:
+                        "clamp(0.3rem, 1vw, 0.4rem) clamp(0.5rem, 1.5vw, 0.8rem)",
+                      background: "rgba(255, 255, 255, 0.2)",
+                      backdropFilter: "blur(10px)",
+                      borderRadius: "0.5rem",
+                      border: "1px solid rgba(255, 255, 255, 0.3)",
+                    }}
+                  >
+                    <span
+                      className="material-symbols-outlined"
+                      style={{
+                        fontSize: "clamp(0.875rem, 2.5vw, 1rem)",
+                        color: "white",
+                        textShadow: "0 1px 2px rgba(0, 0, 0, 0.3)",
+                      }}
+                    >
+                      {item.icon}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "clamp(0.65rem, 2vw, 0.8rem)",
+                        fontWeight: 600,
+                        color: "white",
+                        textShadow: "0 1px 2px rgba(0, 0, 0, 0.3)",
+                      }}
+                    >
+                      {item.fullText}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Search Form Box */}
-            <div className="search-box">
+            <div
+              className="search-box"
+              style={{
+                position: "relative",
+                zIndex: 2,
+                animation: "fadeInUp 0.8s ease-out",
+                animationDelay: "0.8s",
+                animationFillMode: "both",
+                backdropFilter: "blur(10px)",
+                background: "rgba(255, 255, 255, 0.95)",
+              }}
+            >
               <div className="search-box-content">
                 <div className="search-item">
                   <span className="material-symbols-outlined">location_on</span>
@@ -239,7 +397,27 @@ export default function Home() {
                     arrow_drop_down
                   </span>
                 </div>
-                <button className="search-btn">Search</button>
+                <button
+                  className="search-btn"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, var(--primary) 0%, #0052a3 100%)",
+                    boxShadow: "0 4px 15px rgba(0, 102, 204, 0.4)",
+                    transition: "all 0.3s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.boxShadow =
+                      "0 6px 20px rgba(0, 102, 204, 0.5)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow =
+                      "0 4px 15px rgba(0, 102, 204, 0.4)";
+                  }}
+                >
+                  Search
+                </button>
               </div>
             </div>
           </div>
@@ -250,7 +428,7 @@ export default function Home() {
           <section
             className="services-section"
             style={{
-              padding: "4rem 1rem",
+              padding: "clamp(2rem, 5vw, 4rem) clamp(0.5rem, 2vw, 1rem)",
               background: "transparent",
               position: "relative",
               overflow: "hidden",
@@ -265,13 +443,20 @@ export default function Home() {
               }}
             >
               {/* Section Header */}
-              <div style={{ textAlign: "center", marginBottom: "2.5rem" }}>
+              <div
+                className="services-header"
+                style={{
+                  textAlign: "center",
+                  marginBottom: "clamp(1.5rem, 4vw, 2.5rem)",
+                  padding: "0 0.5rem",
+                }}
+              >
                 <h2
                   style={{
-                    fontSize: "clamp(1.75rem, 4vw, 2.25rem)",
+                    fontSize: "clamp(1.5rem, 5vw, 2.25rem)",
                     fontWeight: 800,
                     textAlign: "center",
-                    margin: "0 0 0.75rem 0",
+                    margin: "0 0 0.5rem 0",
                     color: "#1a1a2e",
                     letterSpacing: "-0.5px",
                   }}
@@ -279,8 +464,9 @@ export default function Home() {
                   Our Services
                 </h2>
                 <p
+                  className="services-subtitle"
                   style={{
-                    fontSize: "1rem",
+                    fontSize: "clamp(0.85rem, 2.5vw, 1rem)",
                     color: "#666",
                     maxWidth: "500px",
                     margin: "0 auto",
@@ -297,7 +483,7 @@ export default function Home() {
                 style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(4, 1fr)",
-                  gap: "1rem",
+                  gap: "clamp(0.5rem, 2vw, 1rem)",
                 }}
               >
                 {services.map((service, index) => (
@@ -306,7 +492,7 @@ export default function Home() {
                     className="service-card"
                     style={{
                       cursor: "pointer",
-                      borderRadius: "16px",
+                      borderRadius: "clamp(10px, 2vw, 16px)",
                       overflow: "hidden",
                       background: "#fff",
                       border: "1px solid rgba(0, 0, 0, 0.08)",
@@ -327,11 +513,14 @@ export default function Home() {
                   >
                     {/* Image */}
                     <div
+                      className="service-image-wrapper"
                       style={{
                         width: "100%",
                         aspectRatio: "4/3",
                         overflow: "hidden",
-                        background: "#f8fafc",
+                        background:
+                          "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)",
+                        position: "relative",
                       }}
                     >
                       <img
@@ -351,26 +540,54 @@ export default function Home() {
                           e.currentTarget.style.transform = "scale(1)";
                         }}
                       />
+                      {/* Gradient Overlay for better text visibility on mobile */}
+                      <div
+                        className="service-overlay"
+                        style={{
+                          position: "absolute",
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          height: "50%",
+                          background:
+                            "linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 100%)",
+                          opacity: 0,
+                          transition: "opacity 0.3s ease",
+                          pointerEvents: "none",
+                        }}
+                      />
                     </div>
 
                     {/* Content */}
-                    <div style={{ padding: "1rem" }}>
+                    <div
+                      className="service-content"
+                      style={{
+                        padding: "clamp(0.625rem, 2vw, 1rem)",
+                      }}
+                    >
                       <h3
+                        className="service-title"
                         style={{
-                          fontSize: "1rem",
+                          fontSize: "clamp(0.8rem, 2.5vw, 1rem)",
                           fontWeight: 700,
                           color: "#1a1a2e",
-                          marginBottom: "0.375rem",
+                          marginBottom: "clamp(0.25rem, 1vw, 0.375rem)",
+                          lineHeight: 1.3,
                         }}
                       >
                         {service.title}
                       </h3>
                       <p
+                        className="service-description"
                         style={{
-                          fontSize: "0.8rem",
+                          fontSize: "clamp(0.7rem, 2vw, 0.8rem)",
                           color: "#666",
                           lineHeight: 1.4,
                           margin: 0,
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
                         }}
                       >
                         {service.description}
@@ -380,105 +597,193 @@ export default function Home() {
                 ))}
               </div>
             </div>
-
-            {/* Mobile responsive styles */}
-            <style jsx>{`
-              @media (max-width: 1024px) {
-                .services-grid {
-                  grid-template-columns: repeat(3, 1fr) !important;
-                }
-              }
-              @media (max-width: 768px) {
-                .services-grid {
-                  grid-template-columns: repeat(2, 1fr) !important;
-                  gap: 0.75rem !important;
-                }
-                .service-card {
-                  border-radius: 12px !important;
-                }
-              }
-              @media (max-width: 480px) {
-                .services-grid {
-                  gap: 0.5rem !important;
-                }
-                .service-card h3 {
-                  font-size: 0.875rem !important;
-                }
-                .service-card p {
-                  font-size: 0.75rem !important;
-                }
-              }
-            `}</style>
           </section>
 
           {/* ========== WHY US SECTION ========== */}
-          <section style={{ padding: "3rem 1rem", background: "transparent" }}>
-            <h2
+          <section
+            className="why-us-section"
+            style={{
+              padding: "clamp(2rem, 5vw, 4rem) clamp(0.5rem, 2vw, 1.5rem)",
+              background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
+              position: "relative",
+              overflow: "hidden",
+            }}
+          >
+            {/* Background Decorations */}
+            <div
+              className="hidden md:block"
               style={{
-                textAlign: "center",
-                fontSize: "clamp(1.75rem, 4vw, 2.25rem)",
-                fontWeight: 900,
-                color: "#1a1a2e",
-                marginBottom: "3rem",
-                textShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-                letterSpacing: "-0.5px",
+                position: "absolute",
+                top: "-50px",
+                right: "-50px",
+                width: "200px",
+                height: "200px",
+                borderRadius: "50%",
+                background:
+                  "radial-gradient(circle, rgba(0, 102, 204, 0.05) 0%, transparent 70%)",
+                pointerEvents: "none",
               }}
-            >
-              Why Travel with Us?
-            </h2>
+            />
+            <div
+              className="hidden md:block"
+              style={{
+                position: "absolute",
+                bottom: "-30px",
+                left: "-30px",
+                width: "150px",
+                height: "150px",
+                borderRadius: "50%",
+                background:
+                  "radial-gradient(circle, rgba(0, 102, 204, 0.04) 0%, transparent 70%)",
+                pointerEvents: "none",
+              }}
+            />
+
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-                gap: "2rem",
-                maxWidth: "80rem",
+                maxWidth: "1200px",
                 margin: "0 auto",
+                position: "relative",
+                zIndex: 1,
               }}
             >
-              {whyUs.map((card, idx) => (
-                <div
-                  key={card._id || idx}
+              {/* Section Header */}
+              <div
+                style={{
+                  textAlign: "center",
+                  marginBottom: "clamp(1.5rem, 4vw, 3rem)",
+                  padding: "0 0.5rem",
+                }}
+              >
+                <h2
                   style={{
-                    background: "rgba(255, 255, 255, 0.15)",
-                    borderRadius: "0.75rem",
-                    padding: "1.5rem",
                     textAlign: "center",
-                    border: "1px solid rgba(255, 255, 255, 0.25)",
+                    fontSize: "clamp(1.5rem, 5vw, 2.25rem)",
+                    fontWeight: 900,
+                    color: "#1a1a2e",
+                    marginBottom: "clamp(0.5rem, 2vw, 1rem)",
+                    textShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+                    letterSpacing: "-0.5px",
                   }}
                 >
-                  <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>
-                    <span className="material-symbols-outlined">
-                      {card.icon}
-                    </span>
-                  </div>
-                  <h3
+                  Why Travel with Us?
+                </h2>
+                <p
+                  style={{
+                    fontSize: "clamp(0.85rem, 2.5vw, 1rem)",
+                    color: "#666",
+                    maxWidth: "500px",
+                    margin: "0 auto",
+                    lineHeight: 1.6,
+                  }}
+                >
+                  Discover what makes us your perfect travel partner
+                </p>
+              </div>
+
+              {/* Why Us Grid */}
+              <div
+                className="why-us-grid"
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2, 1fr)",
+                  gap: "clamp(0.75rem, 2vw, 1.5rem)",
+                }}
+              >
+                {whyUs.map((card, idx) => (
+                  <div
+                    key={card._id || idx}
+                    className="why-us-card"
                     style={{
-                      fontWeight: 700,
-                      color: "#1a1a2e",
-                      marginBottom: "0.5rem",
+                      background: "#ffffff",
+                      borderRadius: "clamp(12px, 2vw, 16px)",
+                      padding: "clamp(1rem, 3vw, 1.5rem)",
+                      textAlign: "center",
+                      border: "1px solid rgba(0, 0, 0, 0.06)",
+                      boxShadow: "0 2px 12px rgba(0, 0, 0, 0.04)",
+                      transition: "all 0.3s ease",
+                      position: "relative",
+                      overflow: "hidden",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "translateY(-4px)";
+                      e.currentTarget.style.boxShadow =
+                        "0 8px 25px rgba(0, 102, 204, 0.12)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow =
+                        "0 2px 12px rgba(0, 0, 0, 0.04)";
                     }}
                   >
-                    {card.title}
-                  </h3>
-                  <p style={{ fontSize: "0.9rem", color: "#666" }}>
-                    {card.description}
-                  </p>
-                </div>
-              ))}
+                    {/* Icon Container */}
+                    <div
+                      style={{
+                        width: "clamp(48px, 10vw, 64px)",
+                        height: "clamp(48px, 10vw, 64px)",
+                        borderRadius: "clamp(12px, 2vw, 16px)",
+                        background:
+                          "linear-gradient(135deg, rgba(0, 102, 204, 0.1) 0%, rgba(0, 102, 204, 0.05) 100%)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        margin: "0 auto clamp(0.75rem, 2vw, 1rem)",
+                      }}
+                    >
+                      <span
+                        className="material-symbols-outlined"
+                        style={{
+                          fontSize: "clamp(1.5rem, 4vw, 2rem)",
+                          color: "#0066cc",
+                        }}
+                      >
+                        {card.icon}
+                      </span>
+                    </div>
+                    <h3
+                      style={{
+                        fontWeight: 700,
+                        color: "#1a1a2e",
+                        marginBottom: "clamp(0.25rem, 1vw, 0.5rem)",
+                        fontSize: "clamp(0.9rem, 2.5vw, 1.125rem)",
+                        lineHeight: 1.3,
+                      }}
+                    >
+                      {card.title}
+                    </h3>
+                    <p
+                      style={{
+                        fontSize: "clamp(0.75rem, 2vw, 0.9rem)",
+                        color: "#666",
+                        lineHeight: 1.5,
+                        margin: 0,
+                        display: "-webkit-box",
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {card.description}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
 
           {/* ========== TESTIMONIALS SECTION ========== */}
           <section
+            className="testimonials-section"
             style={{
-              padding: "6rem 1.5rem",
-              background: "transparent",
+              padding: "clamp(2rem, 5vw, 6rem) clamp(0.75rem, 2vw, 1.5rem)",
+              background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
               position: "relative",
               overflow: "hidden",
             }}
           >
-            {/* Soft background accents */}
+            {/* Soft background accents - Hidden on mobile */}
             <div
+              className="hidden md:block"
               style={{
                 position: "absolute",
                 top: "-120px",
@@ -492,6 +797,7 @@ export default function Home() {
               }}
             />
             <div
+              className="hidden md:block"
               style={{
                 position: "absolute",
                 bottom: "-140px",
@@ -512,15 +818,22 @@ export default function Home() {
                 zIndex: 1,
               }}
             >
-              <div style={{ textAlign: "center", marginBottom: "3rem" }}>
+              {/* Section Header */}
+              <div
+                style={{
+                  textAlign: "center",
+                  marginBottom: "clamp(1.5rem, 4vw, 3rem)",
+                  padding: "0 0.5rem",
+                }}
+              >
                 <h2
                   style={{
-                    fontSize: "clamp(1.75rem, 4vw, 2.25rem)",
+                    fontSize: "clamp(1.5rem, 5vw, 2.25rem)",
                     fontWeight: 900,
                     textAlign: "center",
                     color: "#1a1a2e",
-                    margin: "0 0 1rem 0",
-                    textShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+                    margin: "0 0 clamp(0.5rem, 2vw, 1rem) 0",
+                    textShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
                     letterSpacing: "-0.5px",
                   }}
                 >
@@ -528,14 +841,14 @@ export default function Home() {
                 </h2>
                 <p
                   style={{
-                    fontSize: "1.1rem",
+                    fontSize: "clamp(0.85rem, 2.5vw, 1.1rem)",
                     textAlign: "center",
                     color: "#666",
                     margin: "0",
                     maxWidth: "700px",
                     marginLeft: "auto",
                     marginRight: "auto",
-                    lineHeight: 1.8,
+                    lineHeight: 1.6,
                   }}
                 >
                   Discover experiences from real travelers who have explored our
@@ -544,7 +857,12 @@ export default function Home() {
               </div>
 
               {/* Write Review Button */}
-              <div style={{ textAlign: "center", marginBottom: "3rem" }}>
+              <div
+                style={{
+                  textAlign: "center",
+                  marginBottom: "clamp(1.5rem, 4vw, 3rem)",
+                }}
+              >
                 <button
                   onClick={() => {
                     setShowReviewForm(true);
@@ -555,15 +873,16 @@ export default function Home() {
                     });
                   }}
                   style={{
-                    padding: "0.75rem 2rem",
+                    padding:
+                      "clamp(0.6rem, 2vw, 0.75rem) clamp(1.25rem, 4vw, 2rem)",
                     background:
                       "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
                     color: "white",
                     border: "none",
-                    borderRadius: "12px",
+                    borderRadius: "clamp(10px, 2vw, 12px)",
                     fontWeight: 700,
                     cursor: "pointer",
-                    fontSize: "0.95rem",
+                    fontSize: "clamp(0.85rem, 2.5vw, 0.95rem)",
                     transition: "all 0.3s",
                     boxShadow: "0 4px 15px rgba(0, 102, 204, 0.25)",
                   }}
@@ -582,10 +901,11 @@ export default function Home() {
                 </button>
               </div>
 
-              {/* Reviews Carousel - 2 Cards */}
+              {/* Reviews Carousel */}
               <div
+                className="reviews-carousel-container"
                 style={{
-                  maxWidth: "1200px",
+                  maxWidth: "700px",
                   margin: "0 auto",
                   position: "relative",
                 }}
@@ -594,47 +914,45 @@ export default function Home() {
               >
                 {!reviewsLoading && reviews.length > 0 ? (
                   <>
-                    {/* Carousel Container - Grid for 2 cards */}
+                    {/* Single Review Card */}
                     <div
                       style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gap: "2rem",
                         position: "relative",
-                        minHeight: "550px",
+                        minHeight: "auto",
                       }}
                     >
-                      {/* First Review Card */}
+                      {/* Review Card */}
                       {(() => {
                         const review = reviews[carouselIndex];
                         return (
                           <div
-                            key={`review-first-${carouselIndex}-${review._id || review.propertyId}`}
+                            key={`review-${carouselIndex}-${review._id || review.propertyId}`}
                             onClick={() => {
                               window.location.href = `/hotels/${review.propertyId}`;
                             }}
+                            className="review-card"
                             style={{
-                              background: "rgba(255, 255, 255, 0.96)",
-                              borderRadius: "16px",
+                              background: "rgba(255, 255, 255, 0.98)",
+                              borderRadius: "clamp(12px, 2vw, 16px)",
                               overflow: "hidden",
                               boxShadow:
-                                "0 10px 30px rgba(0, 102, 204, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05)",
+                                "0 4px 20px rgba(0, 102, 204, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)",
                               border: "1px solid rgba(226, 232, 240, 0.9)",
                               cursor: "pointer",
                               display: "flex",
                               flexDirection: "column",
-                              transition: "all 0.6s ease-in-out",
+                              transition: "all 0.3s ease",
                             }}
                             onMouseEnter={(e) => {
                               e.currentTarget.style.transform =
-                                "translateY(-8px)";
+                                "translateY(-4px)";
                               e.currentTarget.style.boxShadow =
-                                "0 20px 50px rgba(0, 102, 204, 0.2)";
+                                "0 12px 35px rgba(0, 102, 204, 0.15)";
                             }}
                             onMouseLeave={(e) => {
                               e.currentTarget.style.transform = "translateY(0)";
                               e.currentTarget.style.boxShadow =
-                                "0 10px 30px rgba(0, 102, 204, 0.1)";
+                                "0 4px 20px rgba(0, 102, 204, 0.08)";
                             }}
                           >
                             {/* Image Gallery */}
@@ -644,7 +962,7 @@ export default function Home() {
                                   style={{
                                     position: "relative",
                                     width: "100%",
-                                    height: "200px",
+                                    height: "clamp(180px, 35vw, 280px)",
                                     overflow: "hidden",
                                     background:
                                       "linear-gradient(135deg, rgba(0, 102, 204, 0.1) 0%, rgba(0, 153, 255, 0.05) 100%)",
@@ -677,7 +995,8 @@ export default function Home() {
                                         border: "none",
                                         borderRadius: "8px",
                                         padding: "0.5rem 1rem",
-                                        fontSize: "0.85rem",
+                                        fontSize:
+                                          "clamp(0.75rem, 2vw, 0.85rem)",
                                         fontWeight: 600,
                                         cursor: "pointer",
                                         transition: "all 0.3s",
@@ -701,17 +1020,21 @@ export default function Home() {
                             {/* Content */}
                             <div
                               style={{
-                                padding: "1.5rem",
+                                padding: "clamp(1.25rem, 3vw, 1.75rem)",
                                 flex: 1,
                                 display: "flex",
                                 flexDirection: "column",
                               }}
                             >
                               {/* Property Info */}
-                              <div style={{ marginBottom: "1rem" }}>
+                              <div
+                                style={{
+                                  marginBottom: "clamp(0.75rem, 2vw, 1rem)",
+                                }}
+                              >
                                 <h3
                                   style={{
-                                    fontSize: "1.1rem",
+                                    fontSize: "clamp(1rem, 3vw, 1.25rem)",
                                     fontWeight: 700,
                                     color: "#0066cc",
                                     margin: "0 0 0.25rem 0",
@@ -721,7 +1044,7 @@ export default function Home() {
                                 </h3>
                                 <p
                                   style={{
-                                    fontSize: "0.85rem",
+                                    fontSize: "clamp(0.8rem, 2vw, 0.9rem)",
                                     color: "#999",
                                     margin: 0,
                                   }}
@@ -735,8 +1058,8 @@ export default function Home() {
                                 style={{
                                   display: "flex",
                                   alignItems: "center",
-                                  gap: "0.75rem",
-                                  marginBottom: "1rem",
+                                  gap: "clamp(0.75rem, 2vw, 1rem)",
+                                  marginBottom: "clamp(0.75rem, 2vw, 1rem)",
                                 }}
                               >
                                 {review.userImage ? (
@@ -744,8 +1067,8 @@ export default function Home() {
                                     src={review.userImage}
                                     alt={review.userName}
                                     style={{
-                                      width: "40px",
-                                      height: "40px",
+                                      width: "clamp(40px, 10vw, 50px)",
+                                      height: "clamp(40px, 10vw, 50px)",
                                       borderRadius: "50%",
                                       objectFit: "cover",
                                     }}
@@ -753,8 +1076,8 @@ export default function Home() {
                                 ) : (
                                   <div
                                     style={{
-                                      width: "40px",
-                                      height: "40px",
+                                      width: "clamp(40px, 10vw, 50px)",
+                                      height: "clamp(40px, 10vw, 50px)",
                                       borderRadius: "50%",
                                       background:
                                         "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
@@ -763,7 +1086,7 @@ export default function Home() {
                                       justifyContent: "center",
                                       color: "white",
                                       fontWeight: "bold",
-                                      fontSize: "0.9rem",
+                                      fontSize: "clamp(0.9rem, 2.5vw, 1.1rem)",
                                     }}
                                   >
                                     {review.userName?.charAt(0).toUpperCase() ||
@@ -776,16 +1099,16 @@ export default function Home() {
                                       fontWeight: 600,
                                       margin: 0,
                                       color: "#1a1a2e",
-                                      fontSize: "0.95rem",
+                                      fontSize: "clamp(0.9rem, 2.5vw, 1.05rem)",
                                     }}
                                   >
                                     {review.userName}
                                   </p>
                                   <p
                                     style={{
-                                      fontSize: "0.8rem",
+                                      fontSize: "clamp(0.75rem, 2vw, 0.85rem)",
                                       color: "#999",
-                                      margin: "0.1rem 0 0 0",
+                                      margin: "0.15rem 0 0 0",
                                     }}
                                   >
                                     {new Date(
@@ -800,242 +1123,11 @@ export default function Home() {
                               </div>
 
                               {/* Rating */}
-                              <div style={{ marginBottom: "0.75rem" }}>
-                                {[...Array(5)].map((_, i) => (
-                                  <span
-                                    key={i}
-                                    style={{
-                                      color:
-                                        i < review.rating
-                                          ? "#fbbf24"
-                                          : "#e5e7eb",
-                                      fontSize: "1rem",
-                                    }}
-                                  >
-                                    ★
-                                  </span>
-                                ))}
-                              </div>
-
-                              {/* Review Text */}
-                              <p
-                                style={{
-                                  fontSize: "0.95rem",
-                                  color: "#555",
-                                  lineHeight: 1.6,
-                                  margin: 0,
-                                  flex: 1,
-                                  display: "-webkit-box",
-                                  WebkitLineClamp: 3,
-                                  WebkitBoxOrient: "vertical",
-                                  overflow: "hidden",
-                                }}
-                              >
-                                {review.reviewText}
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      })()}
-
-                      {/* Second Review Card */}
-                      {(() => {
-                        const nextIndex = (carouselIndex + 1) % reviews.length;
-                        const review = reviews[nextIndex];
-                        return (
-                          <div
-                            key={`review-second-${nextIndex}-${review._id || review.propertyId}`}
-                            onClick={() => {
-                              window.location.href = `/hotels/${review.propertyId}`;
-                            }}
-                            style={{
-                              background: "rgba(255, 255, 255, 0.96)",
-                              borderRadius: "16px",
-                              overflow: "hidden",
-                              boxShadow:
-                                "0 10px 30px rgba(0, 102, 204, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05)",
-                              border: "1px solid rgba(226, 232, 240, 0.9)",
-                              cursor: "pointer",
-                              display: "flex",
-                              flexDirection: "column",
-                              transition: "all 0.6s ease-in-out",
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.transform =
-                                "translateY(-8px)";
-                              e.currentTarget.style.boxShadow =
-                                "0 20px 50px rgba(0, 102, 204, 0.2)";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.transform = "translateY(0)";
-                              e.currentTarget.style.boxShadow =
-                                "0 10px 30px rgba(0, 102, 204, 0.1)";
-                            }}
-                          >
-                            {/* Image Gallery */}
-                            {review.reviewImages &&
-                              review.reviewImages.length > 0 && (
-                                <div
-                                  style={{
-                                    position: "relative",
-                                    width: "100%",
-                                    height: "200px",
-                                    overflow: "hidden",
-                                    background:
-                                      "linear-gradient(135deg, rgba(0, 102, 204, 0.1) 0%, rgba(0, 153, 255, 0.05) 100%)",
-                                  }}
-                                >
-                                  <img
-                                    src={review.reviewImages[0]}
-                                    alt={review.propertyName}
-                                    style={{
-                                      width: "100%",
-                                      height: "100%",
-                                      objectFit: "cover",
-                                    }}
-                                  />
-                                  {review.reviewImages.length > 1 && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setSelectedImageModal({
-                                          images: review.reviewImages,
-                                          index: 0,
-                                        });
-                                      }}
-                                      style={{
-                                        position: "absolute",
-                                        bottom: "0.75rem",
-                                        right: "0.75rem",
-                                        background: "rgba(0, 0, 0, 0.6)",
-                                        color: "white",
-                                        border: "none",
-                                        borderRadius: "8px",
-                                        padding: "0.5rem 1rem",
-                                        fontSize: "0.85rem",
-                                        fontWeight: 600,
-                                        cursor: "pointer",
-                                        transition: "all 0.3s",
-                                        backdropFilter: "blur(8px)",
-                                      }}
-                                      onMouseEnter={(e) => {
-                                        e.currentTarget.style.background =
-                                          "rgba(0, 0, 0, 0.8)";
-                                      }}
-                                      onMouseLeave={(e) => {
-                                        e.currentTarget.style.background =
-                                          "rgba(0, 0, 0, 0.6)";
-                                      }}
-                                    >
-                                      📷 {review.reviewImages.length}
-                                    </button>
-                                  )}
-                                </div>
-                              )}
-
-                            {/* Content */}
-                            <div
-                              style={{
-                                padding: "1.5rem",
-                                flex: 1,
-                                display: "flex",
-                                flexDirection: "column",
-                              }}
-                            >
-                              {/* Property Info */}
-                              <div style={{ marginBottom: "1rem" }}>
-                                <h3
-                                  style={{
-                                    fontSize: "1.1rem",
-                                    fontWeight: 700,
-                                    color: "#0066cc",
-                                    margin: "0 0 0.25rem 0",
-                                  }}
-                                >
-                                  {review.propertyName}
-                                </h3>
-                                <p
-                                  style={{
-                                    fontSize: "0.85rem",
-                                    color: "#999",
-                                    margin: 0,
-                                  }}
-                                >
-                                  {review.propertyType}
-                                </p>
-                              </div>
-
-                              {/* User Info */}
                               <div
                                 style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: "0.75rem",
-                                  marginBottom: "1rem",
+                                  marginBottom: "clamp(0.75rem, 2vw, 1rem)",
                                 }}
                               >
-                                {review.userImage ? (
-                                  <img
-                                    src={review.userImage}
-                                    alt={review.userName}
-                                    style={{
-                                      width: "40px",
-                                      height: "40px",
-                                      borderRadius: "50%",
-                                      objectFit: "cover",
-                                    }}
-                                  />
-                                ) : (
-                                  <div
-                                    style={{
-                                      width: "40px",
-                                      height: "40px",
-                                      borderRadius: "50%",
-                                      background:
-                                        "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
-                                      display: "flex",
-                                      alignItems: "center",
-                                      justifyContent: "center",
-                                      color: "white",
-                                      fontWeight: "bold",
-                                      fontSize: "0.9rem",
-                                    }}
-                                  >
-                                    {review.userName?.charAt(0).toUpperCase() ||
-                                      "U"}
-                                  </div>
-                                )}
-                                <div>
-                                  <p
-                                    style={{
-                                      fontWeight: 600,
-                                      margin: 0,
-                                      color: "#1a1a2e",
-                                      fontSize: "0.95rem",
-                                    }}
-                                  >
-                                    {review.userName}
-                                  </p>
-                                  <p
-                                    style={{
-                                      fontSize: "0.8rem",
-                                      color: "#999",
-                                      margin: "0.1rem 0 0 0",
-                                    }}
-                                  >
-                                    {new Date(
-                                      review.createdAt,
-                                    ).toLocaleDateString("en-US", {
-                                      month: "short",
-                                      day: "numeric",
-                                      year: "numeric",
-                                    })}
-                                  </p>
-                                </div>
-                              </div>
-
-                              {/* Rating */}
-                              <div style={{ marginBottom: "0.75rem" }}>
                                 {[...Array(5)].map((_, i) => (
                                   <span
                                     key={i}
@@ -1044,7 +1136,7 @@ export default function Home() {
                                         i < review.rating
                                           ? "#fbbf24"
                                           : "#e5e7eb",
-                                      fontSize: "1rem",
+                                      fontSize: "clamp(1rem, 3vw, 1.25rem)",
                                     }}
                                   >
                                     ★
@@ -1055,15 +1147,11 @@ export default function Home() {
                               {/* Review Text */}
                               <p
                                 style={{
-                                  fontSize: "0.95rem",
+                                  fontSize: "clamp(0.9rem, 2.5vw, 1rem)",
                                   color: "#555",
-                                  lineHeight: 1.6,
+                                  lineHeight: 1.7,
                                   margin: 0,
                                   flex: 1,
-                                  display: "-webkit-box",
-                                  WebkitLineClamp: 3,
-                                  WebkitBoxOrient: "vertical",
-                                  overflow: "hidden",
                                 }}
                               >
                                 {review.reviewText}
@@ -1074,9 +1162,16 @@ export default function Home() {
                       })()}
                     </div>
 
-                    {/* Navigation Arrows */}
-                    {reviews.length > 2 && (
-                      <>
+                    {/* Navigation Arrows - Visible on all devices */}
+                    {reviews.length > 1 && (
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "center",
+                          gap: "1rem",
+                          marginTop: "clamp(1.5rem, 3vw, 2rem)",
+                        }}
+                      >
                         <button
                           onClick={() =>
                             setCarouselIndex((prev) =>
@@ -1084,34 +1179,28 @@ export default function Home() {
                             )
                           }
                           style={{
-                            position: "absolute",
-                            left: "-70px",
-                            top: "50%",
-                            transform: "translateY(-50%)",
                             background:
                               "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
                             color: "white",
                             border: "none",
                             borderRadius: "50%",
-                            width: "50px",
-                            height: "50px",
-                            fontSize: "1.5rem",
+                            width: "clamp(40px, 8vw, 48px)",
+                            height: "clamp(40px, 8vw, 48px)",
+                            fontSize: "clamp(1.1rem, 3vw, 1.35rem)",
                             cursor: "pointer",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            transition: "all 0.3s",
                             boxShadow: "0 4px 15px rgba(0, 102, 204, 0.25)",
+                            transition: "all 0.3s ease",
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.transform =
-                              "translateY(-50%) scale(1.1)";
+                            e.currentTarget.style.transform = "scale(1.1)";
                             e.currentTarget.style.boxShadow =
                               "0 6px 25px rgba(0, 102, 204, 0.35)";
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.transform =
-                              "translateY(-50%) scale(1)";
+                            e.currentTarget.style.transform = "scale(1)";
                             e.currentTarget.style.boxShadow =
                               "0 4px 15px rgba(0, 102, 204, 0.25)";
                           }}
@@ -1125,51 +1214,45 @@ export default function Home() {
                             )
                           }
                           style={{
-                            position: "absolute",
-                            right: "-70px",
-                            top: "50%",
-                            transform: "translateY(-50%)",
                             background:
                               "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
                             color: "white",
                             border: "none",
                             borderRadius: "50%",
-                            width: "50px",
-                            height: "50px",
-                            fontSize: "1.5rem",
+                            width: "clamp(40px, 8vw, 48px)",
+                            height: "clamp(40px, 8vw, 48px)",
+                            fontSize: "clamp(1.1rem, 3vw, 1.35rem)",
                             cursor: "pointer",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            transition: "all 0.3s",
                             boxShadow: "0 4px 15px rgba(0, 102, 204, 0.25)",
+                            transition: "all 0.3s ease",
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.transform =
-                              "translateY(-50%) scale(1.1)";
+                            e.currentTarget.style.transform = "scale(1.1)";
                             e.currentTarget.style.boxShadow =
                               "0 6px 25px rgba(0, 102, 204, 0.35)";
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.transform =
-                              "translateY(-50%) scale(1)";
+                            e.currentTarget.style.transform = "scale(1)";
                             e.currentTarget.style.boxShadow =
                               "0 4px 15px rgba(0, 102, 204, 0.25)";
                           }}
                         >
                           ›
                         </button>
-                      </>
+                      </div>
                     )}
 
                     {/* Carousel Indicators */}
-                    {reviews.length > 2 && (
+                    {reviews.length > 1 && (
                       <div
                         style={{
                           display: "flex",
                           justifyContent: "center",
-                          gap: "0.5rem",
-                          marginTop: "2rem",
+                          gap: "clamp(0.35rem, 1vw, 0.5rem)",
+                          marginTop: "clamp(1rem, 2vw, 1.5rem)",
                         }}
                       >
                         {reviews.map((_, idx) => (
@@ -1177,8 +1260,11 @@ export default function Home() {
                             key={idx}
                             onClick={() => setCarouselIndex(idx)}
                             style={{
-                              width: idx === carouselIndex ? "32px" : "12px",
-                              height: "12px",
+                              width:
+                                idx === carouselIndex
+                                  ? "clamp(24px, 5vw, 32px)"
+                                  : "clamp(8px, 2vw, 12px)",
+                              height: "clamp(8px, 2vw, 12px)",
                               borderRadius: "6px",
                               border: "none",
                               background:
@@ -1197,15 +1283,16 @@ export default function Home() {
                   <div
                     style={{
                       textAlign: "center",
-                      padding: "3rem 2rem",
+                      padding:
+                        "clamp(1.5rem, 4vw, 3rem) clamp(1rem, 3vw, 2rem)",
                       background: "rgba(255, 255, 255, 0.5)",
-                      borderRadius: "16px",
+                      borderRadius: "clamp(12px, 2vw, 16px)",
                       border: "1px dashed rgba(0, 102, 204, 0.2)",
                     }}
                   >
                     <p
                       style={{
-                        fontSize: "1.1rem",
+                        fontSize: "clamp(0.9rem, 2.5vw, 1.1rem)",
                         color: "#666",
                         margin: 0,
                       }}
@@ -1243,125 +1330,7 @@ export default function Home() {
         />
       )}
 
-      {/* ========== FOOTER ========== */}
-      <footer>
-        <div className="footer-container">
-          <div className="footer-grid">
-            <div className="footer-brand">
-              <h2>
-                <Image
-                  src="/logo.webp"
-                  alt="TravelExpertz"
-                  width={32}
-                  height={32}
-                  className="inline-block"
-                  style={{ marginRight: "0.5rem" }}
-                />
-                TravelExpertz
-              </h2>
-              <p>
-                Your trusted partner in creating unforgettable travel
-                experiences.
-              </p>
-            </div>
-            <div>
-              <h4>Company</h4>
-              <ul className="footer-links">
-                <li>
-                  <a href="/about">About Us</a>
-                </li>
-                <li>
-                  <a href="#">Careers</a>
-                </li>
-                <li>
-                  <a href="#">Press</a>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4>Support</h4>
-              <ul className="footer-links">
-                <li>
-                  <a href="#">Contact Us</a>
-                </li>
-                <li>
-                  <a href="#">FAQ</a>
-                </li>
-                <li>
-                  <a href="#">Help Center</a>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4>Destinations</h4>
-              <ul className="footer-links">
-                <li>
-                  <a href="#">Countries</a>
-                </li>
-                <li>
-                  <a href="#">Cities</a>
-                </li>
-                <li>
-                  <a href="#">Top Hotels</a>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4>Legal</h4>
-              <ul className="footer-links">
-                <li>
-                  <a href="#">Privacy Policy</a>
-                </li>
-                <li>
-                  <a href="#">Terms of Service</a>
-                </li>
-              </ul>
-            </div>
-          </div>
-          <div className="footer-bottom">
-            <p className="footer-copyright">
-              © 2024 TravelExpertz. All rights reserved.
-            </p>
-            <div className="footer-social">
-              <a href="#">
-                <svg
-                  className="w-6 h-6"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    clipRule="evenodd"
-                    d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"
-                    fillRule="evenodd"
-                  ></path>
-                </svg>
-              </a>
-              <a href="#">
-                <svg
-                  className="w-6 h-6"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.71v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84"></path>
-                </svg>
-              </a>
-              <a href="#">
-                <svg
-                  className="w-6 h-6"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    clipRule="evenodd"
-                    d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.024.06 1.378.06 3.808s-.012 2.784-.06 3.808c-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.024.048-1.378.06-3.808.06s-2.784-.013-3.808-.06c-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.048-1.024-.06-1.378-.06-3.808s.012-2.784.06-3.808c.049-1.064.218-1.791.465-2.427a4.902 4.902 0 011.153-1.772A4.902 4.902 0 016.345 2.525c.636-.247 1.363-.416 2.427-.465C9.795 2.013 10.148 2 12.315 2zm-1.163 1.943c-1.049.045-1.71.218-2.227.427A3.396 3.396 0 006.944 6.944c-.21.517-.382 1.178-.427 2.227-.045 1.025-.058 1.35-.058 3.829s.013 2.803.058 3.829c.045 1.049.218 1.71.427 2.227a3.396 3.396 0 002.373 2.373c.517.21.98.382 2.227.427 1.025.045 1.35.058 3.829.058s2.803-.013 3.829-.058c1.049-.045 1.71-.218 2.227-.427a3.396 3.396 0 002.373-2.373c.21-.517.382-1.178.427-2.227.045-1.025.058-1.35.058-3.829s-.013-2.803-.058-3.829c-.045-1.049-.218-1.71-.427-2.227a3.396 3.396 0 00-2.373-2.373c-.517-.21-1.178-.382-2.227-.427C15.118 3.956 14.789 3.943 12.315 3.943h-1.163zM12 8.118c-2.147 0-3.882 1.735-3.882 3.882s1.735 3.882 3.882 3.882 3.882-1.735 3.882-3.882S14.147 8.118 12 8.118zm0 6.162c-1.258 0-2.28-1.022-2.28-2.28s1.022-2.28 2.28-2.28 2.28 1.022 2.28 2.28-1.022 2.28-2.28 2.28zm4.965-6.402c-.78 0-1.418.638-1.418 1.418s.638 1.418 1.418 1.418 1.418-.638 1.418-1.418-.638-1.418-1.418-1.418z"
-                    fillRule="evenodd"
-                  ></path>
-                </svg>
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
 
       <style>{`
         @keyframes slideInFromRight {

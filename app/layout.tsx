@@ -13,7 +13,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="light">
+    <html lang="en" className="light" style={{ margin: 0, padding: 0 }}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -37,7 +37,10 @@ export default function RootLayout({
           }
         `}</style>
       </head>
-      <body className="bg-background-light font-display text-slate-800">
+      <body
+        className="bg-background-light font-display text-slate-800"
+        style={{ margin: 0, padding: 0, paddingTop: "64px" }}
+      >
         {children}
       </body>
     </html>

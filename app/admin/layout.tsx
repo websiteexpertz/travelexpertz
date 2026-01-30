@@ -65,6 +65,7 @@ export default function AdminLayout({
   const menuItems = [
     { label: "Dashboard", href: "/admin", icon: "📊" },
     { label: "Services", href: "/admin/services", icon: "✈️" },
+    { label: "Destinations", href: "/admin/destinations", icon: "🌍" },
     { label: "Testimonials", href: "/admin/testimonials", icon: "⭐" },
     { label: "Reviews", href: "/admin/reviews", icon: "💬" },
     { label: "FAQs", href: "/admin/faqs", icon: "❓" },
@@ -95,6 +96,7 @@ export default function AdminLayout({
           borderRight: "1px solid #333",
           display: "flex",
           flexDirection: "column",
+          zIndex: 100,
         }}
       >
         <div
@@ -230,6 +232,9 @@ export default function AdminLayout({
             justifyContent: "space-between",
             alignItems: "center",
             boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
+            position: "sticky",
+            top: 0,
+            zIndex: 50,
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>

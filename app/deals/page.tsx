@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "../components/Header";
+import Footer from "../components/Footer";
 
 interface Offer {
   id: string;
@@ -126,7 +127,7 @@ export default function DealsPage() {
 
     // Prioritize percentage discounts
     const percentageOffer = activeOffers.find(
-      (o) => o.discountPercentage && o.discountPercentage > 0
+      (o) => o.discountPercentage && o.discountPercentage > 0,
     );
     if (percentageOffer) return percentageOffer;
 
@@ -253,7 +254,7 @@ export default function DealsPage() {
                 const bestOffer = getBestOffer(deal);
                 const discountedPrice = getDiscountedPrice(
                   deal.price,
-                  bestOffer
+                  bestOffer,
                 );
                 const activeOffers = getActiveOffers(deal);
 
@@ -514,81 +515,7 @@ export default function DealsPage() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer style={{ marginTop: "4rem", background: "#1e293b" }}>
-        <div
-          style={{
-            maxWidth: "900px",
-            margin: "0 auto",
-            padding: "3rem 1rem",
-            color: "white",
-          }}
-        >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-              gap: "2rem",
-            }}
-          >
-            <div>
-              <h3 style={{ marginBottom: "1rem" }}>TravelExpertz</h3>
-              <p style={{ color: "#cbd5e1" }}>
-                Your trusted partner in creating unforgettable travel
-                experiences.
-              </p>
-            </div>
-            <div>
-              <h4 style={{ marginBottom: "1rem" }}>Quick Links</h4>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "0.5rem",
-                }}
-              >
-                <a
-                  href="/"
-                  style={{ color: "#cbd5e1", textDecoration: "none" }}
-                >
-                  Home
-                </a>
-                <a
-                  href="/hotels"
-                  style={{ color: "#cbd5e1", textDecoration: "none" }}
-                >
-                  Hotels
-                </a>
-                <a
-                  href="/homestays"
-                  style={{ color: "#cbd5e1", textDecoration: "none" }}
-                >
-                  Homestays
-                </a>
-              </div>
-            </div>
-            <div>
-              <h4 style={{ marginBottom: "1rem" }}>Contact</h4>
-              <p style={{ color: "#cbd5e1" }}>
-                Email: info@travelexpertz.com
-                <br />
-                Phone: +91 1234567890
-              </p>
-            </div>
-          </div>
-          <div
-            style={{
-              marginTop: "2rem",
-              paddingTop: "2rem",
-              borderTop: "1px solid #475569",
-              textAlign: "center",
-              color: "#cbd5e1",
-            }}
-          >
-            © 2026 TravelExpertz. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

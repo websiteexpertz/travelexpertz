@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/app/components/Header";
+import Footer from "@/app/components/Footer";
 
 interface Transaction {
   _id: string;
@@ -285,7 +286,7 @@ export default function TransactionsPage() {
                 >
                   {
                     transactions.filter(
-                      (t) => t.status === "failed" || t.status === "refunded"
+                      (t) => t.status === "failed" || t.status === "refunded",
                     ).length
                   }
                 </div>
@@ -487,7 +488,7 @@ export default function TransactionsPage() {
                             {transaction.status === "refunded" && "- "}
                             {formatCurrency(
                               transaction.amount,
-                              transaction.currency
+                              transaction.currency,
                             )}
                           </div>
                         </div>
@@ -530,6 +531,8 @@ export default function TransactionsPage() {
           )}
         </div>
       </div>
+
+      <Footer />
     </>
   );
 }

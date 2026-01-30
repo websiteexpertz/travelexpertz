@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/app/components/Header";
+import Footer from "@/app/components/Footer";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -343,7 +344,7 @@ export default function RegisterPage() {
                     onChange={(e) =>
                       handleInputChange(
                         "otp",
-                        e.target.value.replace(/\D/g, "").slice(0, 6)
+                        e.target.value.replace(/\D/g, "").slice(0, 6),
                       )
                     }
                     placeholder="Enter 6-digit OTP"
@@ -573,6 +574,8 @@ export default function RegisterPage() {
           </p>
         </div>
       </div>
+
+      <Footer />
     </>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Header from "../components/Header";
+import Footer from "../components/Footer";
 
 interface Hotel {
   _id?: string;
@@ -71,7 +72,7 @@ export default function Hotels() {
         if (response.ok) {
           const data = await response.json();
           const normalized = (Array.isArray(data) ? data : []).map((item) =>
-            normalizeHotel(item)
+            normalizeHotel(item),
           );
           setHotels(normalized);
         }
@@ -130,32 +131,187 @@ export default function Hotels() {
       <Header currentPage="hotels" />
 
       <main className="flex flex-col items-center w-full">
-        {/* Hero Section */}
+        {/* Hero Section - Premium Design */}
         <div
           className="w-full"
           style={{
             background: "transparent",
             padding: "0 1.5rem",
+            marginTop: "1rem",
           }}
         >
           <div
             className="hero-section"
             style={{
-              backgroundImage: "url('/hero-banner.png')",
-              backgroundSize: "cover",
-              backgroundPosition: "center",
+              position: "relative",
+              height: "480px",
+              borderRadius: "24px",
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "2rem 1.5rem",
             }}
           >
-            <div className="hero-content">
-              <h1>Find Your Perfect Hotel</h1>
-              <p>Search from thousands of hotels across the world</p>
+            {/* Background with Gradient Overlay */}
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                backgroundImage: "url('/hero-banner.png')",
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background:
+                  "linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.2) 50%, rgba(0, 0, 0, 0.5) 100%)",
+              }}
+            />
+
+            {/* Floating Decorative Elements */}
+            <div
+              className="floating-element"
+              style={{
+                position: "absolute",
+                top: "15%",
+                left: "8%",
+                width: "80px",
+                height: "80px",
+                borderRadius: "50%",
+                background: "rgba(255, 255, 255, 0.1)",
+                backdropFilter: "blur(10px)",
+                animation: "float 6s ease-in-out infinite",
+              }}
+            />
+            <div
+              className="floating-element"
+              style={{
+                position: "absolute",
+                bottom: "20%",
+                right: "10%",
+                width: "120px",
+                height: "120px",
+                borderRadius: "50%",
+                background: "rgba(255, 255, 255, 0.08)",
+                backdropFilter: "blur(10px)",
+                animation: "float 8s ease-in-out infinite reverse",
+              }}
+            />
+            <div
+              className="floating-element"
+              style={{
+                position: "absolute",
+                top: "60%",
+                left: "15%",
+                width: "50px",
+                height: "50px",
+                borderRadius: "50%",
+                background: "rgba(255, 255, 255, 0.12)",
+                backdropFilter: "blur(10px)",
+                animation: "float 5s ease-in-out infinite 1s",
+              }}
+            />
+
+            {/* Hero Content */}
+            <div
+              className="hero-content"
+              style={{
+                position: "relative",
+                zIndex: 10,
+                textAlign: "center",
+                color: "white",
+                padding: "0 1.5rem",
+                maxWidth: "800px",
+                marginBottom: "2rem",
+              }}
+            >
+              <h1
+                style={{
+                  fontSize: "clamp(1.75rem, 5vw, 3rem)",
+                  fontWeight: 800,
+                  marginBottom: "0.75rem",
+                  lineHeight: 1.15,
+                  textShadow: "0 4px 20px rgba(0, 0, 0, 0.3)",
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                Discover Your Perfect
+                <span
+                  style={{
+                    background:
+                      "linear-gradient(135deg, #FFD700 0%, #FFA500 100%)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    backgroundClip: "text",
+                    marginLeft: "0.5rem",
+                  }}
+                >
+                  Hotel Stay
+                </span>
+              </h1>
+              <p
+                style={{
+                  fontSize: "clamp(0.9rem, 2vw, 1.1rem)",
+                  opacity: 0.95,
+                  maxWidth: "600px",
+                  margin: "0 auto",
+                  lineHeight: 1.5,
+                }}
+              >
+                Explore handpicked hotels with stunning views and unbeatable
+                prices
+              </p>
             </div>
 
-            {/* Search Box */}
-            <div className="search-box">
-              <div className="search-box-content">
-                <div className="search-item">
-                  <span className="material-symbols-outlined">location_on</span>
+            {/* Search Box - Inside Hero */}
+            <div
+              className="search-box"
+              style={{
+                background: "rgba(255, 255, 255, 0.95)",
+                backdropFilter: "blur(10px)",
+                borderRadius: "16px",
+                padding: "1rem 1.25rem",
+                boxShadow: "0 10px 40px rgba(0, 0, 0, 0.2)",
+                maxWidth: "1000px",
+                width: "100%",
+                position: "relative",
+                zIndex: 20,
+                border: "1px solid rgba(255, 255, 255, 0.3)",
+              }}
+            >
+              <div
+                className="search-box-content"
+                style={{
+                  display: "flex",
+                  gap: "0.75rem",
+                  alignItems: "stretch",
+                }}
+              >
+                <div
+                  className="search-item"
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    padding: "0.75rem 0.875rem",
+                    background: "#f8fafc",
+                    borderRadius: "12px",
+                    border: "2px solid transparent",
+                    transition: "all 0.3s ease",
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ color: "#0066cc", fontSize: "1.2rem" }}
+                  >
+                    location_on
+                  </span>
                   <input
                     type="text"
                     placeholder="Where to?"
@@ -167,18 +323,30 @@ export default function Hotels() {
                       border: "none",
                       outline: "none",
                       flex: 1,
-                      fontSize: "0.95rem",
+                      fontSize: "0.9rem",
+                      background: "transparent",
+                      fontWeight: 500,
                     }}
                   />
+                </div>
+                <div
+                  className="search-item"
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    padding: "0.75rem 0.875rem",
+                    background: "#f8fafc",
+                    borderRadius: "12px",
+                    border: "2px solid transparent",
+                    transition: "all 0.3s ease",
+                  }}
+                >
                   <span
                     className="material-symbols-outlined"
-                    style={{ marginLeft: "auto" }}
+                    style={{ color: "#0066cc", fontSize: "1.2rem" }}
                   >
-                    arrow_drop_down
-                  </span>
-                </div>
-                <div className="search-item">
-                  <span className="material-symbols-outlined">
                     calendar_month
                   </span>
                   <input
@@ -192,12 +360,30 @@ export default function Hotels() {
                       border: "none",
                       outline: "none",
                       flex: 1,
-                      fontSize: "0.95rem",
+                      fontSize: "0.9rem",
+                      background: "transparent",
+                      fontWeight: 500,
                     }}
                   />
                 </div>
-                <div className="search-item">
-                  <span className="material-symbols-outlined">
+                <div
+                  className="search-item"
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    padding: "0.75rem 0.875rem",
+                    background: "#f8fafc",
+                    borderRadius: "12px",
+                    border: "2px solid transparent",
+                    transition: "all 0.3s ease",
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ color: "#0066cc", fontSize: "1.2rem" }}
+                  >
                     calendar_month
                   </span>
                   <input
@@ -211,12 +397,32 @@ export default function Hotels() {
                       border: "none",
                       outline: "none",
                       flex: 1,
-                      fontSize: "0.95rem",
+                      fontSize: "0.9rem",
+                      background: "transparent",
+                      fontWeight: 500,
                     }}
                   />
                 </div>
-                <div className="search-item">
-                  <span className="material-symbols-outlined">group</span>
+                <div
+                  className="search-item"
+                  style={{
+                    flex: 0.7,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    padding: "0.75rem 0.875rem",
+                    background: "#f8fafc",
+                    borderRadius: "12px",
+                    border: "2px solid transparent",
+                    transition: "all 0.3s ease",
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ color: "#0066cc", fontSize: "1.2rem" }}
+                  >
+                    group
+                  </span>
                   <select
                     value={filters.guests}
                     onChange={(e) =>
@@ -226,7 +432,10 @@ export default function Hotels() {
                       border: "none",
                       outline: "none",
                       flex: 1,
-                      fontSize: "0.95rem",
+                      fontSize: "0.9rem",
+                      background: "transparent",
+                      fontWeight: 500,
+                      cursor: "pointer",
                     }}
                   >
                     <option value="1">1 Guest</option>
@@ -235,8 +444,26 @@ export default function Hotels() {
                     <option value="4">4+ Guests</option>
                   </select>
                 </div>
-                <div className="search-item">
-                  <span className="material-symbols-outlined">bed</span>
+                <div
+                  className="search-item"
+                  style={{
+                    flex: 0.7,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    padding: "0.75rem 0.875rem",
+                    background: "#f8fafc",
+                    borderRadius: "12px",
+                    border: "2px solid transparent",
+                    transition: "all 0.3s ease",
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ color: "#0066cc", fontSize: "1.2rem" }}
+                  >
+                    bed
+                  </span>
                   <select
                     value={filters.rooms}
                     onChange={(e) =>
@@ -246,7 +473,10 @@ export default function Hotels() {
                       border: "none",
                       outline: "none",
                       flex: 1,
-                      fontSize: "0.95rem",
+                      fontSize: "0.9rem",
+                      background: "transparent",
+                      fontWeight: 500,
+                      cursor: "pointer",
                     }}
                   >
                     <option value="1">1 Room</option>
@@ -255,7 +485,44 @@ export default function Hotels() {
                     <option value="4">4+ Rooms</option>
                   </select>
                 </div>
-                <button className="search-btn">Search</button>
+                <button
+                  className="search-btn"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
+                    color: "white",
+                    border: "none",
+                    padding: "0.75rem 1.5rem",
+                    borderRadius: "12px",
+                    fontSize: "0.95rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.4rem",
+                    transition: "all 0.3s ease",
+                    boxShadow: "0 4px 15px rgba(0, 102, 204, 0.35)",
+                    whiteSpace: "nowrap",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.boxShadow =
+                      "0 8px 25px rgba(0, 102, 204, 0.45)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow =
+                      "0 4px 15px rgba(0, 102, 204, 0.35)";
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: "1.1rem" }}
+                  >
+                    search
+                  </span>
+                  Search
+                </button>
               </div>
             </div>
           </div>
@@ -769,80 +1036,19 @@ export default function Hotels() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer style={{ marginTop: "3rem" }}>
-        <div className="footer-container">
-          <div className="footer-grid">
-            <div className="footer-brand">
-              <h2>
-                <Image
-                  src="/logo.webp"
-                  alt="TravelExpertz"
-                  width={32}
-                  height={32}
-                  className="inline-block"
-                  style={{ marginRight: "0.5rem" }}
-                />
-                TravelExpertz
-              </h2>
-              <p>
-                Your trusted partner in creating unforgettable travel
-                experiences.
-              </p>
-            </div>
-            <div>
-              <h4>Company</h4>
-              <ul className="footer-links">
-                <li>
-                  <a href="#">About Us</a>
-                </li>
-                <li>
-                  <a href="#">Careers</a>
-                </li>
-                <li>
-                  <a href="#">Press</a>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4>Support</h4>
-              <ul className="footer-links">
-                <li>
-                  <a href="#">Contact Us</a>
-                </li>
-                <li>
-                  <a href="#">FAQ</a>
-                </li>
-                <li>
-                  <a href="#">Help Center</a>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4>Destinations</h4>
-              <ul className="footer-links">
-                <li>
-                  <a href="#">Hotels</a>
-                </li>
-                <li>
-                  <a href="#">Top Cities</a>
-                </li>
-                <li>
-                  <a href="#">Top Hotels</a>
-                </li>
-              </ul>
-            </div>
-          </div>
-          <div className="footer-bottom">
-            <p className="footer-copyright">
-              © 2024 TravelExpertz. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
 
       {/* Mobile Responsive Styles */}
       <style>{`
+        /* ===== HOTELS PAGE - PREMIUM MOBILE RESPONSIVE ===== */
+        
+        /* Floating Animation */
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-20px) rotate(5deg); }
+        }
+        
+        /* Base Mobile Optimizations */
         @media (max-width: 1024px) {
           .search-box {
             flex-direction: column !important;
@@ -850,72 +1056,413 @@ export default function Hotels() {
             padding: 1.5rem !important;
           }
           
+          .search-box-content {
+            flex-direction: column !important;
+            gap: 0.75rem !important;
+          }
+          
           .search-item {
             width: 100% !important;
-            min-height: 48px !important;
+            min-height: 52px !important;
+            border-radius: 12px !important;
+            flex: none !important;
           }
           
           .search-btn {
             width: 100% !important;
-            min-height: 48px !important;
+            min-height: 52px !important;
+            border-radius: 12px !important;
+            font-size: 1rem !important;
+            font-weight: 700 !important;
+            justify-content: center !important;
+          }
+          
+          .hero-stats {
+            gap: 1.5rem !important;
+          }
+          
+          .filters-section > div:last-child {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 1rem !important;
           }
         }
         
         @media (max-width: 768px) {
-          .hotels-grid {
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
-            gap: 1rem !important;
-          }
-          
+          /* Hero Section Mobile */
           .hero-section {
-            height: 350px !important;
-            min-height: 350px !important;
+            height: clamp(320px, 60vw, 400px) !important;
+            min-height: clamp(320px, 60vw, 400px) !important;
+            border-radius: clamp(16px, 3vw, 24px) !important;
           }
           
           .hero-section h1 {
-            font-size: 2rem !important;
+            font-size: clamp(1.5rem, 6vw, 2.25rem) !important;
+            line-height: 1.2 !important;
+            padding: 0 0.5rem !important;
           }
           
-          .filters-section {
-            margin-bottom: 1.5rem !important;
+          .hero-section p {
+            font-size: clamp(0.85rem, 2.5vw, 1rem) !important;
+            padding: 0 0.5rem !important;
           }
           
-          .filter-controls {
-            flex-direction: column !important;
-            align-items: stretch !important;
-          }
-          
-          .filter-buttons {
-            width: 100% !important;
+          .hero-stats {
+            gap: 1rem !important;
             flex-wrap: wrap !important;
+          }
+          
+          .hero-stats > div:not(:last-child):not([style*="width: 1px"]) {
+            flex: 1 1 auto !important;
+            min-width: 80px !important;
+          }
+          
+          .hero-stats > div[style*="width: 1px"] {
+            display: none !important;
+          }
+          
+          .hero-content > div:first-child {
+            padding: 0.4rem 0.75rem !important;
+            font-size: 0.75rem !important;
+          }
+          
+          .floating-element {
+            display: none !important;
+          }
+          
+          /* Search Box Mobile */
+          .search-box {
+            margin: -2.5rem 0.5rem 0 !important;
+            padding: clamp(1rem, 3vw, 1.5rem) !important;
+            border-radius: clamp(16px, 3vw, 20px) !important;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
+          }
+          
+          .search-box-content {
+            flex-direction: column !important;
+            gap: 0.65rem !important;
+          }
+          
+          .search-item {
+            padding: clamp(0.7rem, 2vw, 0.875rem) clamp(0.875rem, 2.5vw, 1rem) !important;
+            font-size: clamp(0.85rem, 2.5vw, 0.95rem) !important;
+            border-radius: 12px !important;
+            background: #f8fafc !important;
+            border: 2px solid #e2e8f0 !important;
+            transition: all 0.3s ease !important;
+            min-height: 50px !important;
+          }
+          
+          .search-item:focus-within {
+            border-color: #0066cc !important;
+            background: #ffffff !important;
+            box-shadow: 0 0 0 4px rgba(0, 102, 204, 0.1) !important;
+          }
+          
+          .search-item input,
+          .search-item select {
+            font-size: clamp(0.85rem, 2.5vw, 0.95rem) !important;
+          }
+          
+          .search-btn {
+            padding: clamp(0.875rem, 2.5vw, 1rem) !important;
+            font-size: clamp(0.9rem, 2.5vw, 1rem) !important;
+            background: linear-gradient(135deg, #0066cc 0%, #0099ff 100%) !important;
+            box-shadow: 0 4px 15px rgba(0, 102, 204, 0.3) !important;
+            border-radius: 12px !important;
+            min-height: 52px !important;
+          }
+          
+          /* Filters Section Mobile */
+          .filters-section {
+            margin-bottom: clamp(1.25rem, 3vw, 2rem) !important;
+            padding: 0 !important;
+          }
+          
+          .filters-section > div:first-child input {
+            padding: clamp(0.875rem, 2.5vw, 1rem) clamp(1rem, 3vw, 1.25rem) clamp(0.875rem, 2.5vw, 1rem) clamp(2.75rem, 8vw, 3.25rem) !important;
+            font-size: clamp(0.9rem, 2.5vw, 1rem) !important;
+            border-radius: 14px !important;
+          }
+          
+          .filters-section select {
+            padding: clamp(0.65rem, 2vw, 0.75rem) clamp(2rem, 6vw, 2.5rem) clamp(0.65rem, 2vw, 0.75rem) clamp(0.75rem, 2vw, 1rem) !important;
+            font-size: clamp(0.8rem, 2.2vw, 0.9rem) !important;
+            border-radius: 10px !important;
+            min-width: auto !important;
+            width: 100% !important;
+          }
+          
+          .filters-section > div > div {
+            width: 100% !important;
+          }
+          
+          .filters-section > div > div > label {
+            font-size: clamp(0.65rem, 1.8vw, 0.75rem) !important;
+            margin-bottom: clamp(0.35rem, 1vw, 0.5rem) !important;
+          }
+          
+          /* Filter Controls Row */
+          .filters-section > div:nth-child(2) {
+            flex-direction: column !important;
+            gap: clamp(1rem, 3vw, 1.5rem) !important;
+          }
+          
+          .filters-section > div:nth-child(2) > div:first-child {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: clamp(0.75rem, 2vw, 1rem) !important;
+            width: 100% !important;
+          }
+          
+          /* Results Count & Reset */
+          .filters-section > div:nth-child(2) > div:last-child {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: clamp(0.75rem, 2vw, 1rem) !important;
+            width: 100% !important;
+          }
+          
+          .filters-section > div:nth-child(2) > div:last-child > div,
+          .filters-section > div:nth-child(2) > div:last-child > button {
+            font-size: clamp(0.8rem, 2.2vw, 0.9rem) !important;
+            padding: clamp(0.65rem, 2vw, 0.75rem) clamp(0.875rem, 2.5vw, 1rem) !important;
+            border-radius: 10px !important;
             justify-content: center !important;
           }
           
-          .filter-buttons button,
-          .filter-buttons select {
-            flex: 1 1 calc(50% - 0.5rem) !important;
-            min-height: 44px !important;
-            font-size: 0.875rem !important;
-            padding: 0.5rem 0.75rem !important;
+          /* Hotels Grid Mobile */
+          .hotels-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: clamp(0.75rem, 2vw, 1rem) !important;
+            padding: 0 !important;
+          }
+          
+          /* Hotel Card Mobile */
+          .hotel-card {
+            border-radius: clamp(12px, 2.5vw, 16px) !important;
+            overflow: hidden !important;
+            background: #ffffff !important;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08) !important;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+          }
+          
+          .hotel-card:active {
+            transform: scale(0.98) !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+          }
+          
+          .hotel-card img {
+            height: clamp(120px, 30vw, 160px) !important;
+            object-fit: cover !important;
+          }
+          
+          .hotel-card > div:last-child {
+            padding: clamp(0.65rem, 2vw, 0.875rem) !important;
+          }
+          
+          .hotel-card h3 {
+            font-size: clamp(0.8rem, 2.5vw, 0.95rem) !important;
+            margin-bottom: clamp(0.2rem, 0.5vw, 0.35rem) !important;
+            line-height: 1.3 !important;
+            display: -webkit-box !important;
+            -webkit-line-clamp: 2 !important;
+            -webkit-box-orient: vertical !important;
+            overflow: hidden !important;
+          }
+          
+          .hotel-card p {
+            font-size: clamp(0.7rem, 2vw, 0.8rem) !important;
+            margin-bottom: clamp(0.35rem, 1vw, 0.5rem) !important;
+            display: -webkit-box !important;
+            -webkit-line-clamp: 1 !important;
+            -webkit-box-orient: vertical !important;
+            overflow: hidden !important;
+          }
+          
+          /* Rating on Card */
+          .hotel-card > div:last-child > div:nth-child(3) {
+            margin-bottom: clamp(0.35rem, 1vw, 0.5rem) !important;
+          }
+          
+          .hotel-card > div:last-child > div:nth-child(3) span:first-child {
+            font-size: clamp(0.7rem, 2vw, 0.8rem) !important;
+          }
+          
+          .hotel-card > div:last-child > div:nth-child(3) span:last-child {
+            font-size: clamp(0.6rem, 1.6vw, 0.7rem) !important;
+          }
+          
+          /* Amenities Tags */
+          .hotel-card > div:last-child > div:nth-child(4) {
+            display: none !important;
+          }
+          
+          /* Price Section */
+          .hotel-card > div:last-child > div:last-child {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: clamp(0.5rem, 1.5vw, 0.75rem) !important;
+          }
+          
+          .hotel-card > div:last-child > div:last-child > div span {
+            font-size: clamp(0.65rem, 1.8vw, 0.75rem) !important;
+          }
+          
+          .hotel-card > div:last-child > div:last-child > div p {
+            font-size: clamp(1rem, 3vw, 1.2rem) !important;
+            margin: 0 !important;
+          }
+          
+          .hotel-card > div:last-child > div:last-child button {
+            padding: clamp(0.5rem, 1.5vw, 0.65rem) clamp(0.75rem, 2vw, 1rem) !important;
+            font-size: clamp(0.7rem, 2vw, 0.8rem) !important;
+            border-radius: 8px !important;
+            width: 100% !important;
+          }
+          
+          /* Popular Badge */
+          .hotel-card > div:first-child > div {
+            padding: clamp(0.2rem, 0.6vw, 0.3rem) clamp(0.5rem, 1.5vw, 0.65rem) !important;
+            font-size: clamp(0.55rem, 1.6vw, 0.65rem) !important;
+            border-radius: clamp(1rem, 3vw, 1.5rem) !important;
+            top: clamp(0.35rem, 1vw, 0.5rem) !important;
+            right: clamp(0.35rem, 1vw, 0.5rem) !important;
           }
         }
         
         @media (max-width: 480px) {
+          /* Single Column for Small Phones */
           .hotels-grid {
             grid-template-columns: 1fr !important;
-          }
-          
-          .hero-section {
-            height: 300px !important;
-            min-height: 300px !important;
-          }
-          
-          .hero-section h1 {
-            font-size: 1.5rem !important;
+            gap: clamp(0.875rem, 2.5vw, 1rem) !important;
           }
           
           .hotel-card {
-            border-radius: 16px !important;
+            display: flex !important;
+            flex-direction: row !important;
+            height: auto !important;
+          }
+          
+          .hotel-card > div:first-child {
+            width: clamp(110px, 30vw, 140px) !important;
+            min-width: clamp(110px, 30vw, 140px) !important;
+            flex-shrink: 0 !important;
+          }
+          
+          .hotel-card > div:first-child img {
+            height: 100% !important;
+            min-height: clamp(130px, 35vw, 160px) !important;
+          }
+          
+          .hotel-card > div:last-child {
+            flex: 1 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+            padding: clamp(0.65rem, 2vw, 0.875rem) !important;
+          }
+          
+          .hotel-card h3 {
+            font-size: clamp(0.85rem, 2.8vw, 1rem) !important;
+            -webkit-line-clamp: 2 !important;
+          }
+          
+          .hotel-card > div:last-child > div:last-child {
+            flex-direction: row !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+          }
+          
+          .hotel-card > div:last-child > div:last-child button {
+            width: auto !important;
+            padding: clamp(0.4rem, 1.2vw, 0.5rem) clamp(0.6rem, 1.8vw, 0.8rem) !important;
+          }
+          
+          /* Hero adjustments */
+          .hero-section {
+            height: clamp(220px, 45vw, 280px) !important;
+            min-height: clamp(220px, 45vw, 280px) !important;
+          }
+          
+          .hero-section h1 {
+            font-size: clamp(1.25rem, 5vw, 1.75rem) !important;
+          }
+          
+          /* Search Box */
+          .search-box {
+            margin: -1.5rem 0.5rem 0 !important;
+            padding: clamp(0.875rem, 2.5vw, 1rem) !important;
+          }
+          
+          .search-item {
+            min-height: 46px !important;
+            padding: clamp(0.55rem, 1.5vw, 0.65rem) clamp(0.65rem, 1.8vw, 0.8rem) !important;
+          }
+          
+          .search-btn {
+            min-height: 48px !important;
+          }
+        }
+        
+        @media (max-width: 375px) {
+          .hotel-card > div:first-child {
+            width: clamp(100px, 28vw, 120px) !important;
+            min-width: clamp(100px, 28vw, 120px) !important;
+          }
+          
+          .hotel-card h3 {
+            font-size: clamp(0.8rem, 2.5vw, 0.9rem) !important;
+          }
+          
+          .hotel-card > div:last-child > div:last-child > div p {
+            font-size: clamp(0.9rem, 2.8vw, 1rem) !important;
+          }
+        }
+        
+        /* Touch Optimizations */
+        @media (hover: none) and (pointer: coarse) {
+          .hotel-card {
+            transition: transform 0.15s ease !important;
+          }
+          
+          .hotel-card:active {
+            transform: scale(0.98) !important;
+          }
+          
+          .search-btn:active,
+          .filters-section button:active {
+            transform: scale(0.97) !important;
+          }
+          
+          select,
+          input {
+            font-size: 16px !important; /* Prevents iOS zoom */
+          }
+        }
+        
+        /* Dark Mode Support */
+        @media (prefers-color-scheme: dark) {
+          .hotel-card {
+            background: #1e293b !important;
+            border-color: #334155 !important;
+          }
+          
+          .hotel-card h3 {
+            color: #f1f5f9 !important;
+          }
+          
+          .hotel-card p {
+            color: #94a3b8 !important;
+          }
+        }
+        
+        /* Reduced Motion */
+        @media (prefers-reduced-motion: reduce) {
+          .hotel-card,
+          .search-btn,
+          button {
+            transition: none !important;
           }
         }
       `}</style>

@@ -41,14 +41,14 @@ export async function PATCH(
       { returnDocument: "after" }
     );
 
-    if (!result || !result.value) {
+    if (!result) {
       return NextResponse.json(
         { error: "Review not found" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json(result.value);
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Error updating review:", error);
     return NextResponse.json(

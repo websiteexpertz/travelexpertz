@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
+    const all = searchParams.get("all"); // For admin - fetch all including inactive
 
     client = new MongoClient(MONGODB_URI);
     await client.connect();
@@ -33,9 +34,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(destination);
     }
 
-    // Otherwise, fetch all destinations
+    // Otherwise, fetch destinations (all for admin, active only for public)
+    const query = all === "true" ? {} : { active: { $ne: false } };
     const destinations = await destinationsCollection
-      .find({ active: { $ne: false } })
+      .find(query)
       .sort({ order: 1, name: 1 })
       .toArray();
 
@@ -99,14 +101,19 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get("id");
+    const body = await request.json();
+    console.log("PATCH body received:", body);
+    const id = body.id;
 
     if (!id) {
+      console.log("No ID found in body");
       return NextResponse.json({ error: "Destination ID required" }, { status: 400 });
     }
 
-    const body = await request.json();
+    // Remove id and _id from the update payload (MongoDB doesn't allow updating _id)
+    const { id: _id1, _id: _id2, ...updateData } = body;
+    console.log("Update data:", updateData);
+
     client = new MongoClient(MONGODB_URI);
     await client.connect();
 
@@ -115,8 +122,10 @@ export async function PATCH(request: NextRequest) {
 
     const result = await destinationsCollection.updateOne(
       { _id: new ObjectId(id) },
-      { $set: { ...body, updatedAt: new Date() } }
+      { $set: { ...updateData, updatedAt: new Date() } }
     );
+
+    console.log("Update result:", result);
 
     if (result.matchedCount === 0) {
       return NextResponse.json({ error: "Destination not found" }, { status: 404 });
@@ -146,8 +155,8 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get("id");
+    const body = await request.json();
+    const id = body.id;
 
     if (!id) {
       return NextResponse.json({ error: "Destination ID required" }, { status: 400 });

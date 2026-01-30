@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Header from "../components/Header";
+import Footer from "../components/Footer";
 
 interface AboutItem {
   _id?: string;
@@ -511,19 +512,7 @@ export default function AboutPage() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer
-        style={{
-          padding: "3rem 5%",
-          background: "rgba(26, 26, 46, 0.95)",
-          color: "white",
-          textAlign: "center",
-        }}
-      >
-        <p style={{ fontSize: "0.95rem", opacity: 0.8 }}>
-          © 2024 TravelExpertz. All rights reserved.
-        </p>
-      </footer>
+      <Footer />
     </div>
   );
 }

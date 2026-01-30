@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/app/components/Header";
+import Footer from "@/app/components/Footer";
 
 interface Booking {
   _id: string;
@@ -226,7 +227,7 @@ export default function BookingsPage() {
               {bookings.map((booking) => {
                 const statusStyle = getStatusColor(booking.bookingStatus);
                 const paymentStyle = getPaymentStatusColor(
-                  booking.paymentStatus
+                  booking.paymentStatus,
                 );
 
                 return (
@@ -269,8 +270,8 @@ export default function BookingsPage() {
                           {booking.propertyType === "hotel"
                             ? "🏨"
                             : booking.propertyType === "homestay"
-                            ? "🏡"
-                            : "📦"}{" "}
+                              ? "🏡"
+                              : "📦"}{" "}
                           {booking.propertyType}
                         </p>
                       </div>
@@ -426,6 +427,8 @@ export default function BookingsPage() {
           )}
         </div>
       </div>
+
+      <Footer />
     </>
   );
 }

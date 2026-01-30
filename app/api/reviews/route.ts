@@ -78,14 +78,14 @@ export async function POST(request: NextRequest) {
       reviewImages: body.reviewImages || [],
       createdAt: new Date(),
       verified: false,
-      active: true, // Auto-activate reviews (can be changed later)
+      active: false, // Reviews require admin approval before being visible
     };
 
     const result = await reviewsCollection.insertOne(newReview);
 
     return NextResponse.json(
       {
-        message: "Review submitted successfully",
+        message: "Review submitted successfully! It will be visible after admin approval.",
         review: {
           ...newReview,
           _id: result.insertedId,

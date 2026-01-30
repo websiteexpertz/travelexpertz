@@ -39,6 +39,7 @@ export default function HeaderLoggedIn({
   userName = "User",
 }: HeaderLoggedInProps) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem("user");
@@ -46,90 +47,53 @@ export default function HeaderLoggedIn({
   };
 
   return (
-    <header>
-      <div className="max-w-7xl mx-auto">
-        <div className="flex items-center">
-          <Link
-            href="/"
-            aria-label="TravelExpertz Home"
-            className="inline-flex items-center gap-3 transition-transform hover:scale-105"
-          >
-            <Image
-              src="/logo.webp"
-              alt="TravelExpertz"
-              width={40}
-              height={40}
-              priority
-              className="h-10 w-10 rounded-lg"
-            />
-          </Link>
-
-          <nav aria-label="Primary" className="flex gap-6 pl-8">
-            {navItems.map((item) => {
-              const isActive = currentPage === item.key;
-
-              return (
-                <Link
-                  key={item.key}
-                  href={item.href}
-                  aria-current={isActive ? "page" : undefined}
-                  className={isActive ? "text-primary" : undefined}
-                  style={{
-                    fontSize: "1.05rem",
-                    fontWeight: "500",
-                    padding: "0.5rem 0.25rem",
-                  }}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-
-          <div className="flex items-center gap-3 ml-auto">
-            {/* Wishlist Icon */}
+    <>
+      <header style={{ position: "relative" }}>
+        <div className="max-w-7xl mx-auto" style={{ position: "relative" }}>
+          <div className="flex items-center">
             <Link
-              href="/user/wishlist"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                color: "var(--primary)",
-                transition: "transform 0.2s ease, color 0.2s ease",
-                padding: "0.5rem",
-                borderRadius: "0.5rem",
-                height: "fit-content",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "scale(1.15)";
-                e.currentTarget.style.backgroundColor =
-                  "rgba(0, 102, 204, 0.1)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "scale(1)";
-                e.currentTarget.style.backgroundColor = "transparent";
-              }}
+              href="/"
+              aria-label="TravelExpertz Home"
+              className="inline-flex items-center gap-3 transition-transform hover:scale-105"
             >
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: "1.5rem" }}
-              >
-                favorite
-              </span>
+              <Image
+                src="/logo.webp"
+                alt="TravelExpertz"
+                width={40}
+                height={40}
+                priority
+                className="h-10 w-10 rounded-lg"
+              />
             </Link>
 
-            {/* Bookings Icon and Profile - grouped together */}
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.3rem",
-              }}
-            >
-              {/* Bookings Icon */}
+            {/* Desktop Navigation */}
+            <nav aria-label="Primary" className="hidden md:flex gap-6 pl-8">
+              {navItems.map((item) => {
+                const isActive = currentPage === item.key;
+
+                return (
+                  <Link
+                    key={item.key}
+                    href={item.href}
+                    aria-current={isActive ? "page" : undefined}
+                    className={isActive ? "text-primary" : undefined}
+                    style={{
+                      fontSize: "1.05rem",
+                      fontWeight: "500",
+                      padding: "0.5rem 0.25rem",
+                    }}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+
+            {/* Desktop User Actions */}
+            <div className="hidden md:flex items-center gap-3 ml-auto">
+              {/* Wishlist Icon */}
               <Link
-                href="/user/bookings"
+                href="/user/wishlist"
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -155,186 +119,600 @@ export default function HeaderLoggedIn({
                   className="material-symbols-outlined"
                   style={{ fontSize: "1.5rem" }}
                 >
-                  calendar_month
+                  favorite
                 </span>
               </Link>
 
-              {/* Profile Dropdown */}
+              {/* Bookings Icon and Profile - grouped together */}
               <div
                 style={{
-                  position: "relative",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.3rem",
                 }}
               >
-                <button
-                  onClick={() => setShowProfileMenu(!showProfileMenu)}
+                {/* Bookings Icon */}
+                <Link
+                  href="/user/bookings"
                   style={{
-                    display: "flex",
+                    display: "inline-flex",
                     alignItems: "center",
-                    gap: "0.5rem",
-                    backgroundColor: "transparent",
-                    border: "2px solid var(--primary)",
-                    borderRadius: "0.5rem",
-                    padding: "0.6rem 0.85rem",
+                    justifyContent: "center",
                     cursor: "pointer",
-                    fontWeight: 600,
-                    fontSize: "0.95rem",
                     color: "var(--primary)",
-                    transition: "all 0.2s ease",
-                    whiteSpace: "nowrap",
+                    transition: "transform 0.2s ease, color 0.2s ease",
+                    padding: "0.5rem",
+                    borderRadius: "0.5rem",
+                    height: "fit-content",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "var(--primary)";
-                    e.currentTarget.style.color = "white";
+                    e.currentTarget.style.transform = "scale(1.15)";
+                    e.currentTarget.style.backgroundColor =
+                      "rgba(0, 102, 204, 0.1)";
                   }}
                   onMouseLeave={(e) => {
-                    if (!showProfileMenu) {
-                      e.currentTarget.style.backgroundColor = "transparent";
-                      e.currentTarget.style.color = "var(--primary)";
-                    }
+                    e.currentTarget.style.transform = "scale(1)";
+                    e.currentTarget.style.backgroundColor = "transparent";
                   }}
                 >
                   <span
                     className="material-symbols-outlined"
-                    style={{ fontSize: "1.25rem" }}
+                    style={{ fontSize: "1.5rem" }}
                   >
-                    account_circle
+                    calendar_month
                   </span>
-                  <span>{userName}</span>
-                </button>
+                </Link>
 
-                {showProfileMenu && (
-                  <div
+                {/* Profile Dropdown */}
+                <div
+                  style={{
+                    position: "relative",
+                  }}
+                >
+                  <button
+                    onClick={() => setShowProfileMenu(!showProfileMenu)}
                     style={{
-                      position: "absolute",
-                      top: "100%",
-                      right: 0,
-                      marginTop: "0.5rem",
-                      backgroundColor: "white",
-                      border: "1px solid var(--border-200)",
-                      borderRadius: "0.5rem",
-                      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-                      zIndex: 1000,
-                      minWidth: "auto",
-                      overflow: "visible",
                       display: "flex",
-                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      backgroundColor: "transparent",
+                      border: "2px solid var(--primary)",
+                      borderRadius: "0.5rem",
+                      padding: "0.6rem 0.85rem",
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      fontSize: "0.95rem",
+                      color: "var(--primary)",
+                      transition: "all 0.2s ease",
                       whiteSpace: "nowrap",
                     }}
-                    onMouseLeave={() => setShowProfileMenu(false)}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = "var(--primary)";
+                      e.currentTarget.style.color = "white";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!showProfileMenu) {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                        e.currentTarget.style.color = "var(--primary)";
+                      }
+                    }}
                   >
-                    <Link
-                      href="/user/profile"
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        padding: "0.75rem 1rem",
-                        color: "var(--primary)",
-                        textDecoration: "none",
-                        fontSize: "0.9rem",
-                        transition: "background-color 0.2s ease",
-                        borderRight: "1px solid var(--border-200)",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = "#f3f4f6";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = "transparent";
-                      }}
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: "1.25rem" }}
                     >
-                      My Profile
-                    </Link>
-                    <Link
-                      href="/user/bookings"
+                      account_circle
+                    </span>
+                    <span>{userName}</span>
+                  </button>
+
+                  {showProfileMenu && (
+                    <div
                       style={{
+                        position: "absolute",
+                        top: "100%",
+                        right: 0,
+                        marginTop: "0.5rem",
+                        backgroundColor: "white",
+                        border: "1px solid var(--border-200)",
+                        borderRadius: "0.5rem",
+                        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                        zIndex: 1000,
+                        minWidth: "auto",
+                        overflow: "visible",
                         display: "flex",
-                        alignItems: "center",
-                        padding: "0.75rem 1rem",
-                        color: "var(--primary)",
-                        textDecoration: "none",
-                        fontSize: "0.9rem",
-                        transition: "background-color 0.2s ease",
-                        borderRight: "1px solid var(--border-200)",
+                        flexDirection: "row",
+                        whiteSpace: "nowrap",
                       }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = "#f3f4f6";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = "transparent";
-                      }}
+                      onMouseLeave={() => setShowProfileMenu(false)}
                     >
-                      My Bookings
-                    </Link>
-                    <Link
-                      href="/user/wishlist"
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        padding: "0.75rem 1rem",
-                        color: "var(--primary)",
-                        textDecoration: "none",
-                        fontSize: "0.9rem",
-                        transition: "background-color 0.2s ease",
-                        borderRight: "1px solid var(--border-200)",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = "#f3f4f6";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = "transparent";
-                      }}
-                    >
-                      Wishlist
-                    </Link>
-                    <Link
-                      href="/user/transactions"
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        padding: "0.75rem 1rem",
-                        color: "var(--primary)",
-                        textDecoration: "none",
-                        fontSize: "0.9rem",
-                        transition: "background-color 0.2s ease",
-                        borderRight: "1px solid var(--border-200)",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = "#f3f4f6";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = "transparent";
-                      }}
-                    >
-                      Transactions
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        padding: "0.75rem 1rem",
-                        color: "#dc2626",
-                        backgroundColor: "transparent",
-                        border: "none",
-                        cursor: "pointer",
-                        fontSize: "0.9rem",
-                        transition: "background-color 0.2s ease",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = "#fee2e2";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = "transparent";
-                      }}
-                    >
-                      Logout
-                    </button>
-                  </div>
-                )}
+                      <Link
+                        href="/user/profile"
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          padding: "0.75rem 1rem",
+                          color: "var(--primary)",
+                          textDecoration: "none",
+                          fontSize: "0.9rem",
+                          transition: "background-color 0.2s ease",
+                          borderRight: "1px solid var(--border-200)",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = "#f3f4f6";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = "transparent";
+                        }}
+                      >
+                        My Profile
+                      </Link>
+                      <Link
+                        href="/user/bookings"
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          padding: "0.75rem 1rem",
+                          color: "var(--primary)",
+                          textDecoration: "none",
+                          fontSize: "0.9rem",
+                          transition: "background-color 0.2s ease",
+                          borderRight: "1px solid var(--border-200)",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = "#f3f4f6";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = "transparent";
+                        }}
+                      >
+                        My Bookings
+                      </Link>
+                      <Link
+                        href="/user/wishlist"
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          padding: "0.75rem 1rem",
+                          color: "var(--primary)",
+                          textDecoration: "none",
+                          fontSize: "0.9rem",
+                          transition: "background-color 0.2s ease",
+                          borderRight: "1px solid var(--border-200)",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = "#f3f4f6";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = "transparent";
+                        }}
+                      >
+                        Wishlist
+                      </Link>
+                      <Link
+                        href="/user/transactions"
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          padding: "0.75rem 1rem",
+                          color: "var(--primary)",
+                          textDecoration: "none",
+                          fontSize: "0.9rem",
+                          transition: "background-color 0.2s ease",
+                          borderRight: "1px solid var(--border-200)",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = "#f3f4f6";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = "transparent";
+                        }}
+                      >
+                        Transactions
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          padding: "0.75rem 1rem",
+                          color: "#dc2626",
+                          backgroundColor: "transparent",
+                          border: "none",
+                          cursor: "pointer",
+                          fontSize: "0.9rem",
+                          transition: "background-color 0.2s ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = "#fee2e2";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = "transparent";
+                        }}
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
+
+            {/* Mobile Hamburger Menu Button */}
+            <button
+              className="md:hidden ml-auto p-2 flex items-center justify-center"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle menu"
+              style={{
+                width: "44px",
+                height: "44px",
+                color: "var(--primary)",
+                backgroundColor: mobileMenuOpen ? "#f0f9ff" : "transparent",
+                border: "none",
+                borderRadius: "12px",
+                cursor: "pointer",
+                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                position: "relative",
+              }}
+            >
+              {/* Animated Hamburger Icon */}
+              <div
+                style={{
+                  width: "22px",
+                  height: "16px",
+                  position: "relative",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                }}
+              >
+                <span
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    height: "2.5px",
+                    backgroundColor: "var(--primary)",
+                    borderRadius: "2px",
+                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                    transform: mobileMenuOpen
+                      ? "rotate(45deg) translate(5px, 5px)"
+                      : "rotate(0) translate(0, 0)",
+                  }}
+                />
+                <span
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    height: "2.5px",
+                    backgroundColor: "var(--primary)",
+                    borderRadius: "2px",
+                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                    opacity: mobileMenuOpen ? 0 : 1,
+                    transform: mobileMenuOpen
+                      ? "translateX(-10px)"
+                      : "translateX(0)",
+                  }}
+                />
+                <span
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    height: "2.5px",
+                    backgroundColor: "var(--primary)",
+                    borderRadius: "2px",
+                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                    transform: mobileMenuOpen
+                      ? "rotate(-45deg) translate(5px, -5px)"
+                      : "rotate(0) translate(0, 0)",
+                  }}
+                />
+              </div>
+            </button>
           </div>
         </div>
+      </header>
+
+      {/* Mobile Menu Overlay */}
+      <div
+        className="md:hidden"
+        style={{
+          position: "fixed",
+          inset: 0,
+          top: "64px",
+          backgroundColor: "rgba(0, 0, 0, 0.4)",
+          backdropFilter: "blur(4px)",
+          zIndex: 9997,
+          opacity: mobileMenuOpen ? 1 : 0,
+          visibility: mobileMenuOpen ? "visible" : "hidden",
+          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+        }}
+        onClick={() => setMobileMenuOpen(false)}
+      />
+
+      {/* Mobile Menu */}
+      <div
+        className="md:hidden"
+        style={{
+          position: "fixed",
+          top: "64px",
+          right: 0,
+          width: "min(320px, 85vw)",
+          height: "calc(100vh - 64px)",
+          backgroundColor: "white",
+          boxShadow: "-8px 0 30px rgba(0, 0, 0, 0.15)",
+          zIndex: 9998,
+          overflowY: "auto",
+          transform: mobileMenuOpen ? "translateX(0)" : "translateX(100%)",
+          transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+        }}
+      >
+        <nav
+          className="flex flex-col"
+          style={{
+            padding: "1.5rem 0",
+          }}
+        >
+          {/* Menu Header */}
+          <div
+            style={{
+              padding: "0 1.5rem 1rem",
+              borderBottom: "1px solid #f1f5f9",
+              marginBottom: "0.5rem",
+            }}
+          >
+            <p
+              style={{
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                color: "#94a3b8",
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+              }}
+            >
+              Navigation
+            </p>
+          </div>
+
+          {navItems.map((item, index) => {
+            const isActive = currentPage === item.key;
+            return (
+              <Link
+                key={item.key}
+                href={item.href}
+                onClick={() => setMobileMenuOpen(false)}
+                aria-current={isActive ? "page" : undefined}
+                style={{
+                  padding: "1rem 1.5rem",
+                  fontSize: "1rem",
+                  fontWeight: isActive ? "600" : "500",
+                  color: isActive ? "var(--primary)" : "#374151",
+                  textDecoration: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.75rem",
+                  borderLeft: isActive
+                    ? "3px solid var(--primary)"
+                    : "3px solid transparent",
+                  backgroundColor: isActive ? "#f0f9ff" : "transparent",
+                  transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                  animation: `slideInRight 0.3s ease forwards`,
+                  animationDelay: `${index * 0.05}s`,
+                  opacity: 0,
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.backgroundColor = "#f8fafc";
+                    e.currentTarget.style.paddingLeft = "1.75rem";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.backgroundColor = "transparent";
+                    e.currentTarget.style.paddingLeft = "1.5rem";
+                  }
+                }}
+              >
+                {item.label}
+                {isActive && (
+                  <span
+                    style={{
+                      marginLeft: "auto",
+                      width: "6px",
+                      height: "6px",
+                      borderRadius: "50%",
+                      backgroundColor: "var(--primary)",
+                    }}
+                  />
+                )}
+              </Link>
+            );
+          })}
+
+          {/* Mobile User Menu */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              borderTop: "1px solid #f1f5f9",
+              marginTop: "1rem",
+              paddingTop: "1rem",
+              animation: "slideInRight 0.3s ease forwards",
+              animationDelay: "0.35s",
+              opacity: 0,
+            }}
+          >
+            <div
+              style={{
+                padding: "0.75rem 1.5rem",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.75rem",
+              }}
+            >
+              <div
+                style={{
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "12px",
+                  background:
+                    "linear-gradient(135deg, var(--primary) 0%, #0052a3 100%)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "white",
+                  boxShadow: "0 4px 12px rgba(0, 102, 204, 0.3)",
+                }}
+              >
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: "1.25rem" }}
+                >
+                  person
+                </span>
+              </div>
+              <div>
+                <p
+                  style={{
+                    fontWeight: 600,
+                    fontSize: "0.95rem",
+                    color: "#1f2937",
+                    marginBottom: "0.125rem",
+                  }}
+                >
+                  {userName}
+                </p>
+                <p
+                  style={{
+                    fontSize: "0.75rem",
+                    color: "#94a3b8",
+                  }}
+                >
+                  Manage your account
+                </p>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                padding: "0.5rem 0",
+              }}
+            >
+              {[
+                {
+                  href: "/user/profile",
+                  label: "My Profile",
+                  icon: "account_circle",
+                },
+                {
+                  href: "/user/bookings",
+                  label: "My Bookings",
+                  icon: "calendar_month",
+                },
+                { href: "/user/wishlist", label: "Wishlist", icon: "favorite" },
+                {
+                  href: "/user/transactions",
+                  label: "Transactions",
+                  icon: "receipt_long",
+                },
+              ].map((item, index) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  style={{
+                    padding: "0.875rem 1.5rem",
+                    fontSize: "0.9rem",
+                    fontWeight: "500",
+                    color: "#4b5563",
+                    textDecoration: "none",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.75rem",
+                    transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                    animation: `slideInRight 0.3s ease forwards`,
+                    animationDelay: `${0.4 + index * 0.05}s`,
+                    opacity: 0,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "#f8fafc";
+                    e.currentTarget.style.paddingLeft = "1.75rem";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "transparent";
+                    e.currentTarget.style.paddingLeft = "1.5rem";
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: "1.25rem", color: "#94a3b8" }}
+                  >
+                    {item.icon}
+                  </span>
+                  {item.label}
+                </Link>
+              ))}
+
+              <button
+                onClick={() => {
+                  handleLogout();
+                  setMobileMenuOpen(false);
+                }}
+                style={{
+                  padding: "0.875rem 1.5rem",
+                  marginTop: "0.5rem",
+                  fontSize: "0.9rem",
+                  fontWeight: "500",
+                  color: "#dc2626",
+                  backgroundColor: "transparent",
+                  border: "none",
+                  borderTop: "1px solid #fee2e2",
+                  cursor: "pointer",
+                  textAlign: "left",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.75rem",
+                  transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                  animation: `slideInRight 0.3s ease forwards`,
+                  animationDelay: "0.6s",
+                  opacity: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "#fef2f2";
+                  e.currentTarget.style.paddingLeft = "1.75rem";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                  e.currentTarget.style.paddingLeft = "1.5rem";
+                }}
+              >
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: "1.25rem" }}
+                >
+                  logout
+                </span>
+                Logout
+              </button>
+            </div>
+          </div>
+        </nav>
       </div>
-    </header>
+
+      {/* Animation Keyframes */}
+      <style jsx global>{`
+        @keyframes slideInRight {
+          from {
+            opacity: 0;
+            transform: translateX(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+      `}</style>
+    </>
   );
 }

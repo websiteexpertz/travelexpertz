@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/app/components/Header";
+import Footer from "@/app/components/Footer";
 
 interface UserProfile {
   name?: string;
@@ -778,6 +779,8 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      <Footer />
     </>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Header from "../../components/Header";
+import Footer from "../../components/Footer";
 
 interface Room {
   id: string;
@@ -242,6 +243,7 @@ export default function HotelDetails() {
             }}
           >
             <div
+              className="hotel-gallery"
               style={{
                 display: "grid",
                 gridTemplateColumns: "2fr 1fr 1fr",
@@ -249,6 +251,7 @@ export default function HotelDetails() {
                 height: "400px",
                 borderRadius: "16px",
                 overflow: "hidden",
+                position: "relative",
               }}
             >
               <div
@@ -351,6 +354,7 @@ export default function HotelDetails() {
               >
                 <div>
                   <h1
+                    className="hotel-title"
                     style={{
                       fontSize: "2rem",
                       fontWeight: 800,
@@ -361,6 +365,7 @@ export default function HotelDetails() {
                     {hotel.name}
                   </h1>
                   <div
+                    className="hotel-location"
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -446,16 +451,20 @@ export default function HotelDetails() {
                 ].map((tab) => (
                   <button
                     key={tab.id}
+                    className={`hotel-tab-btn ${activeTab === tab.id ? "active" : ""}`}
                     onClick={() => setActiveTab(tab.id as typeof activeTab)}
                     style={{
                       padding: "1rem 0",
-                      background: "none",
+                      background:
+                        activeTab === tab.id
+                          ? "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)"
+                          : "none",
                       border: "none",
                       borderBottom:
                         activeTab === tab.id
                           ? "3px solid #0066cc"
                           : "3px solid transparent",
-                      color: activeTab === tab.id ? "#0066cc" : "#64748b",
+                      color: activeTab === tab.id ? "#ffffff" : "#64748b",
                       fontWeight: activeTab === tab.id ? 700 : 500,
                       fontSize: "1rem",
                       cursor: "pointer",
@@ -463,6 +472,9 @@ export default function HotelDetails() {
                       alignItems: "center",
                       gap: "0.5rem",
                       transition: "all 0.3s ease",
+                      borderRadius: activeTab === tab.id ? "10px" : "0",
+                      paddingLeft: activeTab === tab.id ? "1rem" : "0",
+                      paddingRight: activeTab === tab.id ? "1rem" : "0",
                     }}
                   >
                     <span className="material-symbols-outlined">
@@ -771,6 +783,7 @@ export default function HotelDetails() {
 
                 {/* Room Cards */}
                 <div
+                  className="rooms-grid"
                   style={{
                     display: "flex",
                     flexDirection: "column",
@@ -809,6 +822,7 @@ export default function HotelDetails() {
                     filteredRooms.map((room: Room) => (
                       <div
                         key={room.id}
+                        className="room-card"
                         style={{
                           background: "#ffffff",
                           borderRadius: "16px",
@@ -828,12 +842,16 @@ export default function HotelDetails() {
                         }}
                       >
                         <div
+                          className="room-inner"
                           style={{
                             display: "grid",
                             gridTemplateColumns: "280px 1fr",
                           }}
                         >
-                          <div style={{ position: "relative" }}>
+                          <div
+                            className="room-image"
+                            style={{ position: "relative" }}
+                          >
                             {room.images && room.images.length > 0 ? (
                               <img
                                 src={room.images[0]}
@@ -887,7 +905,10 @@ export default function HotelDetails() {
                               </div>
                             )}
                           </div>
-                          <div style={{ padding: "1.5rem" }}>
+                          <div
+                            className="room-content"
+                            style={{ padding: "1.5rem" }}
+                          >
                             <div
                               style={{
                                 display: "flex",
@@ -1111,6 +1132,7 @@ export default function HotelDetails() {
                   Hotel Amenities
                 </h2>
                 <div
+                  className="amenities-grid"
                   style={{
                     display: "grid",
                     gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
@@ -1120,6 +1142,7 @@ export default function HotelDetails() {
                   {hotel.amenities?.map((amenity, idx) => (
                     <div
                       key={idx}
+                      className="amenity-item"
                       style={{
                         display: "flex",
                         alignItems: "center",
@@ -1182,6 +1205,7 @@ export default function HotelDetails() {
                     {reviews.map((review: any) => (
                       <div
                         key={review._id}
+                        className="review-card"
                         style={{
                           background: "#ffffff",
                           borderRadius: "12px",
@@ -1370,8 +1394,9 @@ export default function HotelDetails() {
           </div>
 
           {/* Right Column - Booking Card */}
-          <div>
+          <div className="hotel-sidebar">
             <div
+              className="hotel-booking-card"
               style={{
                 position: "sticky",
                 top: "2rem",
@@ -1382,7 +1407,28 @@ export default function HotelDetails() {
                 border: "2px solid #e2e8f0",
               }}
             >
+              <div className="booking-price-section">
+                <span
+                  className="booking-price"
+                  style={{
+                    fontSize: "1.75rem",
+                    fontWeight: 800,
+                    color: "#0066cc",
+                  }}
+                >
+                  {hotel.rooms && hotel.rooms[0]
+                    ? formatInr(hotel.rooms[0].price)
+                    : "N/A"}
+                </span>
+                <span
+                  className="booking-per-night"
+                  style={{ color: "#64748b", fontSize: "0.9rem" }}
+                >
+                  /night
+                </span>
+              </div>
               <h3
+                className="booking-title-desktop"
                 style={{
                   fontSize: "1.25rem",
                   fontWeight: 700,
@@ -1595,6 +1641,7 @@ export default function HotelDetails() {
               )}
 
               <button
+                className="book-now-btn"
                 onClick={() => {
                   if (!bookingDetails.checkIn || !bookingDetails.checkOut) {
                     alert("Please select check-in and check-out dates");
@@ -1656,6 +1703,7 @@ export default function HotelDetails() {
       {/* Fullscreen Image Gallery Modal */}
       {showFullscreenGallery && hotel.images && (
         <div
+          className="fullscreen-gallery"
           style={{
             position: "fixed",
             top: 0,
@@ -1672,6 +1720,7 @@ export default function HotelDetails() {
         >
           {/* Close Button */}
           <button
+            className="close-btn"
             onClick={() => setShowFullscreenGallery(false)}
             style={{
               position: "absolute",
@@ -1696,6 +1745,7 @@ export default function HotelDetails() {
 
           {/* Image Counter */}
           <div
+            className="image-counter"
             style={{
               position: "absolute",
               top: "20px",
@@ -1715,6 +1765,7 @@ export default function HotelDetails() {
           {/* Previous Button */}
           {fullscreenImageIndex > 0 && (
             <button
+              className="nav-btn"
               onClick={(e) => {
                 e.stopPropagation();
                 setFullscreenImageIndex(fullscreenImageIndex - 1);
@@ -1755,6 +1806,7 @@ export default function HotelDetails() {
           {/* Next Button */}
           {fullscreenImageIndex < hotel.images.length - 1 && (
             <button
+              className="nav-btn"
               onClick={(e) => {
                 e.stopPropagation();
                 setFullscreenImageIndex(fullscreenImageIndex + 1);
@@ -1854,92 +1906,595 @@ export default function HotelDetails() {
 
       {/* Mobile Responsive Styles */}
       <style>{`
+        /* ===== HOTEL DETAILS PAGE - PREMIUM MOBILE RESPONSIVE ===== */
+        
+        /* Tablet View */
         @media (max-width: 1024px) {
           .hotel-main-grid {
             grid-template-columns: 1fr !important;
+            gap: clamp(1.5rem, 4vw, 2rem) !important;
           }
           
           .hotel-sidebar {
             position: relative !important;
             top: 0 !important;
+            order: -1 !important;
+          }
+          
+          .hotel-booking-card {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 1.5rem !important;
+            align-items: center !important;
           }
         }
         
         @media (max-width: 768px) {
+          /* ===== GALLERY SECTION ===== */
           .hotel-gallery {
-            height: 300px !important;
+            height: clamp(240px, 50vw, 320px) !important;
+            border-radius: clamp(12px, 3vw, 20px) !important;
+            display: flex !important;
+            flex-direction: column !important;
+            grid-template-columns: 1fr !important;
+            gap: 0 !important;
+            overflow: hidden !important;
+          }
+          
+          .hotel-gallery > div:first-child {
+            grid-column: 1 !important;
+            height: 100% !important;
+          }
+          
+          .hotel-gallery > div:not(:first-child) {
+            display: none !important;
           }
           
           .hotel-gallery-main {
-            height: 250px !important;
+            height: 100% !important;
+            border-radius: clamp(12px, 3vw, 20px) !important;
           }
           
+          /* Gallery Indicator Dots */
+          .hotel-gallery::after {
+            content: "";
+            position: absolute;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 2px;
+          }
+          
+          .hotel-gallery button {
+            width: clamp(36px, 10vw, 44px) !important;
+            height: clamp(36px, 10vw, 44px) !important;
+            font-size: clamp(0.9rem, 2.5vw, 1.1rem) !important;
+            bottom: clamp(8px, 2vw, 12px) !important;
+            right: clamp(8px, 2vw, 12px) !important;
+            border-radius: 10px !important;
+          }
+          
+          /* ===== HOTEL HEADER ===== */
+          .hotel-title {
+            font-size: clamp(1.35rem, 5vw, 1.75rem) !important;
+            line-height: 1.25 !important;
+            margin-bottom: clamp(0.5rem, 1.5vw, 0.75rem) !important;
+          }
+          
+          .hotel-location {
+            font-size: clamp(0.85rem, 2.5vw, 0.95rem) !important;
+          }
+          
+          .hotel-rating-badge {
+            padding: clamp(0.35rem, 1vw, 0.5rem) clamp(0.75rem, 2vw, 1rem) !important;
+            font-size: clamp(0.8rem, 2.2vw, 0.9rem) !important;
+            border-radius: 8px !important;
+          }
+          
+          /* ===== TABS NAVIGATION ===== */
           .hotel-tabs {
             flex-wrap: nowrap !important;
             overflow-x: auto !important;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-            gap: 0.5rem !important;
-            padding-bottom: 0.5rem !important;
+            -webkit-overflow-scrolling: touch !important;
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+            gap: clamp(0.4rem, 1.2vw, 0.6rem) !important;
+            padding: clamp(0.35rem, 1vw, 0.5rem) !important;
+            margin: 0 -1rem !important;
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+            background: #f8fafc !important;
+            border-radius: 14px !important;
           }
           
           .hotel-tabs::-webkit-scrollbar {
-            display: none;
+            display: none !important;
           }
           
           .hotel-tab-btn {
             flex-shrink: 0 !important;
-            padding: 0.5rem 1rem !important;
-            font-size: 0.875rem !important;
-            min-height: 44px !important;
+            padding: clamp(0.55rem, 1.5vw, 0.7rem) clamp(0.875rem, 2.5vw, 1.1rem) !important;
+            font-size: clamp(0.78rem, 2.2vw, 0.88rem) !important;
+            min-height: clamp(40px, 10vw, 48px) !important;
+            border-radius: 10px !important;
+            white-space: nowrap !important;
+            font-weight: 600 !important;
+            transition: all 0.2s ease !important;
           }
           
+          .hotel-tab-btn.active {
+            background: linear-gradient(135deg, #0066cc 0%, #0099ff 100%) !important;
+            box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3) !important;
+          }
+          
+          /* ===== CONTENT SECTIONS ===== */
           .hotel-content-section {
-            padding: 1.5rem 1rem !important;
+            padding: clamp(1rem, 3vw, 1.5rem) !important;
+            border-radius: clamp(14px, 3vw, 20px) !important;
           }
           
+          .hotel-content-section h2 {
+            font-size: clamp(1.1rem, 3.5vw, 1.35rem) !important;
+            margin-bottom: clamp(0.75rem, 2vw, 1rem) !important;
+          }
+          
+          .hotel-content-section p {
+            font-size: clamp(0.85rem, 2.5vw, 0.95rem) !important;
+            line-height: 1.65 !important;
+          }
+          
+          /* ===== INFO GRID ===== */
+          .hotel-info-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: clamp(0.75rem, 2vw, 1rem) !important;
+          }
+          
+          .hotel-info-item {
+            padding: clamp(0.875rem, 2.5vw, 1.1rem) !important;
+            border-radius: 12px !important;
+          }
+          
+          .hotel-info-item span.material-symbols-outlined {
+            font-size: clamp(1.25rem, 4vw, 1.5rem) !important;
+          }
+          
+          .hotel-info-item span:not(.material-symbols-outlined) {
+            font-size: clamp(0.75rem, 2.2vw, 0.85rem) !important;
+          }
+          
+          /* ===== ROOMS SECTION ===== */
           .rooms-grid {
-            gap: 1rem !important;
+            gap: clamp(0.875rem, 2.5vw, 1.25rem) !important;
+          }
+          
+          .room-filters {
+            flex-wrap: wrap !important;
+            gap: clamp(0.5rem, 1.5vw, 0.75rem) !important;
+            margin-bottom: clamp(1rem, 3vw, 1.5rem) !important;
+          }
+          
+          .room-filter-btn {
+            padding: clamp(0.5rem, 1.5vw, 0.65rem) clamp(0.875rem, 2.5vw, 1.1rem) !important;
+            font-size: clamp(0.75rem, 2.1vw, 0.85rem) !important;
+            border-radius: 8px !important;
           }
           
           .room-card {
             flex-direction: column !important;
+            border-radius: clamp(14px, 3vw, 18px) !important;
+            overflow: hidden !important;
+            box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08) !important;
+          }
+          
+          .room-inner {
+            display: flex !important;
+            flex-direction: column !important;
+            grid-template-columns: none !important;
           }
           
           .room-image {
             width: 100% !important;
-            height: 180px !important;
+            height: clamp(160px, 40vw, 200px) !important;
+            border-radius: 0 !important;
           }
           
-          .hotel-booking-card {
-            padding: 1.5rem !important;
-            border-radius: 16px !important;
-          }
-        }
-        
-        @media (max-width: 480px) {
-          .hotel-gallery {
-            height: 250px !important;
+          .room-content {
+            padding: clamp(0.875rem, 2.5vw, 1.25rem) !important;
           }
           
-          .hotel-title {
-            font-size: 1.5rem !important;
+          .room-content h3 {
+            font-size: clamp(0.95rem, 3vw, 1.1rem) !important;
+            margin-bottom: clamp(0.35rem, 1vw, 0.5rem) !important;
           }
           
-          .hotel-info-grid {
-            grid-template-columns: 1fr !important;
+          .room-content p {
+            font-size: clamp(0.8rem, 2.3vw, 0.9rem) !important;
           }
           
+          .room-amenities {
+            gap: clamp(0.35rem, 1vw, 0.5rem) !important;
+            flex-wrap: wrap !important;
+          }
+          
+          .room-amenity-tag {
+            padding: clamp(0.25rem, 0.75vw, 0.35rem) clamp(0.5rem, 1.5vw, 0.65rem) !important;
+            font-size: clamp(0.65rem, 1.8vw, 0.75rem) !important;
+            border-radius: 6px !important;
+          }
+          
+          .room-price {
+            font-size: clamp(1.1rem, 3.5vw, 1.35rem) !important;
+          }
+          
+          .room-price span {
+            font-size: clamp(0.7rem, 2vw, 0.8rem) !important;
+          }
+          
+          .room-book-btn {
+            padding: clamp(0.65rem, 2vw, 0.8rem) clamp(1rem, 3vw, 1.25rem) !important;
+            font-size: clamp(0.8rem, 2.3vw, 0.9rem) !important;
+            border-radius: 10px !important;
+            width: 100% !important;
+          }
+          
+          /* ===== AMENITIES GRID ===== */
           .amenities-grid {
-            grid-template-columns: 1fr 1fr !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: clamp(0.6rem, 1.8vw, 0.875rem) !important;
+          }
+          
+          .amenity-item {
+            padding: clamp(0.75rem, 2vw, 1rem) !important;
+            border-radius: 10px !important;
+          }
+          
+          .amenity-item span.material-symbols-outlined {
+            font-size: clamp(1.15rem, 3.5vw, 1.35rem) !important;
+          }
+          
+          .amenity-item span:not(.material-symbols-outlined) {
+            font-size: clamp(0.7rem, 2vw, 0.8rem) !important;
+          }
+          
+          /* ===== REVIEWS SECTION ===== */
+          .reviews-summary {
+            padding: clamp(1rem, 3vw, 1.25rem) !important;
+            border-radius: 14px !important;
+            flex-direction: column !important;
+            text-align: center !important;
+            gap: clamp(0.75rem, 2vw, 1rem) !important;
+          }
+          
+          .reviews-summary .rating-large {
+            font-size: clamp(2rem, 8vw, 2.75rem) !important;
           }
           
           .review-card {
-            padding: 1rem !important;
+            padding: clamp(0.875rem, 2.5vw, 1.1rem) !important;
+            border-radius: 12px !important;
+            margin-bottom: clamp(0.75rem, 2vw, 1rem) !important;
+          }
+          
+          .review-card-header {
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: clamp(0.6rem, 1.8vw, 0.875rem) !important;
+            margin-bottom: clamp(0.6rem, 1.8vw, 0.875rem) !important;
+          }
+          
+          .review-avatar {
+            width: clamp(36px, 10vw, 44px) !important;
+            height: clamp(36px, 10vw, 44px) !important;
+            font-size: clamp(0.85rem, 2.5vw, 1rem) !important;
+          }
+          
+          .review-author {
+            font-size: clamp(0.85rem, 2.5vw, 0.95rem) !important;
+          }
+          
+          .review-date {
+            font-size: clamp(0.7rem, 2vw, 0.8rem) !important;
+          }
+          
+          .review-text {
+            font-size: clamp(0.8rem, 2.3vw, 0.9rem) !important;
+            line-height: 1.6 !important;
+          }
+          
+          /* ===== BOOKING SIDEBAR (MOBILE) ===== */
+          .hotel-sidebar {
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            top: auto !important;
+            z-index: 1000 !important;
+            padding: 0 !important;
+            background: transparent !important;
+          }
+          
+          .hotel-booking-card {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            padding: clamp(0.875rem, 2.5vw, 1rem) clamp(1rem, 3vw, 1.25rem) !important;
+            border-radius: 0 !important;
+            border-top-left-radius: clamp(16px, 4vw, 24px) !important;
+            border-top-right-radius: clamp(16px, 4vw, 24px) !important;
+            box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15) !important;
+            background: #ffffff !important;
+            gap: clamp(0.75rem, 2vw, 1rem) !important;
+          }
+          
+          /* Hide all form elements and extra content on mobile */
+          .hotel-booking-card .booking-title-desktop,
+          .hotel-booking-card h3,
+          .hotel-booking-card label,
+          .hotel-booking-card input,
+          .hotel-booking-card > div:nth-child(3),
+          .hotel-booking-card > div:nth-child(4),
+          .hotel-booking-card > div:nth-child(5),
+          .hotel-booking-card > div:nth-child(6),
+          .hotel-booking-card > div:last-child:not(.booking-price-section):not(button) {
+            display: none !important;
+          }
+          
+          .hotel-booking-card .booking-price-section {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: flex-start !important;
+          }
+          
+          .hotel-booking-card .booking-price {
+            font-size: clamp(1.25rem, 4vw, 1.5rem) !important;
+            font-weight: 700 !important;
+            color: #0066cc !important;
+          }
+          
+          .hotel-booking-card .booking-per-night {
+            font-size: clamp(0.7rem, 2vw, 0.8rem) !important;
+            color: #64748b !important;
+          }
+          
+          .hotel-booking-card button[type="button"],
+          .hotel-booking-card .book-now-btn {
+            padding: clamp(0.75rem, 2vw, 0.875rem) clamp(1.5rem, 5vw, 2rem) !important;
+            font-size: clamp(0.85rem, 2.5vw, 0.95rem) !important;
+            font-weight: 700 !important;
+            border-radius: 12px !important;
+            background: linear-gradient(135deg, #0066cc 0%, #0099ff 100%) !important;
+            box-shadow: 0 4px 15px rgba(0, 102, 204, 0.3) !important;
+            white-space: nowrap !important;
+            flex-shrink: 0 !important;
+          }
+          
+          /* Add safe area padding for notched phones */
+          .hotel-booking-card {
+            padding-bottom: calc(clamp(0.875rem, 2.5vw, 1rem) + env(safe-area-inset-bottom)) !important;
+          }
+          
+          /* Add bottom spacing to content for fixed booking bar */
+          .hotel-main-grid {
+            padding-bottom: clamp(80px, 20vw, 100px) !important;
+          }
+          
+          /* ===== FULLSCREEN GALLERY ===== */
+          .fullscreen-gallery {
+            padding: clamp(0.5rem, 1.5vw, 0.75rem) !important;
+          }
+          
+          .fullscreen-gallery img {
+            border-radius: clamp(12px, 3vw, 16px) !important;
+            max-height: 70vh !important;
+          }
+          
+          .fullscreen-gallery .nav-btn {
+            width: clamp(40px, 12vw, 50px) !important;
+            height: clamp(40px, 12vw, 50px) !important;
+            font-size: clamp(1.1rem, 3.5vw, 1.3rem) !important;
+          }
+          
+          .fullscreen-gallery .close-btn {
+            width: clamp(36px, 10vw, 44px) !important;
+            height: clamp(36px, 10vw, 44px) !important;
+            font-size: clamp(1rem, 3vw, 1.2rem) !important;
+            top: clamp(0.5rem, 1.5vw, 0.75rem) !important;
+            right: clamp(0.5rem, 1.5vw, 0.75rem) !important;
+          }
+          
+          .fullscreen-gallery .image-counter {
+            font-size: clamp(0.8rem, 2.3vw, 0.9rem) !important;
+            padding: clamp(0.35rem, 1vw, 0.5rem) clamp(0.75rem, 2vw, 1rem) !important;
+            border-radius: 8px !important;
+          }
+          
+          .fullscreen-thumbnails {
+            gap: clamp(0.35rem, 1vw, 0.5rem) !important;
+            padding: clamp(0.5rem, 1.5vw, 0.75rem) !important;
+          }
+          
+          .fullscreen-thumb {
+            width: clamp(50px, 14vw, 64px) !important;
+            height: clamp(35px, 10vw, 45px) !important;
+            border-radius: 6px !important;
+          }
+        }
+        
+        /* ===== SMALL PHONES ===== */
+        @media (max-width: 480px) {
+          .hotel-gallery {
+            height: clamp(200px, 45vw, 260px) !important;
+            border-radius: clamp(10px, 2.5vw, 14px) !important;
+          }
+          
+          .hotel-title {
+            font-size: clamp(1.15rem, 4.5vw, 1.4rem) !important;
+          }
+          
+          .hotel-info-grid {
+            grid-template-columns: 1fr 1fr !important;
+            gap: clamp(0.5rem, 1.5vw, 0.75rem) !important;
+          }
+          
+          .hotel-info-item {
+            padding: clamp(0.65rem, 2vw, 0.85rem) !important;
+          }
+          
+          .amenities-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: clamp(0.5rem, 1.5vw, 0.65rem) !important;
+          }
+          
+          .amenity-item {
+            padding: clamp(0.55rem, 1.5vw, 0.7rem) !important;
+            flex-direction: row !important;
+            gap: clamp(0.35rem, 1vw, 0.5rem) !important;
+          }
+          
+          .review-card {
+            padding: clamp(0.75rem, 2vw, 0.9rem) !important;
+          }
+          
+          .room-card {
+            border-radius: clamp(10px, 2.5vw, 14px) !important;
+          }
+          
+          .room-image {
+            height: clamp(130px, 35vw, 170px) !important;
+          }
+          
+          .room-content {
+            padding: clamp(0.75rem, 2vw, 0.95rem) !important;
+          }
+          
+          /* Compact Booking Bar */
+          .hotel-booking-card {
+            padding: clamp(0.65rem, 2vw, 0.8rem) clamp(0.75rem, 2vw, 1rem) !important;
+            gap: clamp(0.5rem, 1.5vw, 0.75rem) !important;
+          }
+          
+          .hotel-booking-card .booking-price {
+            font-size: clamp(1.1rem, 3.5vw, 1.25rem) !important;
+          }
+          
+          .hotel-booking-card button[type="button"],
+          .hotel-booking-card .book-now-btn {
+            padding: clamp(0.6rem, 1.8vw, 0.75rem) clamp(1rem, 3vw, 1.35rem) !important;
+            font-size: clamp(0.78rem, 2.2vw, 0.88rem) !important;
+          }
+        }
+        
+        /* ===== EXTRA SMALL PHONES ===== */
+        @media (max-width: 375px) {
+          .hotel-title {
+            font-size: clamp(1rem, 4vw, 1.2rem) !important;
+          }
+          
+          .hotel-tabs {
+            gap: clamp(0.25rem, 0.8vw, 0.4rem) !important;
+          }
+          
+          .hotel-tab-btn {
+            padding: clamp(0.4rem, 1.2vw, 0.55rem) clamp(0.65rem, 2vw, 0.85rem) !important;
+            font-size: clamp(0.7rem, 2vw, 0.8rem) !important;
+          }
+          
+          .hotel-info-grid {
+            gap: clamp(0.4rem, 1.2vw, 0.55rem) !important;
+          }
+          
+          .amenities-grid {
+            gap: clamp(0.35rem, 1vw, 0.5rem) !important;
+          }
+          
+          .amenity-item span:not(.material-symbols-outlined) {
+            font-size: clamp(0.6rem, 1.8vw, 0.7rem) !important;
+          }
+        }
+        
+        /* ===== TOUCH DEVICE OPTIMIZATIONS ===== */
+        @media (hover: none) and (pointer: coarse) {
+          .hotel-tab-btn,
+          .room-filter-btn,
+          .room-book-btn,
+          .hotel-booking-card button {
+            transition: transform 0.15s ease !important;
+          }
+          
+          .hotel-tab-btn:active,
+          .room-filter-btn:active,
+          .room-book-btn:active {
+            transform: scale(0.97) !important;
+          }
+          
+          .hotel-booking-card button:active {
+            transform: scale(0.98) !important;
+          }
+          
+          .room-card:active {
+            transform: scale(0.99) !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+          }
+          
+          /* Prevent iOS zoom on input focus */
+          input, select, textarea {
+            font-size: 16px !important;
+          }
+        }
+        
+        /* ===== LANDSCAPE PHONE ===== */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .hotel-gallery {
+            height: clamp(150px, 35vh, 200px) !important;
+          }
+          
+          .hotel-sidebar {
+            position: relative !important;
+          }
+          
+          .hotel-booking-card {
+            position: relative !important;
+            border-radius: 16px !important;
+            box-shadow: 0 2px 16px rgba(0, 0, 0, 0.1) !important;
+          }
+          
+          .hotel-main-grid {
+            padding-bottom: 0 !important;
+          }
+        }
+        
+        /* ===== REDUCED MOTION ===== */
+        @media (prefers-reduced-motion: reduce) {
+          .hotel-tab-btn,
+          .room-filter-btn,
+          .room-book-btn,
+          .room-card,
+          button {
+            transition: none !important;
+          }
+        }
+        
+        /* ===== HIGH CONTRAST MODE ===== */
+        @media (prefers-contrast: high) {
+          .hotel-tab-btn.active {
+            border: 2px solid #000 !important;
+          }
+          
+          .room-card {
+            border: 2px solid #333 !important;
+          }
+          
+          .hotel-booking-card button {
+            border: 2px solid #fff !important;
           }
         }
       `}</style>
+
+      <Footer />
     </div>
   );
 }

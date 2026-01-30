@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Header from "../components/Header";
+import Footer from "../components/Footer";
 
 interface BookingData {
   homestay: any;
@@ -592,6 +593,8 @@ function BookingPageContent() {
           </div>
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 }

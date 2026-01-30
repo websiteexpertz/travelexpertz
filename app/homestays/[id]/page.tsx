@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Header from "../../components/Header";
+import Footer from "../../components/Footer";
 
 interface Room {
   id: string;
@@ -1836,75 +1837,7 @@ export default function HomestayDetails() {
         </div>
       )}
 
-      {/* Footer */}
-      <footer style={{ marginTop: "4rem", background: "#1e293b" }}>
-        <div
-          style={{
-            maxWidth: "1280px",
-            margin: "0 auto",
-            padding: "3rem 1rem",
-            color: "white",
-          }}
-        >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-              gap: "2rem",
-            }}
-          >
-            <div>
-              <h3 style={{ marginBottom: "1rem" }}>TravelExpertz</h3>
-              <p style={{ color: "#cbd5e1" }}>
-                Your trusted partner in creating unforgettable travel
-                experiences.
-              </p>
-            </div>
-            <div>
-              <h4 style={{ marginBottom: "1rem" }}>Quick Links</h4>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "0.5rem",
-                }}
-              >
-                <a
-                  href="/homestays"
-                  style={{ color: "#cbd5e1", textDecoration: "none" }}
-                >
-                  Homestays
-                </a>
-                <a
-                  href="/"
-                  style={{ color: "#cbd5e1", textDecoration: "none" }}
-                >
-                  Home
-                </a>
-              </div>
-            </div>
-            <div>
-              <h4 style={{ marginBottom: "1rem" }}>Contact</h4>
-              <p style={{ color: "#cbd5e1" }}>
-                Email: info@travelexpertz.com
-                <br />
-                Phone: +91 1234567890
-              </p>
-            </div>
-          </div>
-          <div
-            style={{
-              borderTop: "1px solid #475569",
-              marginTop: "2rem",
-              paddingTop: "2rem",
-              textAlign: "center",
-              color: "#cbd5e1",
-            }}
-          >
-            © 2024 TravelExpertz. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
