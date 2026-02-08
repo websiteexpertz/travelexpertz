@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Header from "../../components/Header";
-import Footer from "../../components/Footer";
 
 interface Room {
   id: string;
@@ -547,6 +546,108 @@ export default function HomestayDetails() {
                 >
                   {homestay.description}
                 </p>
+
+                {/* Host Profile Section */}
+                {homestay.hostName && (
+                  <div
+                    style={{
+                      background: "#f0f9ff",
+                      borderRadius: "12px",
+                      padding: "1.5rem",
+                      marginBottom: "2rem",
+                      borderLeft: "4px solid #3b82f6",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "1rem",
+                        marginBottom: "1rem",
+                      }}
+                    >
+                      <span
+                        className="material-symbols-outlined"
+                        style={{
+                          fontSize: "2rem",
+                          color: "#3b82f6",
+                          backgroundColor: "#e0f2fe",
+                          borderRadius: "50%",
+                          padding: "0.5rem",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        account_circle
+                      </span>
+                      <div>
+                        <p
+                          style={{
+                            fontSize: "0.85rem",
+                            color: "#64748b",
+                            margin: "0",
+                            fontWeight: 600,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.5px",
+                          }}
+                        >
+                          Homestay Hosted By
+                        </p>
+                        <p
+                          style={{
+                            fontSize: "1.25rem",
+                            color: "#1f2937",
+                            margin: "0.25rem 0 0",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {homestay.hostName}
+                        </p>
+                      </div>
+                    </div>
+                    <div style={{ display: "grid", gap: "0.5rem" }}>
+                      {homestay.hostEmail && (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.75rem",
+                            color: "#475569",
+                            fontSize: "0.95rem",
+                          }}
+                        >
+                          <span
+                            className="material-symbols-outlined"
+                            style={{ fontSize: "1.25rem" }}
+                          >
+                            mail
+                          </span>
+                          <span>{homestay.hostEmail}</span>
+                        </div>
+                      )}
+                      {homestay.hostPhone && (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.75rem",
+                            color: "#475569",
+                            fontSize: "0.95rem",
+                          }}
+                        >
+                          <span
+                            className="material-symbols-outlined"
+                            style={{ fontSize: "1.25rem" }}
+                          >
+                            phone
+                          </span>
+                          <span>{homestay.hostPhone}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <h3
                   style={{
@@ -1836,8 +1937,6 @@ export default function HomestayDetails() {
           )}
         </div>
       )}
-
-      <Footer />
     </div>
   );
 }

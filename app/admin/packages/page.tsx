@@ -1740,17 +1740,33 @@ export default function AdminPackages() {
       <div style={styles.header}>
         <h1 style={styles.headerTitle}>📦 Manage Packages</h1>
         {!showForm && (
-          <button
-            onClick={() => {
-              setShowForm(true);
-              setFormData(emptyPackage);
-              setEditingId(null);
-              setActiveTab("basic");
-            }}
-            style={styles.addButton}
-          >
-            + Add New Package
-          </button>
+          <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+            <button
+              onClick={() => {
+                window.location.href = "/admin/inquiries";
+              }}
+              style={{
+                ...styles.addButton,
+                background: "linear-gradient(135deg, #f59e0b 0%, #f97316 100%)",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+              }}
+            >
+              <span style={{ fontSize: "1.2rem" }}>✉️</span> Manage Inquiries
+            </button>
+            <button
+              onClick={() => {
+                setShowForm(true);
+                setFormData(emptyPackage);
+                setEditingId(null);
+                setActiveTab("basic");
+              }}
+              style={styles.addButton}
+            >
+              + Add New Package
+            </button>
+          </div>
         )}
       </div>
 

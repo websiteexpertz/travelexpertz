@@ -9,7 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "bcryptjs": "^3.0.3",
+    "bcryptjs": "^2.4.3",
     "framer-motion": "^12.29.0",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.563.0",

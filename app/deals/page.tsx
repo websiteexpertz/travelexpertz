@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "../components/Header";
-import Footer from "../components/Footer";
 
 interface Offer {
   id: string;
@@ -514,8 +513,6 @@ export default function DealsPage() {
           )}
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }

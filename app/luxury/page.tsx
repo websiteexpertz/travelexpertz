@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import Header from "../components/Header";
-import Footer from "../components/Footer";
 
 interface Property {
   _id: string;
@@ -410,8 +409,6 @@ export default function LuxuryPage() {
           )}
         </div>
       </div>
-
-      <Footer />
     </>
   );
 }

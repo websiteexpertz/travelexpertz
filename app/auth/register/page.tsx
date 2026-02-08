@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/app/components/Header";
-import Footer from "@/app/components/Footer";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -574,8 +573,6 @@ export default function RegisterPage() {
           </p>
         </div>
       </div>
-
-      <Footer />
     </>
   );
 }

@@ -2,10 +2,23 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import Header from "./components/Header";
-import Footer from "./components/Footer";
 import ReviewForm from "./components/ReviewForm";
 import ImageModal from "./components/ImageModal";
+
+// Dynamic import for ServiceBookingFormEnhanced
+const ServiceBookingFormEnhanced = dynamic(
+  () => import("./components/ServiceBookingFormEnhanced"),
+  {
+    ssr: false,
+    loading: () => (
+      <div style={{ padding: "2rem", textAlign: "center" }}>
+        Loading form...
+      </div>
+    ),
+  },
+);
 
 // Types
 interface Service {
@@ -71,6 +84,34 @@ export default function Home() {
   // Why Us State
   const [whyUs, setWhyUs] = useState<WhyUs[]>([]);
   const [whyUsLoading, setWhyUsLoading] = useState(true);
+
+  // Service Booking Modal State
+  const [selectedServiceForBooking, setSelectedServiceForBooking] = useState<
+    string | null
+  >(null);
+
+  // Map service title to booking form type
+  const mapServiceToBookingType = (serviceTitle: string): string | null => {
+    const title = serviceTitle.toLowerCase();
+    if (
+      title.includes("car") ||
+      title.includes("rental") ||
+      title.includes("cab")
+    )
+      return "car-rental";
+    if (title.includes("flight") || title.includes("air")) return "flight";
+    if (title.includes("bus")) return "bus";
+    if (title.includes("train") || title.includes("railway")) return "train";
+    if (title.includes("visa")) return "visa";
+    if (
+      title.includes("forex") ||
+      title.includes("currency") ||
+      title.includes("exchange")
+    )
+      return "forex";
+    if (title.includes("insurance")) return "insurance";
+    return null; // For services without booking forms
+  };
 
   // Fetch services
   useEffect(() => {
@@ -155,6 +196,26 @@ export default function Home() {
     };
     fetchWhyUs();
   }, []);
+
+  // Debug: Monitor service booking modal state
+  useEffect(() => {
+    console.log(
+      "selectedServiceForBooking changed to:",
+      selectedServiceForBooking,
+    );
+  }, [selectedServiceForBooking]);
+
+  // Add escape key handler to close modal
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && selectedServiceForBooking) {
+        console.log("Escape pressed, closing modal");
+        setSelectedServiceForBooking(null);
+      }
+    };
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [selectedServiceForBooking]);
 
   return (
     <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden">
@@ -486,10 +547,41 @@ export default function Home() {
                   gap: "clamp(0.5rem, 2vw, 1rem)",
                 }}
               >
+                {services.length === 0 && (
+                  <div
+                    style={{
+                      gridColumn: "1 / -1",
+                      padding: "2rem",
+                      textAlign: "center",
+                      color: "red",
+                    }}
+                  >
+                    No services found!
+                  </div>
+                )}
                 {services.map((service, index) => (
                   <div
                     key={service._id || service.id || index}
                     className="service-card"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log("Service clicked:", service.title);
+                      const bookingType = mapServiceToBookingType(
+                        service.title,
+                      );
+                      console.log("Booking type:", bookingType);
+                      if (bookingType) {
+                        console.log("Setting modal state to:", bookingType);
+                        setSelectedServiceForBooking(bookingType);
+                        console.log("Modal state set to:", bookingType);
+                      } else {
+                        console.log(
+                          "No booking type matched for:",
+                          service.title,
+                        );
+                      }
+                    }}
                     style={{
                       cursor: "pointer",
                       borderRadius: "clamp(10px, 2vw, 16px)",
@@ -1330,7 +1422,85 @@ export default function Home() {
         />
       )}
 
-      <Footer />
+      {/* Service Booking Modal */}
+      {selectedServiceForBooking && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0, 0, 0, 0.7)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            padding: "1rem",
+            overflow: "auto",
+          }}
+          onClick={() => {
+            console.log("Backdrop clicked, closing modal");
+            setSelectedServiceForBooking(null);
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              borderRadius: "16px",
+              maxWidth: "900px",
+              width: "100%",
+              maxHeight: "90vh",
+              overflow: "auto",
+              position: "relative",
+              padding: "2rem",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => {
+                console.log("X button clicked");
+                setSelectedServiceForBooking(null);
+              }}
+              style={{
+                position: "absolute",
+                top: "1rem",
+                right: "1rem",
+                background: "#ef4444",
+                border: "none",
+                borderRadius: "50%",
+                width: "48px",
+                height: "48px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                fontSize: "2rem",
+                color: "white",
+                zIndex: 10000,
+                transition: "all 0.2s",
+                fontWeight: "bold",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#dc2626";
+                e.currentTarget.style.transform = "scale(1.1)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "#ef4444";
+                e.currentTarget.style.transform = "scale(1)";
+              }}
+            >
+              ×
+            </button>
+            <div style={{ marginTop: "3rem" }}>
+              <ServiceBookingFormEnhanced
+                serviceType={selectedServiceForBooking as any}
+                onClose={() => {
+                  console.log("Form onClose called");
+                  setSelectedServiceForBooking(null);
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @keyframes slideInFromRight {

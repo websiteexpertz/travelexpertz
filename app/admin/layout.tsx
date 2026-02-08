@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import AdminSidebar from "./components/AdminSidebar";
 
 export default function AdminLayout({
   children,
@@ -62,246 +63,95 @@ export default function AdminLayout({
     );
   }
 
-  const menuItems = [
-    { label: "Dashboard", href: "/admin", icon: "📊" },
-    { label: "Services", href: "/admin/services", icon: "✈️" },
-    { label: "Destinations", href: "/admin/destinations", icon: "🌍" },
-    { label: "Testimonials", href: "/admin/testimonials", icon: "⭐" },
-    { label: "Reviews", href: "/admin/reviews", icon: "💬" },
-    { label: "FAQs", href: "/admin/faqs", icon: "❓" },
-    { label: "Packages", href: "/admin/packages", icon: "📦" },
-    { label: "Hotels", href: "/admin/hotels/manage", icon: "🏨" },
-    { label: "Homestays", href: "/admin/homestays", icon: "🏡" },
-    { label: "Luxury", href: "/admin/luxury", icon: "⭐" },
-    { label: "Bookings", href: "/admin/bookings", icon: "📅" },
-    { label: "Deals", href: "/admin/deals", icon: "🎁" },
-    { label: "Why Us", href: "/admin/whyus", icon: "💡" },
-    { label: "About Us", href: "/admin/about", icon: "ℹ️" },
-    { label: "Form Fields", href: "/admin/form-fields", icon: "⚙️" },
-  ];
+  // Skip login page - no sidebar needed
+  if (pathname === "/admin/login") {
+    return <>{children}</>;
+  }
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#f5f5f5" }}>
-      {/* Sidebar */}
-      <aside
-        style={{
-          width: sidebarOpen ? "280px" : "80px",
-          background: "#1a1a2e",
-          color: "white",
-          padding: "2rem 1rem",
-          transition: "width 0.3s ease",
-          position: "fixed",
-          height: "100vh",
-          overflowY: "auto",
-          borderRight: "1px solid #333",
-          display: "flex",
-          flexDirection: "column",
-          zIndex: 100,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: "1rem",
-          }}
-        >
-          {sidebarOpen && (
-            <h1 style={{ fontSize: "1rem", margin: 0 }}>Admin</h1>
-          )}
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            style={{
-              background: "none",
-              border: "none",
-              color: "white",
-              fontSize: "1rem",
-              cursor: "pointer",
-            }}
-          >
-            {sidebarOpen ? "←" : "→"}
-          </button>
-        </div>
-
-        <nav style={{ flex: 1 }}>
-          {menuItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "1rem",
-                padding: "0.75rem",
-                marginBottom: "0.25rem",
-                borderRadius: "8px",
-                textDecoration: "none",
-                color: pathname === item.href ? "#fff" : "#ccc",
-                background:
-                  pathname === item.href
-                    ? "rgba(0, 102, 204, 0.3)"
-                    : "transparent",
-                transition: "all 0.3s ease",
-              }}
-              onMouseEnter={(e) => {
-                if (pathname !== item.href) {
-                  e.currentTarget.style.background =
-                    "rgba(255, 255, 255, 0.05)";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (pathname !== item.href) {
-                  e.currentTarget.style.background = "transparent";
-                }
-              }}
-            >
-              <span style={{ fontSize: "1rem" }}>{item.icon}</span>
-              {sidebarOpen && <span>{item.label}</span>}
-            </Link>
-          ))}
-        </nav>
-
-        {/* User Info & Logout */}
-        <div
-          style={{
-            borderTop: "1px solid #333",
-            paddingTop: "1rem",
-            marginTop: "1rem",
-          }}
-        >
-          {sidebarOpen && (
-            <div
-              style={{
-                fontSize: "0.85rem",
-                color: "#aaa",
-                marginBottom: "1rem",
-                wordBreak: "break-word",
-              }}
-            >
-              <div style={{ color: "#ccc", fontWeight: "500" }}>
-                Logged in as:
-              </div>
-              <div>{adminUsername}</div>
-            </div>
-          )}
-          <button
-            onClick={handleLogout}
-            style={{
-              width: "100%",
-              padding: "0.75rem",
-              background: "#dc3545",
-              color: "white",
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer",
-              fontSize: "0.95rem",
-              fontWeight: "500",
-              transition: "background 0.3s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#c82333";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "#dc3545";
-            }}
-          >
-            {sidebarOpen ? "Logout" : "🚪"}
-          </button>
-        </div>
-      </aside>
+      {/* New Modern Sidebar */}
+      <AdminSidebar />
 
       {/* Main Content */}
       <main
         style={{
-          marginLeft: sidebarOpen ? "280px" : "80px",
           flex: 1,
-          transition: "margin-left 0.3s ease",
-          display: "flex",
-          flexDirection: "column",
-          minHeight: "100vh",
+          marginLeft: "280px",
+          background: "#f9fafb",
         }}
       >
-        {/* Admin Header */}
+        {/* Top Header */}
         <header
           style={{
             background: "white",
+            padding: "1rem 1.5rem",
             borderBottom: "1px solid #e5e7eb",
-            padding: "1rem 2rem",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
             position: "sticky",
             top: 0,
-            zIndex: 50,
+            zIndex: 100,
+            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-            <h2
+            {/* Back to Website Button */}
+            <Link
+              href="/"
               style={{
-                fontSize: "1.25rem",
-                fontWeight: "600",
-                color: "#1a1a2e",
-                margin: 0,
-              }}
-            >
-              {menuItems.find((item) => item.href === pathname)?.label ||
-                "Admin Dashboard"}
-            </h2>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
-            {/* Quick Actions */}
-            <button
-              onClick={() => router.push("/")}
-              style={{
-                padding: "0.5rem 1rem",
-                background: "#f3f4f6",
-                color: "#374151",
-                border: "none",
-                borderRadius: "6px",
-                cursor: "pointer",
-                fontSize: "0.875rem",
-                fontWeight: "500",
                 display: "flex",
                 alignItems: "center",
                 gap: "0.5rem",
-                transition: "background 0.2s ease",
+                padding: "0.5rem 1rem",
+                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                color: "white",
+                textDecoration: "none",
+                borderRadius: "8px",
+                fontSize: "0.875rem",
+                fontWeight: 600,
+                transition: "all 0.2s ease",
+                boxShadow: "0 2px 6px rgba(102, 126, 234, 0.3)",
+                whiteSpace: "nowrap",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#e5e7eb";
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow =
+                  "0 4px 12px rgba(102, 126, 234, 0.4)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#f3f4f6";
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow =
+                  "0 2px 6px rgba(102, 126, 234, 0.3)";
               }}
-              title="View Site"
             >
               <span
                 className="material-symbols-outlined"
                 style={{ fontSize: "1.1rem" }}
               >
-                language
+                arrow_back
               </span>
-              View Site
-            </button>
+              <span>Back to Website</span>
+            </Link>
+          </div>
 
-            {/* Admin Profile Dropdown */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "1rem",
+              flexWrap: "wrap",
+            }}
+          >
+            {/* Admin Info */}
             <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.75rem",
-                padding: "0.5rem 1rem",
-                background: "#f9fafb",
-                borderRadius: "8px",
-                border: "1px solid #e5e7eb",
-              }}
+              style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}
             >
               <div
                 style={{
-                  width: "36px",
-                  height: "36px",
+                  width: "40px",
+                  height: "40px",
                   borderRadius: "50%",
                   background:
                     "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
@@ -309,25 +159,26 @@ export default function AdminLayout({
                   alignItems: "center",
                   justifyContent: "center",
                   color: "white",
-                  fontWeight: "600",
-                  fontSize: "0.9rem",
+                  fontWeight: 700,
+                  fontSize: "1.1rem",
                 }}
               >
-                {adminUsername.charAt(0).toUpperCase()}
+                {adminUsername?.charAt(0).toUpperCase() || "A"}
               </div>
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <span
+              <div style={{ display: "none" /* Show on larger screens */ }}>
+                <div
                   style={{
-                    fontSize: "0.875rem",
-                    fontWeight: "600",
-                    color: "#1a1a2e",
+                    fontWeight: 600,
+                    fontSize: "0.9rem",
+                    color: "#1f2937",
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  {adminUsername}
-                </span>
-                <span style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                  {adminUsername || "Administrator"}
+                </div>
+                <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>
                   Administrator
-                </span>
+                </div>
               </div>
             </div>
 
@@ -336,23 +187,29 @@ export default function AdminLayout({
               onClick={handleLogout}
               style={{
                 padding: "0.5rem 1rem",
-                background: "#dc3545",
+                background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
                 color: "white",
                 border: "none",
-                borderRadius: "6px",
+                borderRadius: "8px",
                 cursor: "pointer",
                 fontSize: "0.875rem",
-                fontWeight: "500",
+                fontWeight: 600,
                 display: "flex",
                 alignItems: "center",
                 gap: "0.5rem",
-                transition: "background 0.2s ease",
+                transition: "all 0.2s ease",
+                boxShadow: "0 2px 6px rgba(239, 68, 68, 0.3)",
+                whiteSpace: "nowrap",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#c82333";
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow =
+                  "0 4px 12px rgba(239, 68, 68, 0.4)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#dc3545";
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow =
+                  "0 2px 6px rgba(239, 68, 68, 0.3)";
               }}
               title="Logout"
             >
@@ -362,14 +219,27 @@ export default function AdminLayout({
               >
                 logout
               </span>
-              Logout
+              <span style={{ display: "none" /* Show on larger screens */ }}>
+                Logout
+              </span>
             </button>
           </div>
         </header>
 
         {/* Page Content */}
-        <div style={{ flex: 1, padding: "1rem" }}>{children}</div>
+        <div style={{ flex: 1 }}>{children}</div>
       </main>
+
+      <style jsx>{`
+        @media (min-width: 768px) {
+          header > div:last-child > div > div:last-child {
+            display: block !important;
+          }
+          header button span:last-child {
+            display: inline !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

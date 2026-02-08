@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Header from "../../components/Header";
-import Footer from "../../components/Footer";
+import TravelInquiryForm from "../../components/TravelInquiryForm";
 
 // Comprehensive responsive styles for package details page
 const packageDetailsStyles = `
@@ -830,7 +830,7 @@ export default function PackageDetails() {
     phone: "",
   });
 
-  const [showBookingForm, setShowBookingForm] = useState(false);
+  const [showInquiryForm, setShowInquiryForm] = useState(false);
 
   useEffect(() => {
     const fetchPackageDetails = async () => {
@@ -878,17 +878,9 @@ export default function PackageDetails() {
   const totalPrice =
     pkg && pkg.price ? pkg.price * bookingDetails.travelers : 0;
 
-  const handleBooking = async () => {
-    // Handle booking submission
-    console.log("Booking details:", {
-      packageId,
-      ...bookingDetails,
-      totalPrice,
-    });
-    // Redirect to booking page or show confirmation
-    router.push(
-      `/booking?type=package&id=${packageId}&travelers=${bookingDetails.travelers}&date=${bookingDetails.travelDate}`,
-    );
+  const handleInquiry = () => {
+    // Open inquiry form modal
+    setShowInquiryForm(true);
   };
 
   if (loading) {
@@ -2262,123 +2254,48 @@ export default function PackageDetails() {
           {/* Right Column - Booking Card (Desktop Sidebar) */}
           <div className="pkg-detail-sidebar">
             <div className="pkg-detail-booking-card">
-              {/* Price */}
+              {/* Header */}
               <div
-                className="pkg-detail-price-section"
                 style={{
                   borderBottom: "1px solid #e5e7eb",
                   paddingBottom: "1rem",
+                  marginBottom: "1rem",
                 }}
               >
-                {pkg.price && pkg.price > 0 ? (
-                  <div>
-                    <span className="pkg-detail-price">
-                      {formatInr(pkg.price)}
-                    </span>
-                    <span className="pkg-detail-price-suffix"> /person</span>
-                  </div>
-                ) : (
-                  <span
-                    style={{
-                      fontSize: "1.25rem",
-                      fontWeight: 700,
-                      color: "#0066cc",
-                    }}
-                  >
-                    Contact for Price
-                  </span>
-                )}
-              </div>
-
-              {/* Booking Form */}
-              <div
-                style={{
-                  marginTop: "1rem",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "1rem",
-                }}
-              >
-                <div className="pkg-detail-form-group">
-                  <label className="pkg-detail-form-label">Travel Date</label>
-                  <div className="pkg-detail-form-input-wrapper">
-                    <span className="material-symbols-outlined">
-                      calendar_month
-                    </span>
-                    <input
-                      type="date"
-                      value={bookingDetails.travelDate}
-                      onChange={(e) =>
-                        setBookingDetails({
-                          ...bookingDetails,
-                          travelDate: e.target.value,
-                        })
-                      }
-                      min={new Date().toISOString().split("T")[0]}
-                      className="pkg-detail-form-input"
-                    />
-                  </div>
-                </div>
-
-                <div className="pkg-detail-form-group">
-                  <label className="pkg-detail-form-label">
-                    Number of Travelers
-                  </label>
-                  <div className="pkg-detail-form-input-wrapper">
-                    <span className="material-symbols-outlined">group</span>
-                    <select
-                      value={bookingDetails.travelers}
-                      onChange={(e) =>
-                        setBookingDetails({
-                          ...bookingDetails,
-                          travelers: parseInt(e.target.value),
-                        })
-                      }
-                      className="pkg-detail-form-select"
-                    >
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-                        <option key={num} value={num}>
-                          {num} {num === 1 ? "Traveler" : "Travelers"}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Total */}
-                <div className="pkg-detail-total-section">
-                  <div className="pkg-detail-total-row">
-                    <span>
-                      {formatInr(pkg.price || 0)} × {bookingDetails.travelers}{" "}
-                      {bookingDetails.travelers === 1 ? "person" : "people"}
-                    </span>
-                    <span>{formatInr(totalPrice)}</span>
-                  </div>
-                  <div className="pkg-detail-total-final">
-                    <span>Total</span>
-                    <span>{formatInr(totalPrice)}</span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleBooking}
-                  disabled={!bookingDetails.travelDate}
-                  className="pkg-detail-book-btn"
+                <h3
                   style={{
-                    backgroundColor: bookingDetails.travelDate
-                      ? "#0066cc"
-                      : "#94a3b8",
-                    cursor: bookingDetails.travelDate
-                      ? "pointer"
-                      : "not-allowed",
+                    fontSize: "1.1rem",
+                    fontWeight: 700,
+                    color: "#1f2937",
+                    margin: 0,
                   }}
                 >
-                  <span className="material-symbols-outlined">
-                    flight_takeoff
-                  </span>
-                  Book Now
-                </button>
+                  Interested in this package?
+                </h3>
+                <p
+                  style={{
+                    fontSize: "0.875rem",
+                    color: "#6b7280",
+                    margin: "0.5rem 0 0 0",
+                  }}
+                >
+                  Submit an inquiry and we'll get back to you with pricing
+                </p>
               </div>
+
+              {/* Button */}
+              <button
+                onClick={handleInquiry}
+                className="pkg-detail-book-btn"
+                style={{
+                  backgroundColor: "#0066cc",
+                  cursor: "pointer",
+                  width: "100%",
+                }}
+              >
+                <span className="material-symbols-outlined">mail</span>
+                Get a Quote
+              </button>
             </div>
           </div>
         </div>
@@ -2386,192 +2303,33 @@ export default function PackageDetails() {
         {/* Mobile Fixed Booking Bar */}
         <div className="pkg-detail-mobile-booking-bar">
           <div className="pkg-detail-mobile-price">
-            {pkg.price && pkg.price > 0 ? (
-              <>
-                <span className="pkg-detail-mobile-price-value">
-                  {formatInr(pkg.price)}
-                </span>
-                <span className="pkg-detail-mobile-price-suffix">/person</span>
-              </>
-            ) : (
-              <span style={{ fontWeight: 600, color: "#0066cc" }}>
-                Contact for Price
-              </span>
-            )}
+            <span style={{ fontWeight: 600, color: "#0066cc" }}>
+              Get a Quote
+            </span>
           </div>
           <button
-            onClick={() => setShowBookingForm(true)}
+            onClick={handleInquiry}
             className="pkg-detail-mobile-book-btn"
           >
-            <span className="material-symbols-outlined">flight_takeoff</span>
-            Book Now
+            <span className="material-symbols-outlined">mail</span>
+            Get Quote
           </button>
         </div>
 
-        {/* Mobile Booking Modal */}
-        {showBookingForm && (
-          <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              backgroundColor: "rgba(0, 0, 0, 0.5)",
-              zIndex: 200,
-              display: "flex",
-              alignItems: "flex-end",
-              justifyContent: "center",
+        {/* Travel Inquiry Form Modal */}
+        {showInquiryForm && pkg && (
+          <TravelInquiryForm
+            packageId={packageId}
+            packageTitle={pkg.title}
+            onClose={() => setShowInquiryForm(false)}
+            onSuccess={() => {
+              setShowInquiryForm(false);
+              alert(
+                "Thank you! Your inquiry has been submitted. We'll contact you soon with pricing details.",
+              );
             }}
-            onClick={() => setShowBookingForm(false)}
-          >
-            <div
-              style={{
-                backgroundColor: "white",
-                borderRadius: "1.5rem 1.5rem 0 0",
-                padding: "1.5rem",
-                width: "100%",
-                maxWidth: "500px",
-                maxHeight: "85vh",
-                overflow: "auto",
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "1rem",
-                }}
-              >
-                <h3
-                  style={{
-                    fontSize: "1.25rem",
-                    fontWeight: 700,
-                    color: "#1f2937",
-                  }}
-                >
-                  Book This Package
-                </h3>
-                <button
-                  onClick={() => setShowBookingForm(false)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: "0.5rem",
-                  }}
-                >
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: "1.5rem", color: "#6b7280" }}
-                  >
-                    close
-                  </span>
-                </button>
-              </div>
-
-              <div
-                className="pkg-detail-price-section"
-                style={{
-                  borderBottom: "1px solid #e5e7eb",
-                  paddingBottom: "1rem",
-                  marginBottom: "1rem",
-                }}
-              >
-                {pkg.price && pkg.price > 0 ? (
-                  <>
-                    <span className="pkg-detail-price">
-                      {formatInr(pkg.price)}
-                    </span>
-                    <span className="pkg-detail-price-suffix"> /person</span>
-                  </>
-                ) : (
-                  <span style={{ fontWeight: 600, color: "#0066cc" }}>
-                    Contact for Price
-                  </span>
-                )}
-              </div>
-
-              <div className="pkg-detail-form-group">
-                <label className="pkg-detail-form-label">Travel Date</label>
-                <div className="pkg-detail-form-input-wrapper">
-                  <span className="material-symbols-outlined">
-                    calendar_month
-                  </span>
-                  <input
-                    type="date"
-                    value={bookingDetails.travelDate}
-                    onChange={(e) =>
-                      setBookingDetails({
-                        ...bookingDetails,
-                        travelDate: e.target.value,
-                      })
-                    }
-                    min={new Date().toISOString().split("T")[0]}
-                    className="pkg-detail-form-input"
-                  />
-                </div>
-              </div>
-
-              <div className="pkg-detail-form-group">
-                <label className="pkg-detail-form-label">
-                  Number of Travelers
-                </label>
-                <div className="pkg-detail-form-input-wrapper">
-                  <span className="material-symbols-outlined">group</span>
-                  <select
-                    value={bookingDetails.travelers}
-                    onChange={(e) =>
-                      setBookingDetails({
-                        ...bookingDetails,
-                        travelers: parseInt(e.target.value),
-                      })
-                    }
-                    className="pkg-detail-form-select"
-                  >
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-                      <option key={num} value={num}>
-                        {num} {num === 1 ? "Traveler" : "Travelers"}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="pkg-detail-total-section">
-                <div className="pkg-detail-total-row">
-                  <span>
-                    {formatInr(pkg.price || 0)} × {bookingDetails.travelers}{" "}
-                    {bookingDetails.travelers === 1 ? "person" : "people"}
-                  </span>
-                  <span>{formatInr(totalPrice)}</span>
-                </div>
-                <div className="pkg-detail-total-final">
-                  <span>Total</span>
-                  <span>{formatInr(totalPrice)}</span>
-                </div>
-              </div>
-
-              <button
-                onClick={handleBooking}
-                disabled={!bookingDetails.travelDate}
-                className="pkg-detail-book-btn"
-                style={{
-                  backgroundColor: bookingDetails.travelDate
-                    ? "#0066cc"
-                    : "#94a3b8",
-                  cursor: bookingDetails.travelDate ? "pointer" : "not-allowed",
-                }}
-              >
-                <span className="material-symbols-outlined">
-                  flight_takeoff
-                </span>
-                Confirm Booking
-              </button>
-            </div>
-          </div>
+          />
         )}
-
-        <Footer />
       </main>
     </div>
   );

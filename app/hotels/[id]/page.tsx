@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Header from "../../components/Header";
-import Footer from "../../components/Footer";
 
 interface Room {
   id: string;
@@ -50,6 +49,9 @@ interface Hotel {
     checkOut: string;
     pets: string;
   };
+  hostName?: string;
+  hostEmail?: string;
+  hostPhone?: string;
 }
 
 const inrFormatter = new Intl.NumberFormat("en-IN", {
@@ -92,6 +94,120 @@ export default function HotelDetails() {
   });
 
   const [showBookingForm, setShowBookingForm] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [guestDetails, setGuestDetails] = useState({
+    name: "",
+    email: "",
+    phone: "",
+  });
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const response = await fetch("/api/auth/user-profile", {
+        credentials: "include",
+      });
+      if (response.ok) {
+        const user = await response.json();
+        setUserProfile(user);
+        setIsAuthenticated(true);
+        setGuestDetails((prev) => ({
+          ...prev,
+          name: user.name || prev.name,
+          email: user.email || prev.email,
+          phone: user.mobile || prev.phone,
+        }));
+      } else {
+        setIsAuthenticated(false);
+      }
+    } catch (err) {
+      console.error("Auth check failed:", err);
+      setIsAuthenticated(false);
+    }
+  };
+
+  const handleConfirmBooking = async () => {
+    if (!isAuthenticated) {
+      alert("Please log in to make a booking");
+      window.location.href = "/auth/login";
+      return;
+    }
+
+    if (!bookingDetails.checkIn || !bookingDetails.checkOut) {
+      alert("Please select check-in and check-out dates");
+      return;
+    }
+
+    if (!guestDetails.name || !guestDetails.email || !guestDetails.phone) {
+      alert("Please fill in guest details");
+      return;
+    }
+
+    if (!hotel?.rooms[0]) {
+      alert("Room information not available");
+      return;
+    }
+
+    try {
+      const checkinDate = new Date(bookingDetails.checkIn);
+      const checkoutDate = new Date(bookingDetails.checkOut);
+      const nights = Math.ceil(
+        (checkoutDate.getTime() - checkinDate.getTime()) /
+          (1000 * 60 * 60 * 24),
+      );
+
+      if (nights <= 0) {
+        alert("Check-out date must be after check-in date");
+        return;
+      }
+
+      const basePrice = hotel.rooms[0].price;
+      const taxes = basePrice * nights * 0.12;
+      const platformFee = basePrice * nights * 0.05;
+      const totalPrice = basePrice * nights + taxes + platformFee;
+
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          hotelId: hotelId,
+          propertyName: hotel.name,
+          propertyType: "hotel",
+          roomId: hotel.rooms[0].id,
+          guestName: guestDetails.name,
+          guestEmail: guestDetails.email,
+          guestPhone: guestDetails.phone,
+          checkin: bookingDetails.checkIn,
+          checkout: bookingDetails.checkOut,
+          checkIn: bookingDetails.checkIn,
+          checkOut: bookingDetails.checkOut,
+          guests: bookingDetails.guests,
+          basePrice: hotel.rooms[0].price,
+          city: hotel.location || "Unknown",
+          userId: userProfile._id,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to create booking");
+      }
+
+      const booking = await response.json();
+      alert("Booking confirmed successfully!");
+
+      // Redirect to my bookings
+      window.location.href = "/user/bookings";
+    } catch (error: any) {
+      console.error("Error creating booking:", error);
+      alert(error.message || "Failed to create booking");
+    }
+  };
 
   useEffect(() => {
     const fetchHotelDetails = async () => {
@@ -507,6 +623,108 @@ export default function HotelDetails() {
                 >
                   {hotel.description}
                 </p>
+
+                {/* Host Profile Section */}
+                {hotel.hostName && (
+                  <div
+                    style={{
+                      background: "#f0f9ff",
+                      borderRadius: "12px",
+                      padding: "1.5rem",
+                      marginBottom: "2rem",
+                      borderLeft: "4px solid #3b82f6",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "1rem",
+                        marginBottom: "1rem",
+                      }}
+                    >
+                      <span
+                        className="material-symbols-outlined"
+                        style={{
+                          fontSize: "2rem",
+                          color: "#3b82f6",
+                          backgroundColor: "#e0f2fe",
+                          borderRadius: "50%",
+                          padding: "0.5rem",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        account_circle
+                      </span>
+                      <div>
+                        <p
+                          style={{
+                            fontSize: "0.85rem",
+                            color: "#64748b",
+                            margin: "0",
+                            fontWeight: 600,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.5px",
+                          }}
+                        >
+                          Hotel Hosted By
+                        </p>
+                        <p
+                          style={{
+                            fontSize: "1.25rem",
+                            color: "#1f2937",
+                            margin: "0.25rem 0 0",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {hotel.hostName}
+                        </p>
+                      </div>
+                    </div>
+                    <div style={{ display: "grid", gap: "0.5rem" }}>
+                      {hotel.hostEmail && (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.75rem",
+                            color: "#475569",
+                            fontSize: "0.95rem",
+                          }}
+                        >
+                          <span
+                            className="material-symbols-outlined"
+                            style={{ fontSize: "1.25rem" }}
+                          >
+                            mail
+                          </span>
+                          <span>{hotel.hostEmail}</span>
+                        </div>
+                      )}
+                      {hotel.hostPhone && (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.75rem",
+                            color: "#475569",
+                            fontSize: "0.95rem",
+                          }}
+                        >
+                          <span
+                            className="material-symbols-outlined"
+                            style={{ fontSize: "1.25rem" }}
+                          >
+                            phone
+                          </span>
+                          <span>{hotel.hostPhone}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <h3
                   style={{
@@ -1438,6 +1656,127 @@ export default function HotelDetails() {
                 Book Your Stay
               </h3>
 
+              {showBookingForm && (
+                <div
+                  style={{
+                    background: "#f8fafc",
+                    borderRadius: "12px",
+                    padding: "1.5rem",
+                    marginBottom: "1.5rem",
+                    border: "2px solid #e2e8f0",
+                  }}
+                >
+                  <h4
+                    style={{
+                      fontSize: "1rem",
+                      fontWeight: 700,
+                      marginBottom: "1rem",
+                      color: "#1f2937",
+                    }}
+                  >
+                    Guest Details
+                  </h4>
+                  <div style={{ display: "grid", gap: "1rem" }}>
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "0.875rem",
+                          fontWeight: 600,
+                          marginBottom: "0.5rem",
+                          color: "#64748b",
+                        }}
+                      >
+                        Full Name *
+                      </label>
+                      <input
+                        type="text"
+                        value={guestDetails.name}
+                        onChange={(e) =>
+                          setGuestDetails({
+                            ...guestDetails,
+                            name: e.target.value,
+                          })
+                        }
+                        style={{
+                          width: "100%",
+                          padding: "0.75rem",
+                          borderRadius: "8px",
+                          border: "2px solid #e2e8f0",
+                          fontSize: "1rem",
+                          boxSizing: "border-box",
+                        }}
+                        placeholder="Your full name"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "0.875rem",
+                          fontWeight: 600,
+                          marginBottom: "0.5rem",
+                          color: "#64748b",
+                        }}
+                      >
+                        Email *
+                      </label>
+                      <input
+                        type="email"
+                        value={guestDetails.email}
+                        onChange={(e) =>
+                          setGuestDetails({
+                            ...guestDetails,
+                            email: e.target.value,
+                          })
+                        }
+                        style={{
+                          width: "100%",
+                          padding: "0.75rem",
+                          borderRadius: "8px",
+                          border: "2px solid #e2e8f0",
+                          fontSize: "1rem",
+                          boxSizing: "border-box",
+                        }}
+                        placeholder="your.email@example.com"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "0.875rem",
+                          fontWeight: 600,
+                          marginBottom: "0.5rem",
+                          color: "#64748b",
+                        }}
+                      >
+                        Phone *
+                      </label>
+                      <input
+                        type="tel"
+                        value={guestDetails.phone}
+                        onChange={(e) =>
+                          setGuestDetails({
+                            ...guestDetails,
+                            phone: e.target.value,
+                          })
+                        }
+                        style={{
+                          width: "100%",
+                          padding: "0.75rem",
+                          borderRadius: "8px",
+                          border: "2px solid #e2e8f0",
+                          fontSize: "1rem",
+                          boxSizing: "border-box",
+                        }}
+                        placeholder="+91 9876543210"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div style={{ marginBottom: "1rem" }}>
                 <label
                   style={{
@@ -1640,45 +1979,102 @@ export default function HotelDetails() {
                 </div>
               )}
 
-              <button
-                className="book-now-btn"
-                onClick={() => {
-                  if (!bookingDetails.checkIn || !bookingDetails.checkOut) {
-                    alert("Please select check-in and check-out dates");
-                    return;
-                  }
-                  if (!hotel?.rooms[0]) {
-                    alert("Room information not available");
-                    return;
-                  }
-                  window.location.href = `/booking?homestayId=${hotelId}&roomId=${hotel.rooms[0].id}&checkin=${bookingDetails.checkIn}&checkout=${bookingDetails.checkOut}&guests=${bookingDetails.guests}`;
-                }}
-                style={{
-                  width: "100%",
-                  padding: "1rem",
-                  background:
-                    "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "12px",
-                  fontSize: "1.1rem",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  transition: "all 0.3s ease",
-                  marginBottom: "1rem",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                  e.currentTarget.style.boxShadow =
-                    "0 8px 24px rgba(0, 102, 204, 0.3)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "none";
-                }}
-              >
-                Book Now
-              </button>
+              {showBookingForm ? (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "1rem",
+                    marginBottom: "1rem",
+                  }}
+                >
+                  <button
+                    onClick={() => setShowBookingForm(false)}
+                    style={{
+                      padding: "1rem",
+                      background: "#e5e7eb",
+                      color: "#1f2937",
+                      border: "none",
+                      borderRadius: "12px",
+                      fontSize: "1rem",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      transition: "all 0.3s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#d1d5db";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "#e5e7eb";
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleConfirmBooking}
+                    style={{
+                      padding: "1rem",
+                      background:
+                        "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "12px",
+                      fontSize: "1rem",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      transition: "all 0.3s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                      e.currentTarget.style.boxShadow =
+                        "0 8px 24px rgba(22, 163, 74, 0.3)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "none";
+                    }}
+                  >
+                    Confirm Booking
+                  </button>
+                </div>
+              ) : (
+                <button
+                  className="book-now-btn"
+                  onClick={() => {
+                    if (!bookingDetails.checkIn || !bookingDetails.checkOut) {
+                      alert("Please select check-in and check-out dates");
+                      return;
+                    }
+                    setShowBookingForm(true);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "1rem",
+                    background:
+                      "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "12px",
+                    fontSize: "1.1rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    transition: "all 0.3s ease",
+                    marginBottom: "1rem",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.boxShadow =
+                      "0 8px 24px rgba(0, 102, 204, 0.3)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                >
+                  Book Now
+                </button>
+              )}
 
               <div
                 style={{
@@ -2493,8 +2889,6 @@ export default function HotelDetails() {
           }
         }
       `}</style>
-
-      <Footer />
     </div>
   );
 }

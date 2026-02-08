@@ -26,23 +26,19 @@ export async function GET(request: NextRequest) {
 
     const query: any = { userId: new ObjectId(user.userId) };
 
-    if (status) {
-      if (status === "upcoming") {
-        query.bookingStatus = "confirmed";
-        // Use either checkIn or checkin field
-        query.$or = [
-          { checkIn: { $gte: new Date() } },
-          { checkin: { $gte: new Date() } }
-        ];
-      } else if (status === "completed") {
-        query.bookingStatus = "completed";
-      } else if (status === "cancelled") {
-        query.bookingStatus = "cancelled";
-      }
-    } else {
-      // Default filter to show confirmed bookings only
+    // Handle status filter
+    if (status === "upcoming") {
       query.bookingStatus = "confirmed";
+      query.$or = [
+        { checkIn: { $gte: new Date() } },
+        { checkin: { $gte: new Date() } }
+      ];
+    } else if (status === "completed") {
+      query.bookingStatus = "completed";
+    } else if (status === "cancelled") {
+      query.bookingStatus = "cancelled";
     }
+    // If no status, return all bookings for the user
 
     const bookings = await bookingsCollection
       .find(query)
@@ -55,8 +51,8 @@ export async function GET(request: NextRequest) {
       bookingId: booking.bookingReference || booking._id,
       propertyId:
         booking.propertyId?.toString() ||
-        booking.homestayId?.toString() ||
         booking.hotelId?.toString() ||
+        booking.homestayId?.toString() ||
         "",
       propertyName: booking.propertyName || "Property",
       propertyType: booking.propertyType || "Homestay",

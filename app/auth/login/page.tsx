@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/app/components/Header";
-import Footer from "@/app/components/Footer";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -38,7 +37,12 @@ export default function LoginPage() {
         setError(data.error || "Login failed");
       }
     } catch (error) {
-      setError("An error occurred. Please try again.");
+      console.error("Login error:", error);
+      const errorMsg =
+        error instanceof Error
+          ? error.message
+          : "An error occurred. Please try again.";
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -226,8 +230,6 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
-
-      <Footer />
     </>
   );
 }

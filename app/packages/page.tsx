@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Header from "../components/Header";
-import Footer from "../components/Footer";
 
 interface Package {
   _id?: string;
@@ -268,18 +267,17 @@ const packagesPageStyles = `
   /* Hero Section */
   .packages-hero {
     position: relative;
-    height: 85vh;
-    min-height: 400px;
+    height: 86vh;
+    min-height: 600px;
     background-size: cover;
     background-position: center;
-    border-radius: 1rem;
-    margin: 0.5rem;
     overflow: hidden;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     padding: 2rem 1rem;
+    margin: 0;
   }
   
   .packages-hero::before {
@@ -988,6 +986,13 @@ export default function Packages() {
         if (packagesRes.ok) {
           const data = await packagesRes.json();
           setPackages(Array.isArray(data) ? data : []);
+        } else {
+          const errorData = await packagesRes.json();
+          console.error(
+            "Failed to fetch packages:",
+            packagesRes.status,
+            errorData,
+          );
         }
 
         if (categoriesRes.ok) {
@@ -997,11 +1002,25 @@ export default function Packages() {
               ? data.filter((c: Category) => c.active !== false)
               : [],
           );
+        } else {
+          const errorData = await categoriesRes.json();
+          console.error(
+            "Failed to fetch categories:",
+            categoriesRes.status,
+            errorData,
+          );
         }
 
         if (destinationsRes.ok) {
           const data = await destinationsRes.json();
           setDestinations(Array.isArray(data) ? data : []);
+        } else {
+          const errorData = await destinationsRes.json();
+          console.error(
+            "Failed to fetch destinations:",
+            destinationsRes.status,
+            errorData,
+          );
         }
       } catch (error) {
         console.error("Failed to fetch data:", error);
@@ -1285,8 +1304,6 @@ export default function Packages() {
             ))}
         </section>
       </main>
-
-      <Footer />
     </div>
   );
 }

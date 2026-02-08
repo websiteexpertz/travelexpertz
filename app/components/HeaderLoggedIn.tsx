@@ -27,8 +27,8 @@ const navItems: Array<{
 }> = [
   { key: "home", label: "Home", href: "/" },
   { key: "hotels", label: "Hotels", href: "/hotels" },
-  { key: "packages", label: "Packages", href: "/packages" },
   { key: "homestays", label: "Homestays", href: "/homestays" },
+  { key: "packages", label: "Packages", href: "/packages" },
   { key: "deals", label: "Deals", href: "/deals" },
   { key: "luxury", label: "Luxury", href: "/luxury" },
   { key: "verified", label: "TE Verified Properties", href: "/verified" },

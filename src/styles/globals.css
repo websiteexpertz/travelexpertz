@@ -88,7 +88,7 @@ html, body, #__next, #root {
 html {
   scroll-behavior: smooth;
   color-scheme: light;
-  font-size: 12px;
+  font-size: 15px; /* Consistent base font size */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   margin: 0;
@@ -100,10 +100,29 @@ body {
   background-color: #ffffff;
   color: var(--text-800);
   line-height: 1.6;
-  font-size: 12px;
+  font-size: 1rem;
   font-weight: 400;
   padding-top: 64px;
   margin: 0;
+}
+
+/* Consistent font size across all screen sizes */
+@media (max-width: 1400px) {
+  html {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 1200px) {
+  html {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 768px) {
+  html {
+    font-size: 14px;
+  }
 }
 
 /* ====== HEADINGS ====== */

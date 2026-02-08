@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/app/components/Header";
-import Footer from "@/app/components/Footer";
 
 interface Transaction {
   _id: string;
@@ -531,8 +530,6 @@ export default function TransactionsPage() {
           )}
         </div>
       </div>
-
-      <Footer />
     </>
   );
 }

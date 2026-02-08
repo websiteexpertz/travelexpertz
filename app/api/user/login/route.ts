@@ -48,7 +48,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify password
-    const isPasswordValid = await verifyPassword(password, user.password);
+    let isPasswordValid = false;
+    try {
+      isPasswordValid = await verifyPassword(password, user.password);
+    } catch (pwError) {
+      console.error("Password verification error:", pwError);
+      return NextResponse.json(
+        { error: "Password verification failed" },
+        { status: 500 }
+      );
+    }
     if (!isPasswordValid) {
       return NextResponse.json(
         { error: "Invalid email or password" },
@@ -115,8 +124,9 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error) {
     console.error("Login error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Internal server error";
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: errorMessage },
       { status: 500 }
     );
   }

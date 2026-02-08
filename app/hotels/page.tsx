@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Header from "../components/Header";
-import Footer from "../components/Footer";
 
 interface Hotel {
   _id?: string;
@@ -16,6 +15,9 @@ interface Hotel {
   amenities: string[];
   popular?: boolean;
   active?: boolean;
+  hostName?: string;
+  hostEmail?: string;
+  hostPhone?: string;
 }
 
 const inrFormatter = new Intl.NumberFormat("en-IN", {
@@ -41,6 +43,9 @@ const normalizeHotel = (hotel: Partial<Hotel>): Hotel => {
     amenities: Array.isArray(hotel.amenities) ? hotel.amenities : [],
     popular: typeof hotel.popular === "boolean" ? hotel.popular : false,
     active: typeof hotel.active === "boolean" ? hotel.active : true,
+    hostName: hotel.hostName ?? "",
+    hostEmail: hotel.hostEmail ?? "",
+    hostPhone: hotel.hostPhone ?? "",
   };
 };
 
@@ -974,6 +979,61 @@ export default function Hotels() {
                       ))}
                     </div>
 
+                    {/* Host Profile */}
+                    {hotel.hostName && (
+                      <div
+                        style={{
+                          background: "#f8fafc",
+                          padding: "0.75rem",
+                          borderRadius: "0.5rem",
+                          marginBottom: "0.75rem",
+                        }}
+                      >
+                        <p
+                          style={{
+                            fontSize: "0.75rem",
+                            color: "#6b7280",
+                            margin: "0 0 0.25rem",
+                            fontWeight: 600,
+                          }}
+                        >
+                          Hosted by
+                        </p>
+                        <p
+                          style={{
+                            fontSize: "0.9rem",
+                            color: "#1f2937",
+                            margin: "0",
+                            fontWeight: 600,
+                          }}
+                        >
+                          {hotel.hostName}
+                        </p>
+                        {hotel.hostEmail && (
+                          <p
+                            style={{
+                              fontSize: "0.75rem",
+                              color: "#6b7280",
+                              margin: "0.25rem 0 0",
+                            }}
+                          >
+                            📧 {hotel.hostEmail}
+                          </p>
+                        )}
+                        {hotel.hostPhone && (
+                          <p
+                            style={{
+                              fontSize: "0.75rem",
+                              color: "#6b7280",
+                              margin: "0.25rem 0 0",
+                            }}
+                          >
+                            📞 {hotel.hostPhone}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     <div
                       style={{
                         display: "flex",
@@ -1035,8 +1095,6 @@ export default function Hotels() {
           </div>
         </div>
       </main>
-
-      <Footer />
 
       {/* Mobile Responsive Styles */}
       <style>{`

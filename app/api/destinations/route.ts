@@ -8,7 +8,11 @@ export async function GET(request: NextRequest) {
   let client: MongoClient | null = null;
   try {
     if (!MONGODB_URI) {
-      return NextResponse.json([], { status: 200 });
+      console.error("MONGODB_URI is not configured");
+      return NextResponse.json(
+        { error: "Database not configured", destinations: [] },
+        { status: 503 }
+      );
     }
 
     const { searchParams } = new URL(request.url);
@@ -43,8 +47,12 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(destinations);
   } catch (error) {
-    console.error("Error fetching destinations:", error);
-    return NextResponse.json([], { status: 200 });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Error fetching destinations:", errorMessage);
+    return NextResponse.json(
+      { error: "Failed to fetch destinations", details: errorMessage, destinations: [] },
+      { status: 500 }
+    );
   } finally {
     if (client) {
       await client.close();

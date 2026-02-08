@@ -75,7 +75,6 @@ export async function POST(request: Request) {
 
     // Validate required fields
     const required = [
-      "homestayId",
       "roomId",
       "guestName",
       "guestEmail",
@@ -93,6 +92,10 @@ export async function POST(request: Request) {
       }
     }
 
+    // Check if this is a hotel or homestay booking
+    const isHotelBooking = !!body.hotelId;
+    const propertyId = body.hotelId || body.homestayId;
+
     const db = await connectDB();
     const bookingsCollection = db.collection("bookings");
 
@@ -102,6 +105,13 @@ export async function POST(request: Request) {
     const nights = Math.ceil(
       (checkout.getTime() - checkin.getTime()) / (1000 * 60 * 60 * 24)
     );
+
+    if (nights <= 0) {
+      return NextResponse.json(
+        { error: "Check-out date must be after check-in date" },
+        { status: 400 }
+      );
+    }
 
     // Calculate pricing
     const basePrice = (body.basePrice || 0) * nights;
@@ -118,7 +128,7 @@ export async function POST(request: Request) {
     // Check availability
     const conflicts = await bookingsCollection
       .find({
-        homestayId: new ObjectId(body.homestayId),
+        [isHotelBooking ? "hotelId" : "homestayId"]: new ObjectId(propertyId),
         roomId: body.roomId,
         bookingStatus: { $in: ["confirmed", "pending"] },
         $or: [
@@ -139,7 +149,7 @@ export async function POST(request: Request) {
 
     const booking = {
       ...body,
-      homestayId: new ObjectId(body.homestayId),
+      [isHotelBooking ? "hotelId" : "homestayId"]: new ObjectId(propertyId),
       userId: body.userId ? new ObjectId(body.userId) : null,
       nights,
       basePrice,

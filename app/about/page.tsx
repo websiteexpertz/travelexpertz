@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Header from "../components/Header";
-import Footer from "../components/Footer";
 
 interface AboutItem {
   _id?: string;
@@ -511,8 +510,6 @@ export default function AboutPage() {
           </Link>
         </section>
       </main>
-
-      <Footer />
     </div>
   );
 }

@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Header from "../components/Header";
-import Footer from "../components/Footer";
 
 interface Homestay {
   _id?: string;
@@ -19,6 +18,8 @@ interface Homestay {
   active?: boolean;
   propertyType?: string;
   hostName?: string;
+  hostEmail?: string;
+  hostPhone?: string;
 }
 
 const inrFormatter = new Intl.NumberFormat("en-IN", {
@@ -49,6 +50,8 @@ const normalizeHomestay = (homestay: Partial<Homestay>): Homestay => {
     active: typeof homestay.active === "boolean" ? homestay.active : true,
     propertyType: homestay.propertyType ?? "Entire Place",
     hostName: homestay.hostName ?? "",
+    hostEmail: homestay.hostEmail ?? "",
+    hostPhone: homestay.hostPhone ?? "",
   };
 };
 
@@ -724,6 +727,61 @@ export default function Homestays() {
                       ))}
                     </div>
 
+                    {/* Host Profile */}
+                    {homestay.hostName && (
+                      <div
+                        style={{
+                          background: "#f8fafc",
+                          padding: "0.75rem",
+                          borderRadius: "0.5rem",
+                          marginBottom: "0.75rem",
+                        }}
+                      >
+                        <p
+                          style={{
+                            fontSize: "0.75rem",
+                            color: "#6b7280",
+                            margin: "0 0 0.25rem",
+                            fontWeight: 600,
+                          }}
+                        >
+                          Hosted by
+                        </p>
+                        <p
+                          style={{
+                            fontSize: "0.9rem",
+                            color: "#1f2937",
+                            margin: "0",
+                            fontWeight: 600,
+                          }}
+                        >
+                          {homestay.hostName}
+                        </p>
+                        {homestay.hostEmail && (
+                          <p
+                            style={{
+                              fontSize: "0.75rem",
+                              color: "#6b7280",
+                              margin: "0.25rem 0 0",
+                            }}
+                          >
+                            📧 {homestay.hostEmail}
+                          </p>
+                        )}
+                        {homestay.hostPhone && (
+                          <p
+                            style={{
+                              fontSize: "0.75rem",
+                              color: "#6b7280",
+                              margin: "0.25rem 0 0",
+                            }}
+                          >
+                            📞 {homestay.hostPhone}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     <div
                       style={{
                         display: "flex",
@@ -785,8 +843,6 @@ export default function Homestays() {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }
