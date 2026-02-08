@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "../src/styles/globals.css";
 import "../src/styles/modern.css";
-import Footer from "./components/Footer";
+import RootLayoutClient from "./layout-client";
 
 export const metadata: Metadata = {
   title: "TravelExpertz - Travel & Hotel Booking",
@@ -42,8 +42,7 @@ export default function RootLayout({
         className="bg-background-light font-display text-slate-800"
         style={{ margin: 0, padding: 0, paddingTop: "64px" }}
       >
-        {children}
-        <Footer />
+        <RootLayoutClient>{children}</RootLayoutClient>
       </body>
     </html>
   );

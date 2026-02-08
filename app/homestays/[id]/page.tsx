@@ -96,6 +96,9 @@ export default function HomestayDetails() {
 
   const [showBookingForm, setShowBookingForm] = useState(false);
 
+  const [showHostProperties, setShowHostProperties] = useState(false);
+  const [hostProperties, setHostProperties] = useState<any[]>([]);
+
   useEffect(() => {
     const fetchHomestayDetails = async () => {
       if (!homestayId) return;
@@ -132,6 +135,30 @@ export default function HomestayDetails() {
     fetchHomestayDetails();
     fetchReviews();
   }, [homestayId]);
+
+  useEffect(() => {
+    if (showHostProperties && homestay?.hostName) {
+      const fetchHostProperties = async () => {
+        try {
+          const response = await fetch(
+            `/api/homestays?hostName=${encodeURIComponent(homestay.hostName)}&limit=10`,
+            { cache: "no-store" }
+          );
+          if (response.ok) {
+            const data = await response.json();
+            // Filter out the current homestay
+            const filtered = Array.isArray(data)
+              ? data.filter((h: any) => h._id !== homestayId)
+              : [data].filter((h: any) => h._id !== homestayId);
+            setHostProperties(filtered);
+          }
+        } catch (error) {
+          console.error("Failed to fetch host properties:", error);
+        }
+      };
+      fetchHostProperties();
+    }
+  }, [showHostProperties, homestay?.hostName, homestayId]);
 
   const filteredRooms = homestay?.rooms
     ? homestay.rooms
@@ -724,6 +751,88 @@ export default function HomestayDetails() {
                     </div>
                   </div>
                 </div>
+
+                {/* Hosted By Section */}
+                {homestay.hostName && (
+                  <div
+                    style={{
+                      background: "#f8fafc",
+                      borderRadius: "12px",
+                      padding: "1.5rem",
+                      marginTop: "2rem",
+                      cursor: "pointer",
+                      border: "2px solid #e2e8f0",
+                      transition: "all 0.3s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = "#3b82f6";
+                      e.currentTarget.style.boxShadow = "0 4px 12px rgba(59, 130, 246, 0.1)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = "#e2e8f0";
+                      e.currentTarget.style.boxShadow = "none";
+                    }}
+                    onClick={() => setShowHostProperties(true)}
+                  >
+                    <p
+                      style={{
+                        fontSize: "0.85rem",
+                        color: "#64748b",
+                        margin: "0 0 1rem",
+                        fontWeight: 600,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.5px",
+                      }}
+                    >
+                      Hosted By
+                    </p>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "1rem",
+                      }}
+                    >
+                      <span
+                        className="material-symbols-outlined"
+                        style={{
+                          fontSize: "3rem",
+                          color: "#3b82f6",
+                          backgroundColor: "#e0f2fe",
+                          borderRadius: "50%",
+                          padding: "0.75rem",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        account_circle
+                      </span>
+                      <div>
+                        <p
+                          style={{
+                            fontSize: "1rem",
+                            color: "#1f2937",
+                            margin: "0",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {homestay.hostName}
+                        </p>
+                        <p
+                          style={{
+                            fontSize: "0.85rem",
+                            color: "#3b82f6",
+                            margin: "0.5rem 0 0",
+                            fontWeight: 500,
+                          }}
+                        >
+                          View all properties by this host →
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1935,6 +2044,195 @@ export default function HomestayDetails() {
               ›
             </button>
           )}
+        </div>
+      )}
+
+      {/* Host Properties Modal */}
+      {showHostProperties && homestay?.hostName && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: "1rem",
+          }}
+          onClick={() => setShowHostProperties(false)}
+        >
+          <div
+            style={{
+              background: "white",
+              borderRadius: "16px",
+              padding: "2rem",
+              maxWidth: "800px",
+              width: "100%",
+              maxHeight: "80vh",
+              overflowY: "auto",
+              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "2rem",
+              }}
+            >
+              <h2
+                style={{
+                  fontSize: "1.5rem",
+                  fontWeight: 700,
+                  color: "#1f2937",
+                  margin: 0,
+                }}
+              >
+                More Homestays by {homestay.hostName}
+              </h2>
+              <button
+                onClick={() => setShowHostProperties(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "1.5rem",
+                  cursor: "pointer",
+                  color: "#64748b",
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {hostProperties.length > 0 ? (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+                  gap: "1.5rem",
+                }}
+              >
+                {hostProperties.map((prop: any) => (
+                  <div
+                    key={prop._id}
+                    onClick={() => {
+                      window.location.href = `/homestays/${prop._id}`;
+                    }}
+                    style={{
+                      background: "#f8fafc",
+                      borderRadius: "12px",
+                      overflow: "hidden",
+                      cursor: "pointer",
+                      transition: "all 0.3s ease",
+                      border: "1px solid #e2e8f0",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.boxShadow = "0 10px 25px rgba(0, 0, 0, 0.1)";
+                      e.currentTarget.style.transform = "translateY(-4px)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.boxShadow = "none";
+                      e.currentTarget.style.transform = "translateY(0)";
+                    }}
+                  >
+                    {prop.images && prop.images[0] && (
+                      <img
+                        src={prop.images[0]}
+                        alt={prop.name}
+                        style={{
+                          width: "100%",
+                          height: "150px",
+                          objectFit: "cover",
+                        }}
+                      />
+                    )}
+                    <div style={{ padding: "1rem" }}>
+                      <h3
+                        style={{
+                          fontSize: "1rem",
+                          fontWeight: 700,
+                          color: "#1f2937",
+                          margin: "0 0 0.5rem",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {prop.name}
+                      </h3>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                          fontSize: "0.85rem",
+                          color: "#64748b",
+                          marginBottom: "0.75rem",
+                        }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: "1rem" }}>
+                          location_on
+                        </span>
+                        {prop.location}
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.25rem",
+                          }}
+                        >
+                          <span
+                            className="material-symbols-outlined"
+                            style={{ fontSize: "1rem", color: "#fbbf24" }}
+                          >
+                            star
+                          </span>
+                          <span style={{ fontWeight: 600, color: "#1f2937" }}>
+                            {prop.rating || "N/A"}
+                          </span>
+                        </div>
+                        <button
+                          style={{
+                            background: "#3b82f6",
+                            color: "white",
+                            border: "none",
+                            padding: "0.5rem 1rem",
+                            borderRadius: "6px",
+                            cursor: "pointer",
+                            fontSize: "0.85rem",
+                            fontWeight: 600,
+                          }}
+                        >
+                          View
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "2rem",
+                  color: "#64748b",
+                }}
+              >
+                <p>Loading properties...</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
