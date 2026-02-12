@@ -14,6 +14,13 @@ export default function CookieConsentBanner() {
     // Initialize Google Consent Mode v2
     window.dataLayer = window.dataLayer || [];
 
+    // Initialize gtag function if not already present
+    if (!window.gtag) {
+      window.gtag = function (...args: any[]) {
+        window.dataLayer.push(args);
+      };
+    }
+
     // Set default consent state to "denied" before user accepts
     const consentSettings = {
       functionality_storage: "denied",
@@ -24,19 +31,21 @@ export default function CookieConsentBanner() {
       ad_storage: "denied",
     };
 
-    gtag("consent", "default", consentSettings);
+    window.gtag("consent", "default", consentSettings);
   }, []);
 
   const handleAccept = () => {
     // Update consent to accepted
-    gtag("consent", "update", {
-      functionality_storage: "granted",
-      personalization_storage: "granted",
-      security_storage: "granted",
-      storage_access_allowed: "granted",
-      analytics_storage: "granted",
-      ad_storage: "granted",
-    });
+    if (window.gtag) {
+      window.gtag("consent", "update", {
+        functionality_storage: "granted",
+        personalization_storage: "granted",
+        security_storage: "granted",
+        storage_access_allowed: "granted",
+        analytics_storage: "granted",
+        ad_storage: "granted",
+      });
+    }
 
     // Load GA4 script
     loadGA4();
@@ -47,14 +56,16 @@ export default function CookieConsentBanner() {
 
   const handleDecline = () => {
     // Update consent to decline non-essential
-    gtag("consent", "update", {
-      functionality_storage: "granted",
-      personalization_storage: "denied",
-      security_storage: "granted",
-      storage_access_allowed: "granted",
-      analytics_storage: "denied",
-      ad_storage: "denied",
-    });
+    if (window.gtag) {
+      window.gtag("consent", "update", {
+        functionality_storage: "granted",
+        personalization_storage: "denied",
+        security_storage: "granted",
+        storage_access_allowed: "granted",
+        analytics_storage: "denied",
+        ad_storage: "denied",
+      });
+    }
 
     localStorage.setItem("cookie_consent_essential", "true");
   };
@@ -66,6 +77,14 @@ export default function CookieConsentBanner() {
       existingScript.remove();
     }
 
+    // Initialize gtag if not already present
+    window.dataLayer = window.dataLayer || [];
+    if (!window.gtag) {
+      window.gtag = function (...args: any[]) {
+        window.dataLayer.push(args);
+      };
+    }
+
     // Create and load GA4 script
     const script = document.createElement("script");
     script.id = "ga4-script";
@@ -73,16 +92,16 @@ export default function CookieConsentBanner() {
     script.src = `https://www.googletagmanager.com/gtag/js?id=${GA4_ID}`;
     document.head.appendChild(script);
 
-    // Initialize gtag
-    window.dataLayer = window.dataLayer || [];
-    window.gtag = function (...args: any[]) {
-      window.dataLayer.push(args);
+    // Configure gtag after script loads
+    script.onload = () => {
+      if (window.gtag) {
+        window.gtag("js", new Date());
+        window.gtag("config", GA4_ID, {
+          page_path: window.location.pathname,
+          anonymize_ip: true,
+        });
+      }
     };
-    window.gtag("js", new Date());
-    window.gtag("config", GA4_ID, {
-      page_path: window.location.pathname,
-      anonymize_ip: true,
-    });
   };
 
   if (!mounted) return null;
