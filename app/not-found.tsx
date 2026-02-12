@@ -101,18 +101,6 @@ export default function NotFound() {
                 boxShadow: "0 4px 15px rgba(102, 126, 234, 0.4)",
                 fontFamily: "'Plus Jakarta Sans', sans-serif",
               }}
-              onMouseEnter={(e) => {
-                (e.target as HTMLButtonElement).style.transform =
-                  "translateY(-2px)";
-                (e.target as HTMLButtonElement).style.boxShadow =
-                  "0 6px 20px rgba(102, 126, 234, 0.6)";
-              }}
-              onMouseLeave={(e) => {
-                (e.target as HTMLButtonElement).style.transform =
-                  "translateY(0)";
-                (e.target as HTMLButtonElement).style.boxShadow =
-                  "0 4px 15px rgba(102, 126, 234, 0.4)";
-              }}
             >
               🏠 Back to Home
             </button>
@@ -131,12 +119,6 @@ export default function NotFound() {
                 cursor: "pointer",
                 transition: "all 0.2s",
                 fontFamily: "'Plus Jakarta Sans', sans-serif",
-              }}
-              onMouseEnter={(e) => {
-                (e.target as HTMLButtonElement).style.background = "#f0f4ff";
-              }}
-              onMouseLeave={(e) => {
-                (e.target as HTMLButtonElement).style.background = "white";
               }}
             >
               📦 Explore Packages
@@ -180,12 +162,6 @@ export default function NotFound() {
                   transition: "color 0.2s",
                   fontFamily: "'Plus Jakarta Sans', sans-serif",
                 }}
-                onMouseEnter={(e) => {
-                  (e.target as HTMLElement).style.color = "#764ba2";
-                }}
-                onMouseLeave={(e) => {
-                  (e.target as HTMLElement).style.color = "#667eea";
-                }}
               >
                 🏨 Hotels
               </span>
@@ -200,12 +176,6 @@ export default function NotFound() {
                   transition: "color 0.2s",
                   fontFamily: "'Plus Jakarta Sans', sans-serif",
                 }}
-                onMouseEnter={(e) => {
-                  (e.target as HTMLElement).style.color = "#764ba2";
-                }}
-                onMouseLeave={(e) => {
-                  (e.target as HTMLElement).style.color = "#667eea";
-                }}
               >
                 🎫 Services
               </span>
@@ -219,12 +189,6 @@ export default function NotFound() {
                   textDecoration: "none",
                   transition: "color 0.2s",
                   fontFamily: "'Plus Jakarta Sans', sans-serif",
-                }}
-                onMouseEnter={(e) => {
-                  (e.target as HTMLElement).style.color = "#764ba2";
-                }}
-                onMouseLeave={(e) => {
-                  (e.target as HTMLElement).style.color = "#667eea";
                 }}
               >
                 ℹ️ About Us
