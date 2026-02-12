@@ -142,7 +142,6 @@ export default function TransactionsPage() {
         style={{
           minHeight: "100vh",
           background: "#f3f4f6",
-          paddingTop: "2rem",
           paddingBottom: "4rem",
         }}
       >

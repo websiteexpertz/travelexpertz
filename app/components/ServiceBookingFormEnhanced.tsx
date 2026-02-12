@@ -230,7 +230,6 @@ export default function ServiceBookingFormEnhanced({
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
-  const [step, setStep] = useState(1);
 
   const today = new Date().toISOString().split("T")[0];
   const config = serviceConfig[serviceType];
@@ -268,22 +267,31 @@ export default function ServiceBookingFormEnhanced({
     return true;
   };
 
-  const handleNext = () => {
-    if (step === 1 && validateStep1()) {
-      setStep(2);
-      setError("");
+  const validateForm = () => {
+    if (!formData.fullName?.trim()) {
+      setError("Please enter your full name");
+      return false;
     }
-  };
-
-  const handleBack = () => {
-    setStep(1);
-    setError("");
+    if (!formData.mobile?.trim() || formData.mobile.length < 10) {
+      setError("Please enter a valid mobile number");
+      return false;
+    }
+    if (!formData.email?.trim() || !formData.email.includes("@")) {
+      setError("Please enter a valid email address");
+      return false;
+    }
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+
+    if (!validateForm()) {
+      setLoading(false);
+      return;
+    }
 
     if (!formData.agreeContact) {
       setError("Please agree to be contacted");
@@ -419,7 +427,7 @@ export default function ServiceBookingFormEnhanced({
           }
           h2 {
             color: #0f172a;
-            font-size: 1.75rem;
+            font-size: 1.25rem;
             margin-bottom: 0.5rem;
           }
           p {
@@ -427,7 +435,7 @@ export default function ServiceBookingFormEnhanced({
             margin-bottom: 0.5rem;
           }
           .sub-text {
-            font-size: 0.875rem;
+            font-size: 0.65rem;
             color: #9ca3af;
             margin-bottom: 1.5rem;
           }
@@ -445,14 +453,14 @@ export default function ServiceBookingFormEnhanced({
             font-weight: 500;
           }
           .icon {
-            font-size: 1.25rem;
+            font-size: 0.9rem;
           }
           .close-button {
-            padding: 1rem 3rem;
+            padding: 0.7rem 2rem;
             color: white;
             border: none;
             border-radius: 12px;
-            font-size: 1rem;
+            font-size: 0.7rem;
             font-weight: 600;
             cursor: pointer;
             transition:
@@ -482,348 +490,217 @@ export default function ServiceBookingFormEnhanced({
         </div>
       </div>
 
-      {/* Step Indicator */}
-      <div className="step-indicator">
-        <div className={`step ${step >= 1 ? "active" : ""}`}>
-          <div
-            className="step-number"
-            style={{
-              background: step >= 1 ? config.gradient : "#e5e7eb",
-              boxShadow: step >= 1 ? `0 4px 15px ${config.color}40` : "none",
-            }}
-          >
-            {step > 1 ? "✓" : "1"}
-          </div>
-          <div className="step-info">
-            <span className="step-label">Step 1</span>
-            <span className="step-title">Personal Info</span>
-          </div>
-        </div>
-        <div
-          className="step-connector"
-          style={{ background: step >= 2 ? config.gradient : "#e5e7eb" }}
-        ></div>
-        <div className={`step ${step >= 2 ? "active" : ""}`}>
-          <div
-            className="step-number"
-            style={{
-              background: step >= 2 ? config.gradient : "#e5e7eb",
-              boxShadow: step >= 2 ? `0 4px 15px ${config.color}40` : "none",
-            }}
-          >
-            2
-          </div>
-          <div className="step-info">
-            <span className="step-label">Step 2</span>
-            <span className="step-title">Service Details</span>
-          </div>
-        </div>
-      </div>
-
       <form onSubmit={handleSubmit} className="form-content">
-        {/* Step 1: Personal Information */}
-        {step === 1 && (
-          <div className="step-content">
+        <div className="combined-form">
+          {/* Combined: All Fields in One Section */}
+          <div
+            className="section-card"
+            style={{ borderColor: `${config.color}30` }}
+          >
+            {/* Personal Information Section */}
             <div
-              className="section-card"
-              style={{ borderColor: `${config.color}30` }}
+              className="section-header"
+              style={{ background: config.lightBg }}
             >
-              <div
-                className="section-header"
-                style={{ background: config.lightBg }}
-              >
-                <span className="section-icon">👤</span>
-                <h3>Personal Information</h3>
-              </div>
-              <div className="section-body">
-                <div className="fields-grid">
-                  <InputField
-                    icon="📝"
-                    label="Full Name"
-                    name="fullName"
-                    required
-                    placeholder="Enter your full name"
-                    value={formData.fullName}
-                    onChange={handleChange}
-                  />
-                  <div className="enhanced-field">
-                    <label className="field-label">
-                      <span className="field-icon">📱</span>
-                      Mobile (WhatsApp) <span className="required">*</span>
-                    </label>
-                    <div className="input-wrapper phone-wrapper">
-                      <span className="country-code">+91</span>
-                      <input
-                        type="tel"
-                        name="mobile"
-                        value={formData.mobile}
-                        onChange={handleChange}
-                        placeholder="Enter 10-digit number"
-                        maxLength={10}
-                        required
-                        className="enhanced-input phone-input"
-                      />
-                    </div>
-                  </div>
-                  <div className="enhanced-field full-width">
-                    <label className="field-label">
-                      <span className="field-icon">✉️</span>
-                      Email Address <span className="required">*</span>
-                    </label>
-                    <div className="input-wrapper">
-                      <span className="input-icon">✉️</span>
-                      <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        placeholder="Enter your email address"
-                        required
-                        className="enhanced-input"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <span className="section-icon">👤</span>
+              <h3>Your Details</h3>
             </div>
-
-            {error && (
-              <div className="error-message">
-                <span className="error-icon">⚠️</span>
-                {error}
-              </div>
-            )}
-
-            <div className="form-actions">
-              <button
-                type="button"
-                onClick={handleNext}
-                className="primary-button"
-                style={{ background: config.gradient }}
-              >
-                Continue to Service Details
-                <span className="btn-arrow">→</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 2: Service Details */}
-        {step === 2 && (
-          <div className="step-content">
-            <div
-              className="section-card"
-              style={{ borderColor: `${config.color}30` }}
-            >
-              <div
-                className="section-header"
-                style={{ background: config.lightBg }}
-              >
-                <span className="section-icon">{config.icon}</span>
-                <h3>{config.title} Details</h3>
-              </div>
-              <div className="section-body">
-                <div className="fields-grid">{serviceFields}</div>
-              </div>
-            </div>
-
-            <div
-              className="section-card"
-              style={{
-                borderColor: `${config.color}30`,
-                background: `linear-gradient(135deg, ${config.lightBg} 0%, rgba(255,255,255,0.6) 100%)`,
-              }}
-            >
-              <div
-                className="section-header"
-                style={{
-                  background: `linear-gradient(135deg, ${config.color}15 0%, ${config.color}08 100%)`,
-                  borderBottom: `2px solid ${config.color}20`,
-                }}
-              >
-                <span className="section-icon" style={{ fontSize: "1.5rem" }}>
-                  💬
-                </span>
-                <h3
-                  style={{
-                    background: config.gradient,
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                    fontSize: "1.25rem",
-                    fontWeight: 700,
-                  }}
-                >
-                  Additional Information
-                </h3>
-              </div>
-              <div className="section-body" style={{ padding: "1.5rem" }}>
-                <div
-                  style={{
-                    background: "white",
-                    borderRadius: "12px",
-                    padding: "1rem",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-                    border: `1px solid ${config.color}20`,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.75rem",
-                      marginBottom: "0.75rem",
-                    }}
-                  >
-                    <span style={{ fontSize: "1.25rem" }}>📝</span>
-                    <label
-                      style={{
-                        fontSize: "0.95rem",
-                        fontWeight: 600,
-                        color: "#374151",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.5rem",
-                      }}
-                    >
-                      Message / Special Requirements
-                      <span
-                        style={{
-                          fontSize: "0.75rem",
-                          color: "#9ca3af",
-                          fontWeight: 400,
-                        }}
-                      >
-                        (Optional)
-                      </span>
-                    </label>
-                  </div>
-                  <textarea
-                    name="message"
-                    value={formData.message}
-                    onChange={handleChange}
-                    rows={5}
-                    placeholder="✨ Tell us about any special requirements, preferences, or questions...
-
-Examples:
-• Specific pickup/drop-off locations
-• Preferred travel times
-• Special assistance needed
-• Dietary preferences
-• Any other special requests"
-                    style={{
-                      width: "100%",
-                      padding: "1rem",
-                      fontSize: "0.95rem",
-                      lineHeight: "1.6",
-                      border: `2px solid ${config.color}20`,
-                      borderRadius: "10px",
-                      resize: "vertical",
-                      minHeight: "140px",
-                      fontFamily: "inherit",
-                      transition: "all 0.2s ease",
-                      background: "#f9fafb",
-                    }}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = config.color;
-                      e.target.style.background = "white";
-                      e.target.style.boxShadow = `0 0 0 4px ${config.color}15`;
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = `${config.color}20`;
-                      e.target.style.background = "#f9fafb";
-                      e.target.style.boxShadow = "none";
-                    }}
-                  />
-                  <div
-                    style={{
-                      marginTop: "0.75rem",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                      fontSize: "0.8rem",
-                      color: "#6b7280",
-                    }}
-                  >
-                    <span>💡</span>
-                    <span>
-                      The more details you provide, the better we can serve you!
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div
-              className="agreement-card"
-              style={{
-                borderColor: `${config.color}30`,
-                background: config.lightBg,
-              }}
-            >
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  name="agreeContact"
-                  checked={formData.agreeContact}
+            <div className="section-body">
+              <div className="fields-grid">
+                <InputField
+                  icon="📝"
+                  label="Full Name"
+                  name="fullName"
+                  required
+                  placeholder="Enter your full name"
+                  value={formData.fullName}
                   onChange={handleChange}
                 />
-                <span
-                  className="custom-checkbox"
-                  style={{
-                    borderColor: formData.agreeContact
-                      ? config.color
-                      : "#d1d5db",
-                    background: formData.agreeContact
-                      ? config.gradient
-                      : "white",
-                  }}
-                >
-                  {formData.agreeContact && <span className="check">✓</span>}
-                </span>
-                <span className="agreement-text">
-                  I agree to be contacted via call, WhatsApp, or email regarding
-                  this booking request
-                </span>
-              </label>
-            </div>
+                <div className="enhanced-field">
+                  <label className="field-label">
+                    <span className="field-icon">📱</span>
+                    Mobile (WhatsApp) <span className="required">*</span>
+                  </label>
+                  <div className="input-wrapper phone-wrapper">
+                    <span className="country-code">+91</span>
+                    <input
+                      type="tel"
+                      name="mobile"
+                      value={formData.mobile}
+                      onChange={handleChange}
+                      placeholder="Enter 10-digit number"
+                      maxLength={10}
+                      required
+                      className="enhanced-input phone-input"
+                    />
+                  </div>
+                </div>
+                <div className="enhanced-field full-width">
+                  <label className="field-label">
+                    <span className="field-icon">✉️</span>
+                    Email Address <span className="required">*</span>
+                  </label>
+                  <div className="input-wrapper">
+                    <span className="input-icon">✉️</span>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="Enter your email address"
+                      required
+                      className="enhanced-input"
+                    />
+                  </div>
+                </div>
 
-            {error && (
-              <div className="error-message">
-                <span className="error-icon">⚠️</span>
-                {error}
+                {/* Service Details Section */}
+                <div className="section-divider"></div>
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <h4 className="subsection-title">{config.title} Details</h4>
+                </div>
+                {serviceFields}
               </div>
-            )}
-
-            <div className="form-actions two-buttons">
-              <button
-                type="button"
-                onClick={handleBack}
-                className="secondary-button"
-              >
-                <span className="btn-arrow">←</span>
-                Back
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="primary-button"
-                style={{ background: config.gradient }}
-              >
-                {loading ? (
-                  <>
-                    <span className="spinner"></span>
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    Submit Request
-                    <span className="btn-arrow">→</span>
-                  </>
-                )}
-              </button>
             </div>
           </div>
-        )}
+
+          {/* Message Section */}
+          <div
+            className="section-card"
+            style={{
+              borderColor: `${config.color}30`,
+              background: `linear-gradient(135deg, ${config.lightBg} 0%, rgba(255,255,255,0.6) 100%)`,
+            }}
+          >
+            <div
+              className="section-header"
+              style={{
+                background: `linear-gradient(135deg, ${config.color}15 0%, ${config.color}08 100%)`,
+                borderBottom: `2px solid ${config.color}20`,
+              }}
+            >
+              <span className="section-icon">💬</span>
+              <h3>Special Requests</h3>
+            </div>
+            <div className="section-body" style={{ padding: "1rem" }}>
+              <div
+                style={{
+                  background: "white",
+                  borderRadius: "12px",
+                  padding: "0.75rem",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                  border: `1px solid ${config.color}20`,
+                }}
+              >
+                <label
+                  style={{
+                    fontSize: "0.65rem",
+                    fontWeight: 600,
+                    color: "#374151",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    marginBottom: "0.5rem",
+                  }}
+                >
+                  <span>📝</span>
+                  Message / Special Requirements (Optional)
+                </label>
+                <textarea
+                  name="message"
+                  value={formData.message}
+                  onChange={handleChange}
+                  rows={4}
+                  placeholder="✨ Tell us about any special requirements, preferences, or questions..."
+                  style={{
+                    width: "100%",
+                    padding: "0.75rem",
+                    fontSize: "0.7rem",
+                    lineHeight: "1.5",
+                    border: `2px solid ${config.color}20`,
+                    borderRadius: "8px",
+                    resize: "vertical",
+                    minHeight: "110px",
+                    fontFamily: "inherit",
+                    transition: "all 0.2s ease",
+                    background: "#f9fafb",
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = config.color;
+                    e.target.style.background = "white";
+                    e.target.style.boxShadow = `0 0 0 3px ${config.color}15`;
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = `${config.color}20`;
+                    e.target.style.background = "#f9fafb";
+                    e.target.style.boxShadow = "none";
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Agreement Card */}
+          <div
+            className="agreement-card"
+            style={{
+              borderColor: `${config.color}30`,
+              background: config.lightBg,
+            }}
+          >
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                name="agreeContact"
+                checked={formData.agreeContact}
+                onChange={handleChange}
+              />
+              <span
+                className="custom-checkbox"
+                style={{
+                  borderColor: formData.agreeContact ? config.color : "#d1d5db",
+                  background: formData.agreeContact ? config.gradient : "white",
+                }}
+              >
+                {formData.agreeContact && <span className="check">✓</span>}
+              </span>
+              <span className="agreement-text" style={{ fontSize: "0.75rem" }}>
+                I agree to be contacted via call, WhatsApp, or email regarding
+                this booking request
+              </span>
+            </label>
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="error-message">
+              <span className="error-icon">⚠️</span>
+              {error}
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="form-actions">
+            <button
+              type="submit"
+              disabled={loading}
+              className="primary-button"
+              style={{ background: config.gradient }}
+            >
+              {loading ? (
+                <>
+                  <span className="spinner"></span>
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  Submit Booking Request
+                  <span className="btn-arrow">→</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
       </form>
 
       <style
@@ -872,8 +749,8 @@ Examples:
         }
 
         .header-icon {
-          font-size: 3.5rem;
-          margin-bottom: 0.75rem;
+          font-size: 1.7rem;
+          margin-bottom: 0.15rem;
           animation: float 3s ease-in-out infinite;
           filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
         }
@@ -889,15 +766,15 @@ Examples:
         }
 
         .form-header h2 {
-          font-size: 1.875rem;
+          font-size: 1.05rem;
           font-weight: 700;
-          margin-bottom: 0.5rem;
+          margin-bottom: 0.15rem;
           text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .form-header p {
           opacity: 0.9;
-          font-size: 1rem;
+          font-size: 0.9rem;
         }
 
         .step-indicator {
@@ -990,23 +867,23 @@ Examples:
           display: flex;
           align-items: center;
           gap: 0.75rem;
-          padding: 1rem 1.25rem;
+          padding: 0.75rem 0.9rem;
           border-bottom: 1px solid #e5e7eb;
         }
 
         .section-icon {
-          font-size: 1.5rem;
+          font-size: 1rem;
         }
 
         .section-header h3 {
-          font-size: 1.1rem;
+          font-size: 0.95rem;
           font-weight: 600;
           color: #1f2937;
           margin: 0;
         }
 
         .section-body {
-          padding: 1.5rem;
+          padding: 0.75rem;
         }
 
         .fields-grid {
@@ -1030,12 +907,12 @@ Examples:
           gap: 0.5rem;
           font-weight: 600;
           color: #374151;
-          margin-bottom: 0.6rem;
-          font-size: 0.9rem;
+          margin-bottom: 0.5rem;
+          font-size: 0.85rem;
         }
 
         .field-icon {
-          font-size: 1.1rem;
+          font-size: 0.85rem;
         }
 
         .required {
@@ -1058,10 +935,10 @@ Examples:
 
         .enhanced-input {
           width: 100%;
-          padding: 0.9rem 1rem 0.9rem 3rem;
+          padding: 0.8rem 0.9rem 0.8rem 2.5rem;
           border: 2px solid #e5e7eb;
           border-radius: 12px;
-          font-size: 1rem;
+          font-size: 0.9rem;
           transition: all 0.2s ease;
           background: #fafafa;
           color: #1f2937;
@@ -1096,14 +973,14 @@ Examples:
           bottom: 0;
           display: flex;
           align-items: center;
-          padding: 0 1rem;
+          padding: 0 0.75rem;
           background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
           border: 2px solid #e5e7eb;
           border-right: none;
           border-radius: 12px 0 0 12px;
           font-weight: 600;
           color: #374151;
-          font-size: 0.95rem;
+          font-size: 0.65rem;
         }
 
         .phone-input {
@@ -1118,10 +995,10 @@ Examples:
 
         .enhanced-select {
           width: 100%;
-          padding: 0.9rem 2.5rem 0.9rem 3rem;
+          padding: 0.8rem 2.2rem 0.8rem 2.5rem;
           border: 2px solid #e5e7eb;
           border-radius: 12px;
-          font-size: 1rem;
+          font-size: 0.9rem;
           transition: all 0.2s ease;
           background: #fafafa;
           color: #1f2937;
@@ -1162,18 +1039,18 @@ Examples:
 
         .textarea-icon {
           position: absolute;
-          left: 1rem;
-          top: 0.9rem;
-          font-size: 1.1rem;
+          left: 0.75rem;
+          top: 0.6rem;
+          font-size: 0.65rem;
           opacity: 0.7;
         }
 
         .enhanced-textarea {
           width: 100%;
-          padding: 0.9rem 1rem 0.9rem 3rem;
+          padding: 0.8rem 0.9rem 0.8rem 2.5rem;
           border: 2px solid #e5e7eb;
           border-radius: 12px;
-          font-size: 1rem;
+          font-size: 0.9rem;
           transition: all 0.2s ease;
           background: #fafafa;
           color: #1f2937;

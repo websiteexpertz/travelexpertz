@@ -60,12 +60,43 @@ const PRICE_THRESHOLDS = {
   midMax: 22000,
 } as const;
 
+// Hero animations
+const homestayHeroStyles = `
+  @keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-20px) rotate(5deg); }
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+`;
+
 export default function Homestays() {
+  // Get today's date and 2 days later
+  const getTodayDate = () => {
+    const today = new Date();
+    return today.toISOString().split("T")[0];
+  };
+
+  const getTwoDaysLater = () => {
+    const date = new Date();
+    date.setDate(date.getDate() + 2);
+    return date.toISOString().split("T")[0];
+  };
+
   const [filters, setFilters] = useState({
     location: "",
-    checkIn: "",
-    checkOut: "",
-    guests: "1",
+    checkIn: getTodayDate(),
+    checkOut: getTwoDaysLater(),
+    guests: "2",
     rooms: "1",
     priceRange: "all",
   });
@@ -139,35 +170,254 @@ export default function Homestays() {
 
   return (
     <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+      <style dangerouslySetInnerHTML={{ __html: homestayHeroStyles }} />
       <Header currentPage="homestays" />
 
       <main className="flex flex-col items-center w-full">
-        {/* Hero Section */}
+        {/* Hero Section - Premium Design */}
         <div
           className="w-full"
           style={{
             background: "transparent",
             padding: "0 1.5rem",
+            marginTop: "0",
           }}
         >
           <div
             className="hero-section"
             style={{
-              backgroundImage: "url('/hero-banner.png')",
-              backgroundSize: "cover",
-              backgroundPosition: "center",
+              position: "relative",
+              height: "480px",
+              borderRadius: "24px",
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "2rem 1.5rem",
             }}
           >
-            <div className="hero-content">
-              <h1>Find Your Perfect Homestay</h1>
-              <p>Discover authentic local experiences with welcoming hosts</p>
+            {/* Background with Gradient Overlay */}
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                backgroundImage: "url('/hero-banner.png')",
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background:
+                  "linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.2) 50%, rgba(0, 0, 0, 0.5) 100%)",
+              }}
+            />
+
+            {/* Floating Decorative Elements */}
+            <div
+              className="floating-element"
+              style={{
+                position: "absolute",
+                top: "15%",
+                left: "8%",
+                width: "80px",
+                height: "80px",
+                borderRadius: "50%",
+                background: "rgba(255, 255, 255, 0.1)",
+                backdropFilter: "blur(10px)",
+                animation: "float 6s ease-in-out infinite",
+              }}
+            />
+            <div
+              className="floating-element"
+              style={{
+                position: "absolute",
+                bottom: "20%",
+                right: "10%",
+                width: "120px",
+                height: "120px",
+                borderRadius: "50%",
+                background: "rgba(255, 255, 255, 0.08)",
+                backdropFilter: "blur(10px)",
+                animation: "float 8s ease-in-out infinite reverse",
+              }}
+            />
+            <div
+              className="floating-element"
+              style={{
+                position: "absolute",
+                top: "60%",
+                left: "15%",
+                width: "50px",
+                height: "50px",
+                borderRadius: "50%",
+                background: "rgba(255, 255, 255, 0.12)",
+                backdropFilter: "blur(10px)",
+                animation: "float 5s ease-in-out infinite 1s",
+              }}
+            />
+
+            {/* Hero Content */}
+            <div
+              className="hero-content"
+              style={{
+                position: "relative",
+                zIndex: 10,
+                textAlign: "center",
+                color: "white",
+                padding: "0 1.5rem",
+                maxWidth: "800px",
+                marginBottom: "2rem",
+              }}
+            >
+              {/* Toggle Buttons */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  gap: "0.5rem",
+                  marginBottom: "1.5rem",
+                }}
+              >
+                <button
+                  onClick={() => {
+                    window.location.href = "/hotels";
+                  }}
+                  style={{
+                    padding: "0.5rem 1rem",
+                    borderRadius: "8px",
+                    border: "2px solid rgba(255, 255, 255, 0.3)",
+                    backgroundColor: "transparent",
+                    color: "white",
+                    fontSize: "0.9rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.3s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor =
+                      "rgba(255, 255, 255, 0.1)";
+                    e.currentTarget.style.borderColor =
+                      "rgba(255, 255, 255, 0.5)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "transparent";
+                    e.currentTarget.style.borderColor =
+                      "rgba(255, 255, 255, 0.3)";
+                  }}
+                >
+                  🏨 Hotels
+                </button>
+                <button
+                  style={{
+                    padding: "0.5rem 1rem",
+                    borderRadius: "8px",
+                    border: "2px solid rgba(255, 255, 255, 0.8)",
+                    backgroundColor: "rgba(255, 255, 255, 0.2)",
+                    color: "white",
+                    fontSize: "0.9rem",
+                    fontWeight: 600,
+                    cursor: "default",
+                  }}
+                >
+                  🏠 Homestays
+                </button>
+              </div>
+
+              <h1
+                style={{
+                  fontSize: "clamp(1.75rem, 5vw, 3rem)",
+                  fontWeight: 800,
+                  marginBottom: "0.75rem",
+                  lineHeight: 1.15,
+                  textShadow: "0 4px 20px rgba(0, 0, 0, 0.3)",
+                  letterSpacing: "-0.02em",
+                  margin: "0 auto 0.75rem",
+                  display: "block",
+                  animation: "fadeInUp 0.8s ease-out",
+                }}
+              >
+                Find Your Perfect
+                <span
+                  style={{
+                    background:
+                      "linear-gradient(135deg, #FFD700 0%, #FFA500 100%)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    backgroundClip: "text",
+                    marginLeft: "0.5rem",
+                  }}
+                >
+                  Homestay
+                </span>
+              </h1>
+              <p
+                style={{
+                  fontSize: "clamp(0.9rem, 2vw, 1.1rem)",
+                  opacity: 0.95,
+                  maxWidth: "600px",
+                  margin: "0 auto 0",
+                  lineHeight: 1.5,
+                  fontWeight: 500,
+                  letterSpacing: "0.3px",
+                  animation: "fadeInUp 0.8s ease-out 0.2s both",
+                }}
+              >
+                Discover authentic local experiences with welcoming hosts
+              </p>
             </div>
 
-            {/* Search Box */}
-            <div className="search-box">
-              <div className="search-box-content">
-                <div className="search-item">
-                  <span className="material-symbols-outlined">location_on</span>
+            {/* Search Box - Inside Hero */}
+            <div
+              className="search-box"
+              style={{
+                background: "rgba(255, 255, 255, 0.97)",
+                backdropFilter: "blur(20px)",
+                borderRadius: "16px",
+                padding: "0.5rem",
+                boxShadow: "0 10px 40px rgba(0, 0, 0, 0.2)",
+                maxWidth: "1000px",
+                width: "100%",
+                position: "relative",
+                zIndex: 20,
+                border: "1.5px solid rgba(255, 255, 255, 0.4)",
+                animation: "fadeInUp 0.8s ease-out 0.4s both",
+              }}
+            >
+              <div
+                className="search-box-content"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0",
+                }}
+              >
+                {/* Location */}
+                <div
+                  className="search-item"
+                  style={{
+                    flex: 1.3,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    padding: "0.7rem 1rem",
+                    borderRadius: "12px",
+                    transition: "background 0.25s ease",
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{
+                      color: "#0066cc",
+                      fontSize: "1.25rem",
+                      flexShrink: 0,
+                    }}
+                  >
+                    location_on
+                  </span>
                   <input
                     type="text"
                     placeholder="Where to?"
@@ -178,24 +428,50 @@ export default function Homestays() {
                     style={{
                       border: "none",
                       outline: "none",
-                      flex: 1,
-                      fontSize: "0.95rem",
+                      width: "100%",
+                      fontSize: "0.9rem",
+                      background: "transparent",
+                      fontWeight: 600,
+                      color: "#1f2937",
                     }}
                   />
+                </div>
+
+                {/* Divider */}
+                <div
+                  style={{
+                    width: "1px",
+                    height: "28px",
+                    background: "#d1d5db",
+                    flexShrink: 0,
+                  }}
+                />
+
+                {/* Check-in */}
+                <div
+                  className="search-item"
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    padding: "0.7rem 0.75rem",
+                    borderRadius: "12px",
+                    transition: "background 0.25s ease",
+                  }}
+                >
                   <span
                     className="material-symbols-outlined"
-                    style={{ marginLeft: "auto" }}
+                    style={{
+                      color: "#0066cc",
+                      fontSize: "1.25rem",
+                      flexShrink: 0,
+                    }}
                   >
-                    arrow_drop_down
-                  </span>
-                </div>
-                <div className="search-item">
-                  <span className="material-symbols-outlined">
                     calendar_month
                   </span>
                   <input
                     type="date"
-                    placeholder="Check-in"
                     value={filters.checkIn}
                     onChange={(e) =>
                       setFilters({ ...filters, checkIn: e.target.value })
@@ -203,18 +479,51 @@ export default function Homestays() {
                     style={{
                       border: "none",
                       outline: "none",
-                      flex: 1,
-                      fontSize: "0.95rem",
+                      width: "100%",
+                      fontSize: "0.85rem",
+                      background: "transparent",
+                      fontWeight: 600,
+                      color: "#1f2937",
+                      cursor: "pointer",
                     }}
                   />
                 </div>
-                <div className="search-item">
-                  <span className="material-symbols-outlined">
+
+                {/* Divider */}
+                <div
+                  style={{
+                    width: "1px",
+                    height: "28px",
+                    background: "#d1d5db",
+                    flexShrink: 0,
+                  }}
+                />
+
+                {/* Check-out */}
+                <div
+                  className="search-item"
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    padding: "0.7rem 0.75rem",
+                    borderRadius: "12px",
+                    transition: "background 0.25s ease",
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{
+                      color: "#0066cc",
+                      fontSize: "1.25rem",
+                      flexShrink: 0,
+                    }}
+                  >
                     calendar_month
                   </span>
                   <input
                     type="date"
-                    placeholder="Check-out"
                     value={filters.checkOut}
                     onChange={(e) =>
                       setFilters({ ...filters, checkOut: e.target.value })
@@ -222,13 +531,49 @@ export default function Homestays() {
                     style={{
                       border: "none",
                       outline: "none",
-                      flex: 1,
-                      fontSize: "0.95rem",
+                      width: "100%",
+                      fontSize: "0.85rem",
+                      background: "transparent",
+                      fontWeight: 600,
+                      color: "#1f2937",
+                      cursor: "pointer",
                     }}
                   />
                 </div>
-                <div className="search-item">
-                  <span className="material-symbols-outlined">group</span>
+
+                {/* Divider */}
+                <div
+                  style={{
+                    width: "1px",
+                    height: "28px",
+                    background: "#d1d5db",
+                    flexShrink: 0,
+                  }}
+                />
+
+                {/* Guests */}
+                <div
+                  className="search-item"
+                  style={{
+                    flex: 0.75,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    padding: "0.7rem 0.75rem",
+                    borderRadius: "12px",
+                    transition: "background 0.25s ease",
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{
+                      color: "#0066cc",
+                      fontSize: "1.25rem",
+                      flexShrink: 0,
+                    }}
+                  >
+                    group
+                  </span>
                   <select
                     value={filters.guests}
                     onChange={(e) =>
@@ -237,8 +582,12 @@ export default function Homestays() {
                     style={{
                       border: "none",
                       outline: "none",
-                      flex: 1,
-                      fontSize: "0.95rem",
+                      width: "100%",
+                      fontSize: "0.85rem",
+                      background: "transparent",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      color: "#1f2937",
                     }}
                   >
                     <option value="1">1 Guest</option>
@@ -247,8 +596,40 @@ export default function Homestays() {
                     <option value="4">4+ Guests</option>
                   </select>
                 </div>
-                <div className="search-item">
-                  <span className="material-symbols-outlined">bed</span>
+
+                {/* Divider */}
+                <div
+                  style={{
+                    width: "1px",
+                    height: "28px",
+                    background: "#d1d5db",
+                    flexShrink: 0,
+                  }}
+                />
+
+                {/* Rooms */}
+                <div
+                  className="search-item"
+                  style={{
+                    flex: 0.7,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    padding: "0.7rem 0.75rem",
+                    borderRadius: "12px",
+                    transition: "background 0.25s ease",
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{
+                      color: "#0066cc",
+                      fontSize: "1.25rem",
+                      flexShrink: 0,
+                    }}
+                  >
+                    bed
+                  </span>
                   <select
                     value={filters.rooms}
                     onChange={(e) =>
@@ -257,8 +638,12 @@ export default function Homestays() {
                     style={{
                       border: "none",
                       outline: "none",
-                      flex: 1,
-                      fontSize: "0.95rem",
+                      width: "100%",
+                      fontSize: "0.85rem",
+                      background: "transparent",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      color: "#1f2937",
                     }}
                   >
                     <option value="1">1 Room</option>
@@ -267,7 +652,58 @@ export default function Homestays() {
                     <option value="4">4+ Rooms</option>
                   </select>
                 </div>
-                <button className="search-btn">Search</button>
+
+                {/* Search Button */}
+                <button
+                  className="search-btn"
+                  onClick={() => {
+                    const params = new URLSearchParams({
+                      location: filters.location || "",
+                      checkIn: filters.checkIn || "",
+                      checkOut: filters.checkOut || "",
+                      guests: filters.guests || "2",
+                      rooms: filters.rooms || "1",
+                      priceRange: filters.priceRange || "all",
+                    });
+                    window.location.href = `/homestays/search?${params.toString()}`;
+                  }}
+                  style={{
+                    background:
+                      "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
+                    color: "white",
+                    border: "none",
+                    padding: "0.7rem 1.75rem",
+                    borderRadius: "12px",
+                    fontSize: "0.9rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.4rem",
+                    transition: "all 0.3s ease",
+                    boxShadow: "0 2px 10px rgba(0, 102, 204, 0.35)",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "scale(1.03)";
+                    e.currentTarget.style.boxShadow =
+                      "0 4px 16px rgba(0, 102, 204, 0.45)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "scale(1)";
+                    e.currentTarget.style.boxShadow =
+                      "0 2px 10px rgba(0, 102, 204, 0.35)";
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: "1.1rem" }}
+                  >
+                    search
+                  </span>
+                  Search
+                </button>
               </div>
             </div>
           </div>
@@ -551,295 +987,323 @@ export default function Homestays() {
               </div>
             </div>
           </div>
-
-          {/* Homestays Grid */}
+          {/* Homestays Carousel Strip */}
           <div
-            className="homestays-grid"
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
-              gap: "1.5rem",
+              width: "100%",
+              background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
+              borderRadius: "16px",
+              padding: "1.5rem",
+              boxShadow: "0 2px 12px rgba(0, 0, 0, 0.08)",
+              marginTop: "1rem",
             }}
           >
-            {loading && (
-              <div
-                style={{
-                  gridColumn: "1 / -1",
-                  textAlign: "center",
-                  padding: "3rem",
-                  fontSize: "1rem",
-                  color: "#64748b",
-                }}
-              >
-                Loading homestays...
-              </div>
-            )}
-            {!loading && filteredHomestays.length === 0 && (
-              <div
-                style={{
-                  gridColumn: "1 / -1",
-                  textAlign: "center",
-                  padding: "3rem",
-                  fontSize: "1rem",
-                  color: "#64748b",
-                }}
-              >
-                {homestays.length === 0
-                  ? "No homestays available yet. Please add homestays from the admin panel."
-                  : "No homestays match the selected filters. Try adjusting your search criteria."}
-              </div>
-            )}
-            {!loading &&
-              filteredHomestays.map((homestay) => (
-                <a
-                  key={homestay._id || homestay.name}
-                  href={`/homestays/${
-                    homestay._id || encodeURIComponent(homestay.name)
-                  }`}
-                  className="homestay-card"
+            <h2
+              style={{
+                fontSize: "1.3rem",
+                fontWeight: 700,
+                marginBottom: "1.5rem",
+                color: "#1f2937",
+              }}
+            >
+              Featured Homestays
+            </h2>
+            <div
+              className="homestays-grid"
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "1.5rem",
+                paddingBottom: "0.5rem",
+              }}
+            >
+              {loading && (
+                <div
                   style={{
-                    borderRadius: "1rem",
-                    overflow: "hidden",
-                    boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-                    transition: "transform 0.2s, box-shadow 0.2s",
-                    cursor: "pointer",
-                    textDecoration: "none",
-                    color: "inherit",
-                    display: "block",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "translateY(-4px)";
-                    e.currentTarget.style.boxShadow =
-                      "0 10px 15px rgba(0, 0, 0, 0.15)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "translateY(0)";
-                    e.currentTarget.style.boxShadow =
-                      "0 4px 6px rgba(0, 0, 0, 0.1)";
+                    textAlign: "center",
+                    padding: "3rem",
+                    fontSize: "1rem",
+                    color: "#64748b",
                   }}
                 >
-                  <div style={{ position: "relative" }}>
-                    <img
-                      src={
-                        homestay.image ||
-                        "https://via.placeholder.com/400x200?text=No+Image"
-                      }
-                      alt={homestay.name}
-                      style={{
-                        width: "100%",
-                        height: "200px",
-                        objectFit: "cover",
-                        backgroundColor: "#f3f4f6",
-                      }}
-                      onError={(e) => {
-                        e.currentTarget.src =
-                          "https://via.placeholder.com/400x200?text=Image+Not+Found";
-                      }}
-                    />
-                    {homestay.popular && (
-                      <div
+                  Loading homestays...
+                </div>
+              )}
+              {!loading && filteredHomestays.length === 0 && (
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: "3rem",
+                    fontSize: "1rem",
+                    color: "#64748b",
+                  }}
+                >
+                  {homestays.length === 0
+                    ? "No homestays available yet. Please add homestays from the admin panel."
+                    : "No homestays match the selected filters. Try adjusting your search criteria."}
+                </div>
+              )}
+              {!loading &&
+                filteredHomestays.map((homestay) => (
+                  <a
+                    key={homestay._id || homestay.name}
+                    href={`/homestays/${
+                      homestay._id || encodeURIComponent(homestay.name)
+                    }`}
+                    className="homestay-card"
+                    style={{
+                      borderRadius: "1rem",
+                      overflow: "hidden",
+                      boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+                      transition: "transform 0.2s, box-shadow 0.2s",
+                      cursor: "pointer",
+                      textDecoration: "none",
+                      color: "inherit",
+                      display: "flex",
+                      width: "100%",
+                      minHeight: "200px",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "translateY(-4px)";
+                      e.currentTarget.style.boxShadow =
+                        "0 10px 15px rgba(0, 0, 0, 0.15)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow =
+                        "0 4px 6px rgba(0, 0, 0, 0.1)";
+                    }}
+                  >
+                    <div style={{ position: "relative", flex: "0 0 250px" }}>
+                      <img
+                        src={
+                          homestay.image ||
+                          "https://via.placeholder.com/400x200?text=No+Image"
+                        }
+                        alt={homestay.name}
                         style={{
-                          position: "absolute",
-                          top: "0.5rem",
-                          right: "0.5rem",
-                          backgroundColor: "#d97706",
-                          color: "white",
-                          padding: "0.25rem 0.75rem",
-                          borderRadius: "2rem",
-                          fontSize: "0.75rem",
-                          fontWeight: 600,
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                          backgroundColor: "#f3f4f6",
                         }}
-                      >
-                        Popular
-                      </div>
-                    )}
-                  </div>
-
-                  <div style={{ padding: "1rem" }}>
-                    <h3
-                      style={{
-                        fontSize: "1rem",
-                        fontWeight: 600,
-                        marginBottom: "0.25rem",
-                        color: "#1f2937",
-                      }}
-                    >
-                      {homestay.name}
-                    </h3>
-                    <p
-                      style={{
-                        fontSize: "0.875rem",
-                        color: "#6b7280",
-                        marginBottom: "0.75rem",
-                      }}
-                    >
-                      {homestay.location}
-                    </p>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.5rem",
-                        marginBottom: "0.75rem",
-                      }}
-                    >
-                      <span
-                        style={{
-                          color: "#f59e0b",
-                          fontSize: "0.875rem",
-                          fontWeight: 600,
+                        onError={(e) => {
+                          e.currentTarget.src =
+                            "https://via.placeholder.com/400x200?text=Image+Not+Found";
                         }}
-                      >
-                        ★ {homestay.rating}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: "0.75rem",
-                          color: "#9ca3af",
-                        }}
-                      >
-                        ({homestay.reviews} reviews)
-                      </span>
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize: "0.875rem",
-                        marginBottom: "1rem",
-                      }}
-                    >
-                      {homestay.amenities.slice(0, 3).map((amenity, idx) => (
-                        <span
-                          key={idx}
+                      />
+                      {homestay.popular && (
+                        <div
                           style={{
-                            display: "inline-block",
-                            backgroundColor: "#e2e8f0",
-                            padding: "0.25rem 0.5rem",
-                            borderRadius: "0.25rem",
-                            marginRight: "0.5rem",
-                            marginBottom: "0.25rem",
-                            fontSize: "0.7rem",
+                            position: "absolute",
+                            top: "0.5rem",
+                            right: "0.5rem",
+                            backgroundColor: "#d97706",
+                            color: "white",
+                            padding: "0.25rem 0.75rem",
+                            borderRadius: "2rem",
+                            fontSize: "0.75rem",
+                            fontWeight: 600,
                           }}
                         >
-                          {amenity}
-                        </span>
-                      ))}
+                          Popular
+                        </div>
+                      )}
                     </div>
 
-                    {/* Host Profile */}
-                    {homestay.hostName && (
-                      <div
+                    <div
+                      style={{
+                        padding: "1rem",
+                        flex: 1,
+                        display: "flex",
+                        flexDirection: "column",
+                      }}
+                    >
+                      <h3
                         style={{
-                          background: "#f8fafc",
-                          padding: "0.75rem",
-                          borderRadius: "0.5rem",
+                          fontSize: "1rem",
+                          fontWeight: 600,
+                          marginBottom: "0.25rem",
+                          color: "#1f2937",
+                        }}
+                      >
+                        {homestay.name}
+                      </h3>
+                      <p
+                        style={{
+                          fontSize: "0.875rem",
+                          color: "#6b7280",
                           marginBottom: "0.75rem",
                         }}
                       >
-                        <p
-                          style={{
-                            fontSize: "0.75rem",
-                            color: "#6b7280",
-                            margin: "0 0 0.25rem",
-                            fontWeight: 600,
-                          }}
-                        >
-                          Hosted by
-                        </p>
-                        <p
-                          style={{
-                            fontSize: "0.9rem",
-                            color: "#1f2937",
-                            margin: "0",
-                            fontWeight: 600,
-                          }}
-                        >
-                          {homestay.hostName}
-                        </p>
-                        {homestay.hostEmail && (
-                          <p
-                            style={{
-                              fontSize: "0.75rem",
-                              color: "#6b7280",
-                              margin: "0.25rem 0 0",
-                            }}
-                          >
-                            📧 {homestay.hostEmail}
-                          </p>
-                        )}
-                        {homestay.hostPhone && (
-                          <p
-                            style={{
-                              fontSize: "0.75rem",
-                              color: "#6b7280",
-                              margin: "0.25rem 0 0",
-                            }}
-                          >
-                            📞 {homestay.hostPhone}
-                          </p>
-                        )}
-                      </div>
-                    )}
+                        {homestay.location}
+                      </p>
 
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <div>
-                        <span
-                          style={{
-                            fontSize: "0.875rem",
-                            color: "#6b7280",
-                          }}
-                        >
-                          From
-                        </span>
-                        <p
-                          style={{
-                            fontSize: "1.5rem",
-                            fontWeight: 700,
-                            color: "#0a66c2",
-                            margin: "0",
-                          }}
-                        >
-                          {formatInr(homestay.price)}
-                        </p>
-                      </div>
-                      <button
+                      <div
                         style={{
-                          backgroundColor: "#0a66c2",
-                          color: "white",
-                          border: "none",
-                          padding: "0.5rem 1rem",
-                          borderRadius: "0.5rem",
-                          cursor: "pointer",
-                          fontSize: "0.875rem",
-                          fontWeight: 600,
-                          transition: "background-color 0.2s",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = "#084ba8";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = "#0a66c2";
-                        }}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          window.location.href = `/homestays/${
-                            homestay._id || encodeURIComponent(homestay.name)
-                          }`;
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                          marginBottom: "0.75rem",
                         }}
                       >
-                        View Details
-                      </button>
+                        <span
+                          style={{
+                            color: "#f59e0b",
+                            fontSize: "0.875rem",
+                            fontWeight: 600,
+                          }}
+                        >
+                          ★ {homestay.rating}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: "0.75rem",
+                            color: "#9ca3af",
+                          }}
+                        >
+                          ({homestay.reviews} reviews)
+                        </span>
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: "0.875rem",
+                          marginBottom: "1rem",
+                        }}
+                      >
+                        {homestay.amenities.slice(0, 3).map((amenity, idx) => (
+                          <span
+                            key={idx}
+                            style={{
+                              display: "inline-block",
+                              backgroundColor: "#e2e8f0",
+                              padding: "0.25rem 0.5rem",
+                              borderRadius: "0.25rem",
+                              marginRight: "0.5rem",
+                              marginBottom: "0.25rem",
+                              fontSize: "0.7rem",
+                            }}
+                          >
+                            {amenity}
+                          </span>
+                        ))}
+                      </div>
+
+                      {/* Host Profile */}
+                      {homestay.hostName && (
+                        <div
+                          style={{
+                            background: "#f8fafc",
+                            padding: "0.75rem",
+                            borderRadius: "0.5rem",
+                            marginBottom: "0.75rem",
+                          }}
+                        >
+                          <p
+                            style={{
+                              fontSize: "0.75rem",
+                              color: "#6b7280",
+                              margin: "0 0 0.25rem",
+                              fontWeight: 600,
+                            }}
+                          >
+                            Hosted by
+                          </p>
+                          <p
+                            style={{
+                              fontSize: "0.9rem",
+                              color: "#1f2937",
+                              margin: "0",
+                              fontWeight: 600,
+                            }}
+                          >
+                            {homestay.hostName}
+                          </p>
+                          {homestay.hostEmail && (
+                            <p
+                              style={{
+                                fontSize: "0.75rem",
+                                color: "#6b7280",
+                                margin: "0.25rem 0 0",
+                              }}
+                            >
+                              📧 {homestay.hostEmail}
+                            </p>
+                          )}
+                          {homestay.hostPhone && (
+                            <p
+                              style={{
+                                fontSize: "0.75rem",
+                                color: "#6b7280",
+                                margin: "0.25rem 0 0",
+                              }}
+                            >
+                              📞 {homestay.hostPhone}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <div>
+                          <span
+                            style={{
+                              fontSize: "0.875rem",
+                              color: "#6b7280",
+                            }}
+                          >
+                            From
+                          </span>
+                          <p
+                            style={{
+                              fontSize: "1.5rem",
+                              fontWeight: 700,
+                              color: "#0a66c2",
+                              margin: "0",
+                            }}
+                          >
+                            {formatInr(homestay.price)}
+                          </p>
+                        </div>
+                        <button
+                          style={{
+                            backgroundColor: "#0a66c2",
+                            color: "white",
+                            border: "none",
+                            padding: "0.5rem 1rem",
+                            borderRadius: "0.5rem",
+                            cursor: "pointer",
+                            fontSize: "0.875rem",
+                            fontWeight: 600,
+                            transition: "background-color 0.2s",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = "#084ba8";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = "#0a66c2";
+                          }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            window.location.href = `/homestays/${
+                              homestay._id || encodeURIComponent(homestay.name)
+                            }`;
+                          }}
+                        >
+                          View Details
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </a>
-              ))}
+                  </a>
+                ))}
+            </div>
           </div>
         </div>
       </main>

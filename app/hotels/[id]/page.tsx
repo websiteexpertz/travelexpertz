@@ -254,8 +254,8 @@ export default function HotelDetails() {
       const fetchHostProperties = async () => {
         try {
           const response = await fetch(
-            `/api/hotels?hostName=${encodeURIComponent(hotel.hostName)}&limit=10`,
-            { cache: "no-store" }
+            `/api/hotels?hostName=${encodeURIComponent(hotel.hostName || "")}&limit=10`,
+            { cache: "no-store" },
           );
           if (response.ok) {
             const data = await response.json();
@@ -842,7 +842,8 @@ export default function HotelDetails() {
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.borderColor = "#3b82f6";
-                      e.currentTarget.style.boxShadow = "0 4px 12px rgba(59, 130, 246, 0.1)";
+                      e.currentTarget.style.boxShadow =
+                        "0 4px 12px rgba(59, 130, 246, 0.1)";
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.borderColor = "#e2e8f0";
@@ -2181,7 +2182,7 @@ export default function HotelDetails() {
                     e.currentTarget.style.boxShadow = "none";
                   }}
                 >
-                  Book Now
+                  Enquire Now
                 </button>
               )}
 
@@ -2338,76 +2339,6 @@ export default function HotelDetails() {
           )}
         </div>
       )}
-
-      {/* Footer */}
-      <footer style={{ marginTop: "4rem", background: "#1e293b" }}>
-        <div
-          style={{
-            maxWidth: "1280px",
-            margin: "0 auto",
-            padding: "3rem 1rem",
-            color: "white",
-          }}
-        >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-              gap: "2rem",
-            }}
-          >
-            <div>
-              <h3 style={{ marginBottom: "1rem" }}>TravelExpertz</h3>
-              <p style={{ color: "#cbd5e1" }}>
-                Your trusted partner in creating unforgettable travel
-                experiences.
-              </p>
-            </div>
-            <div>
-              <h4 style={{ marginBottom: "1rem" }}>Quick Links</h4>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "0.5rem",
-                }}
-              >
-                <a
-                  href="/hotels"
-                  style={{ color: "#cbd5e1", textDecoration: "none" }}
-                >
-                  Hotels
-                </a>
-                <a
-                  href="/"
-                  style={{ color: "#cbd5e1", textDecoration: "none" }}
-                >
-                  Home
-                </a>
-              </div>
-            </div>
-            <div>
-              <h4 style={{ marginBottom: "1rem" }}>Contact</h4>
-              <p style={{ color: "#cbd5e1" }}>
-                Email: info@travelexpertz.com
-                <br />
-                Phone: +91 1234567890
-              </p>
-            </div>
-          </div>
-          <div
-            style={{
-              borderTop: "1px solid #475569",
-              marginTop: "2rem",
-              paddingTop: "2rem",
-              textAlign: "center",
-              color: "#cbd5e1",
-            }}
-          >
-            © 2024 TravelExpertz. All rights reserved.
-          </div>
-        </div>
-      </footer>
 
       {/* Mobile Responsive Styles */}
       <style>{`
@@ -3082,7 +3013,8 @@ export default function HotelDetails() {
                       border: "1px solid #e2e8f0",
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.boxShadow = "0 10px 25px rgba(0, 0, 0, 0.1)";
+                      e.currentTarget.style.boxShadow =
+                        "0 10px 25px rgba(0, 0, 0, 0.1)";
                       e.currentTarget.style.transform = "translateY(-4px)";
                     }}
                     onMouseLeave={(e) => {
@@ -3125,7 +3057,10 @@ export default function HotelDetails() {
                           marginBottom: "0.75rem",
                         }}
                       >
-                        <span className="material-symbols-outlined" style={{ fontSize: "1rem" }}>
+                        <span
+                          className="material-symbols-outlined"
+                          style={{ fontSize: "1rem" }}
+                        >
                           location_on
                         </span>
                         {prop.location}

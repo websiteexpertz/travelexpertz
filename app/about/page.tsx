@@ -120,7 +120,12 @@ export default function AboutPage() {
 
       {/* Main Content */}
       <main
-        style={{ padding: "4rem 5%", maxWidth: "1400px", margin: "0 auto" }}
+        style={{
+          padding: "4rem 5%",
+          maxWidth: "1400px",
+          margin: "0 auto",
+          paddingTop: "4rem",
+        }}
       >
         {/* Our Story */}
         {story && (

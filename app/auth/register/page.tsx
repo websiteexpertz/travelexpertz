@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/app/components/Header";
+import Link from "next/link";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -102,13 +103,27 @@ export default function RegisterPage() {
           email: formData.email,
           password: formData.password,
           name: formData.name,
+          role: "user",
         }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
+        // Store user data in localStorage
+        if (data.user) {
+          localStorage.setItem(
+            "user",
+            JSON.stringify({
+              ...data.user,
+              role: "user",
+            }),
+          );
+        }
+
         setMessage("Account created successfully!");
+
+        // Redirect to homepage
         setTimeout(() => {
           router.push("/");
         }, 1500);
@@ -135,7 +150,6 @@ export default function RegisterPage() {
         style={{
           minHeight: "100vh",
           background: "#f3f4f6",
-          paddingTop: "2rem",
           paddingBottom: "2rem",
         }}
       >
@@ -194,12 +208,33 @@ export default function RegisterPage() {
             </h1>
             <p
               style={{
-                margin: "0 0 2rem",
+                margin: "0 0 1.5rem",
                 color: "#6b7280",
                 textAlign: "center",
               }}
             >
-              Join TravelExpertz today
+              Join us for amazing travel experiences
+            </p>
+
+            <p
+              style={{
+                margin: "0 0 2rem",
+                color: "#6b7280",
+                textAlign: "center",
+                fontSize: "0.9rem",
+              }}
+            >
+              Registering as a property owner?{" "}
+              <Link
+                href="/owner/auth/register"
+                style={{
+                  color: "#16a34a",
+                  fontWeight: 600,
+                  textDecoration: "none",
+                }}
+              >
+                Register here
+              </Link>
             </p>
 
             {/* Error Message */}
@@ -570,6 +605,30 @@ export default function RegisterPage() {
             >
               Login
             </a>
+          </p>
+
+          {/* Owner Register Link */}
+          <p
+            style={{
+              marginTop: "1.25rem",
+              paddingTop: "1.25rem",
+              textAlign: "center",
+              color: "#6b7280",
+              fontSize: "0.875rem",
+              borderTop: "1px solid #e5e7eb",
+            }}
+          >
+            Are you a property owner?{" "}
+            <Link
+              href="/owner/auth/register"
+              style={{
+                color: "#16a34a",
+                fontWeight: 600,
+                textDecoration: "none",
+              }}
+            >
+              Owner Register
+            </Link>
           </p>
         </div>
       </div>

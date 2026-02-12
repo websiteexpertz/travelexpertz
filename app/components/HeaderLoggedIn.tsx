@@ -48,8 +48,26 @@ export default function HeaderLoggedIn({
 
   return (
     <>
-      <header style={{ position: "relative" }}>
-        <div className="max-w-7xl mx-auto" style={{ position: "relative" }}>
+      <header
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          width: "100%",
+          zIndex: 1000,
+          backgroundColor: "white",
+          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+        }}
+      >
+        <div
+          style={{
+            position: "relative",
+            width: "100%",
+            paddingLeft: "1rem",
+            paddingRight: "1rem",
+          }}
+        >
           <div className="flex items-center">
             <Link
               href="/"
@@ -59,8 +77,8 @@ export default function HeaderLoggedIn({
               <Image
                 src="/logo.webp"
                 alt="TravelExpertz"
-                width={40}
-                height={40}
+                width={70}
+                height={70}
                 priority
                 className="h-10 w-10 rounded-lg"
               />

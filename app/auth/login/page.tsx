@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/app/components/Header";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -29,8 +30,18 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
+        // Clear old localStorage data first
+        localStorage.removeItem("user");
+        localStorage.removeItem("ownerToken");
+
+        console.log("Login successful:", {
+          email: data.user.email,
+          role: data.user.role,
+        });
+
         // Store user data in localStorage
         localStorage.setItem("user", JSON.stringify(data.user));
+
         // Redirect to home page
         router.push("/");
       } else {
@@ -60,7 +71,6 @@ export default function LoginPage() {
         style={{
           minHeight: "100vh",
           background: "#f3f4f6",
-          paddingTop: "4rem",
           paddingBottom: "2rem",
         }}
       >
@@ -86,7 +96,7 @@ export default function LoginPage() {
             </h1>
             <p
               style={{
-                margin: "0 0 2rem",
+                margin: "0 0 1.5rem",
                 color: "#6b7280",
                 textAlign: "center",
               }}
@@ -217,7 +227,7 @@ export default function LoginPage() {
             }}
           >
             Don't have an account?{" "}
-            <a
+            <Link
               href="/auth/register"
               style={{
                 color: "#0066cc",
@@ -226,7 +236,29 @@ export default function LoginPage() {
               }}
             >
               Sign Up
-            </a>
+            </Link>
+          </p>
+
+          {/* Owner Login Link */}
+          <p
+            style={{
+              marginTop: "1rem",
+              textAlign: "center",
+              color: "#6b7280",
+              fontSize: "0.875rem",
+            }}
+          >
+            Are you a property owner?{" "}
+            <Link
+              href="/owner/auth/login"
+              style={{
+                color: "#16a34a",
+                fontWeight: 600,
+                textDecoration: "none",
+              }}
+            >
+              Owner Login
+            </Link>
           </p>
         </div>
       </div>

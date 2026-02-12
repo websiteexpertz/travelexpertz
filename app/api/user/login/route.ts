@@ -15,7 +15,7 @@ import { generateAccessToken, generateRefreshToken } from "@/lib/jwt";
  */
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json();
+    const { email, password, role } = await request.json();
 
     // Validation
     if (!email || !password) {
@@ -28,11 +28,52 @@ export async function POST(request: NextRequest) {
     const db = await getDb();
     const usersCollection = db.collection("users");
     const profilesCollection = db.collection("user_profiles");
+    const ownersCollection = db.collection("propertyowners");
     const refreshTokenCollection = db.collection("refresh_tokens");
 
-    // Find user
-    const user = await usersCollection.findOne({ email: email.toLowerCase() });
+    // Determine expected role
+    const expectedRole = role === "owner" ? "owner" : "user";
+
+    let user: any = null;
+    let isOwner = false;
+
+    // If owner role, check propertyowners collection first
+    if (expectedRole === "owner") {
+      user = await ownersCollection.findOne({ email: email.toLowerCase() });
+      if (user) {
+        isOwner = true;
+        console.log("Login attempt - Owner found:", {
+          email: user.email,
+          name: user.ownerName,
+        });
+      }
+    }
+
+    // If not owner or owner not found, check users collection
     if (!user) {
+      user = await usersCollection.findOne({ email: email.toLowerCase() });
+      if (!user) {
+        console.error("Login failed - User not found for email:", email.toLowerCase());
+        return NextResponse.json(
+          { error: "Invalid email or password" },
+          { status: 401 }
+        );
+      }
+    }
+
+    console.log("Login attempt - User/Owner found:", {
+      email: user.email,
+      role: user.role,
+      expectedRole: expectedRole,
+      isOwner: isOwner,
+    });
+
+    // Check role matches (for users collection only)
+    if (!isOwner && user.role !== expectedRole) {
+      console.error("Login failed - Role mismatch:", {
+        userRole: user.role,
+        expectedRole,
+      });
       return NextResponse.json(
         { error: "Invalid email or password" },
         { status: 401 }
@@ -40,9 +81,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if account is active
-    if (!user.isActive) {
+    if (!isOwner && !user.isActive) {
       return NextResponse.json(
         { error: "Account is deactivated. Please contact support." },
+        { status: 403 }
+      );
+    }
+
+    if (isOwner && !user.active) {
+      return NextResponse.json(
+        { error: "Owner account is deactivated. Please contact support." },
         { status: 403 }
       );
     }
@@ -65,20 +113,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get user profile
-    const profile = await profilesCollection.findOne({ userId: user._id });
+    // Get user profile (only for regular users)
+    let profile = null;
+    if (!isOwner) {
+      profile = await profilesCollection.findOne({ userId: user._id });
+    }
 
     // Generate tokens
     const accessToken = generateAccessToken({
       userId: user._id.toString(),
       email: user.email,
-      role: user.role,
+      role: isOwner ? "owner" : user.role,
     });
 
     const refreshToken = generateRefreshToken({
       userId: user._id.toString(),
       email: user.email,
-      role: user.role,
+      role: isOwner ? "owner" : user.role,
     });
 
     // Store refresh token
@@ -95,12 +146,20 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({
       success: true,
       message: "Login successful!",
-      user: {
-        id: user._id,
-        mobile: user.mobile,
-        name: profile?.name || "",
-        role: user.role,
-      },
+      user: isOwner
+        ? {
+            id: user._id,
+            email: user.email,
+            name: user.ownerName || "",
+            role: "owner",
+            business: user.businessName,
+          }
+        : {
+            id: user._id,
+            mobile: user.mobile,
+            name: profile?.name || "",
+            role: user.role,
+          },
       accessToken,
       refreshToken,
     });

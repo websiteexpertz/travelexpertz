@@ -23,29 +23,68 @@ export async function GET(request: NextRequest) {
 
     const db = client.db(MONGODB_DB);
     const hotelsCollection = db.collection("hotels");
+    const ownerPropertiesCollection = db.collection("ownerproperties");
 
     // If ID is provided, fetch single hotel
     if (id) {
       const { ObjectId } = await import("mongodb");
-      const hotel = await hotelsCollection.findOne({ 
+      
+      // Try to find in built-in hotels first
+      let hotel = await hotelsCollection.findOne({ 
         _id: new ObjectId(id),
         active: true 
       });
+      
+      // If not found, try owner properties
+      if (!hotel) {
+        hotel = await ownerPropertiesCollection.findOne({
+          _id: new ObjectId(id),
+          status: "approved"
+        });
+      }
       
       if (!hotel) {
         return NextResponse.json({ error: "Hotel not found" }, { status: 404 });
       }
       
+      // Format owner property to match hotel format if needed
+      if (!hotel.active && hotel.status === "approved") {
+        hotel.name = hotel.propertyName || hotel.name;
+        hotel.image = hotel.images?.[0] || hotel.image || "";
+        hotel.rating = hotel.rating || 4.5;
+        hotel.reviews = hotel.reviews || 0;
+      }
+      
       return NextResponse.json(hotel);
     }
 
-    // Otherwise, fetch all hotels
-    const hotels = await hotelsCollection
+    // Otherwise, fetch all hotels from built-in collection
+    const builtInHotels = await hotelsCollection
       .find({ active: true })
       .sort({ popular: -1, createdAt: -1 })
       .toArray();
 
-    return NextResponse.json(hotels);
+    // Also fetch approved owner properties
+    const ownerProperties = await ownerPropertiesCollection
+      .find({ status: "approved" })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    // Combine and sort by featured (popular first, then by creation date)
+    const allHotels = [
+      ...builtInHotels.map(h => ({ ...h, source: "builtin" })),
+      ...ownerProperties.map(p => ({ 
+        ...p, 
+        source: "owner",
+        name: p.propertyName || p.name,
+        image: p.images?.[0] || p.image || "",
+        amenities: p.amenities || [],
+        rating: p.rating || 4.5,
+        reviews: p.reviews || 0
+      }))
+    ];
+
+    return NextResponse.json(allHotels);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("Error fetching hotels:", errorMessage);

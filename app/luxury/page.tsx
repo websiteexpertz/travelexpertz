@@ -46,7 +46,7 @@ export default function LuxuryPage() {
         const hotels = await hotelsRes.json();
         const luxuryHotels = Array.isArray(hotels)
           ? hotels
-              .filter((h: any) => h.luxury === true)
+              .filter((h: any) => h.isLuxury === true || h.luxury === true)
               .map((h: any) => ({ ...h, type: "hotel" as const }))
           : [];
         allProperties.push(...luxuryHotels);
@@ -56,7 +56,7 @@ export default function LuxuryPage() {
         const homestays = await homestaysRes.json();
         const luxuryHomestays = Array.isArray(homestays)
           ? homestays
-              .filter((h: any) => h.luxury === true)
+              .filter((h: any) => h.isLuxury === true || h.luxury === true)
               .map((h: any) => ({ ...h, type: "homestay" as const }))
           : [];
         allProperties.push(...luxuryHomestays);

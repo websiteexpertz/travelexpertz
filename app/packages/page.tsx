@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Header from "../components/Header";
+import React from "react";
 
 interface Package {
   _id?: string;
@@ -89,6 +90,18 @@ const getCategoryEmoji = (categoryName: string): string => {
   if (name.includes("international") || name.includes("abroad")) return "🌍";
   if (name.includes("domestic") || name.includes("india")) return "🇮🇳";
   return "✨"; // Default emoji
+};
+
+// Date Utility Functions
+const getTodayDate = () => {
+  const today = new Date();
+  return today.toISOString().split("T")[0];
+};
+
+const getTwoDaysLater = () => {
+  const date = new Date();
+  date.setDate(date.getDate() + 2);
+  return date.toISOString().split("T")[0];
 };
 
 // Category Carousel Component
@@ -267,7 +280,7 @@ const packagesPageStyles = `
   /* Hero Section */
   .packages-hero {
     position: relative;
-    height: 86vh;
+    height: 100vh;
     min-height: 600px;
     background-size: cover;
     background-position: center;
@@ -960,6 +973,23 @@ const packagesPageStyles = `
       padding: 2rem 1.5rem;
     }
   }
+
+  /* Animations */
+  @keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-20px) rotate(5deg); }
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 `;
 
 export default function Packages() {
@@ -970,6 +1000,7 @@ export default function Packages() {
   const [searchQuery, setSearchQuery] = useState("");
   const [priceRange, setPriceRange] = useState<string>("all");
   const [selectedDestination, setSelectedDestination] = useState<string>("");
+  const packagesRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -1100,57 +1131,259 @@ export default function Packages() {
     <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-gray-50">
       <style>{packagesPageStyles}</style>
       <Header currentPage="packages" />
-
-      <main className="flex flex-col items-center w-full flex-1">
+      <main
+        className="flex flex-col items-center w-full flex-1"
+      >
         {/* Hero Section */}
         <div className="w-full px-0 sm:px-2 lg:px-4">
           <div
             className="packages-hero"
             style={{
               backgroundImage: "url('/hero-background.webp')",
+              position: "relative",
+              height: "480px",
+              borderRadius: "24px",
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "2rem 1.5rem",
             }}
           >
-            <div className="packages-hero-content">
-              <h1>Explore Our Travel Packages</h1>
-              <p>
+            {/* Background with Gradient Overlay */}
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                backgroundImage: "url('/hero-background.webp')",
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background:
+                  "linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.2) 50%, rgba(0, 0, 0, 0.5) 100%)",
+              }}
+            />
+
+            {/* Floating Decorative Elements */}
+            <div
+              className="floating-element"
+              style={{
+                position: "absolute",
+                top: "15%",
+                left: "8%",
+                width: "80px",
+                height: "80px",
+                borderRadius: "50%",
+                background: "rgba(255, 255, 255, 0.1)",
+                backdropFilter: "blur(10px)",
+                animation: "float 6s ease-in-out infinite",
+              }}
+            />
+            <div
+              className="floating-element"
+              style={{
+                position: "absolute",
+                bottom: "20%",
+                right: "10%",
+                width: "120px",
+                height: "120px",
+                borderRadius: "50%",
+                background: "rgba(255, 255, 255, 0.08)",
+                backdropFilter: "blur(10px)",
+                animation: "float 8s ease-in-out infinite reverse",
+              }}
+            />
+            <div
+              className="floating-element"
+              style={{
+                position: "absolute",
+                top: "60%",
+                left: "15%",
+                width: "50px",
+                height: "50px",
+                borderRadius: "50%",
+                background: "rgba(255, 255, 255, 0.12)",
+                backdropFilter: "blur(10px)",
+                animation: "float 5s ease-in-out infinite 1s",
+              }}
+            />
+
+            {/* Hero Content */}
+            <div
+              className="packages-hero-content"
+              style={{
+                position: "relative",
+                zIndex: 10,
+                textAlign: "center",
+                color: "white",
+                padding: "0 1.5rem",
+                maxWidth: "800px",
+                marginBottom: "2rem",
+              }}
+            >
+              <h1
+                style={{
+                  fontSize: "clamp(1.75rem, 5vw, 3rem)",
+                  fontWeight: 800,
+                  marginBottom: "0.75rem",
+                  lineHeight: 1.15,
+                  textShadow: "0 4px 20px rgba(0, 0, 0, 0.3)",
+                  letterSpacing: "-0.02em",
+                  margin: "0 auto 0.75rem",
+                  display: "block",
+                  animation: "fadeInUp 0.8s ease-out",
+                }}
+              >
+                Explore Our
+                <span
+                  style={{
+                    background:
+                      "linear-gradient(135deg, #FFD700 0%, #FFA500 100%)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    backgroundClip: "text",
+                    marginLeft: "0.5rem",
+                  }}
+                >
+                  Travel Packages
+                </span>
+              </h1>
+              <p
+                style={{
+                  fontSize: "clamp(0.9rem, 2vw, 1.1rem)",
+                  opacity: 0.95,
+                  maxWidth: "600px",
+                  margin: "0 auto 0",
+                  lineHeight: 1.5,
+                  fontWeight: 500,
+                  letterSpacing: "0.3px",
+                  animation: "fadeInUp 0.8s ease-out 0.2s both",
+                }}
+              >
                 Discover handpicked adventures across India&apos;s most
                 beautiful destinations
               </p>
+            </div>
 
-              {/* Search Box */}
-              <div className="packages-search-box">
-                <div className="packages-search-content">
-                  <div className="packages-search-item">
-                    <span className="material-symbols-outlined">search</span>
-                    <input
-                      type="text"
-                      placeholder="Search packages..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-                  <div className="packages-search-item">
-                    <span className="material-symbols-outlined">payments</span>
-                    <select
-                      value={priceRange}
-                      onChange={(e) => setPriceRange(e.target.value)}
-                    >
-                      <option value="all">All Budgets</option>
-                      <option value="budget">Under ₹15,000</option>
-                      <option value="mid">₹15,000 - ₹30,000</option>
-                      <option value="luxury">Above ₹30,000</option>
-                    </select>
-                  </div>
-                  <button className="packages-search-btn">
-                    <span
-                      className="material-symbols-outlined"
-                      style={{ fontSize: "1.25rem" }}
-                    >
-                      search
-                    </span>
-                    Search
-                  </button>
+            {/* Search Box - Inside Hero */}
+            <div
+              className="packages-search-box"
+              style={{
+                background: "rgba(255, 255, 255, 0.97)",
+                backdropFilter: "blur(20px)",
+                borderRadius: "16px",
+                padding: "0.5rem",
+                boxShadow: "0 10px 40px rgba(0, 0, 0, 0.2)",
+                maxWidth: "1000px",
+                width: "100%",
+                position: "relative",
+                zIndex: 20,
+                border: "1.5px solid rgba(255, 255, 255, 0.4)",
+                animation: "fadeInUp 0.8s ease-out 0.4s both",
+              }}
+            >
+              <div
+                className="packages-search-content"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0",
+                }}
+              >
+                {/* Search Input */}
+                <div
+                  className="packages-search-item"
+                  style={{
+                    flex: 1.3,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    padding: "0.7rem 1rem",
+                    borderRadius: "12px",
+                    transition: "background 0.25s ease",
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{
+                      color: "#0066cc",
+                      fontSize: "1.25rem",
+                      flexShrink: 0,
+                    }}
+                  >
+                    search
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Search packages..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{
+                      border: "none",
+                      outline: "none",
+                      width: "100%",
+                      fontSize: "0.9rem",
+                      background: "transparent",
+                      fontWeight: 600,
+                      color: "#1f2937",
+                    }}
+                  />
                 </div>
+
+                {/* Divider */}
+
+                {/* Search Button */}
+                <button
+                  className="packages-search-btn"
+                  onClick={() => {
+                    // Scroll to packages section
+                    if (packagesRef.current) {
+                      packagesRef.current.scrollIntoView({ behavior: "smooth" });
+                    }
+                  }}
+                  style={{
+                    background:
+                      "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
+                    color: "white",
+                    border: "none",
+                    padding: "0.7rem 1.75rem",
+                    borderRadius: "12px",
+                    fontSize: "0.9rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.4rem",
+                    transition: "all 0.3s ease",
+                    boxShadow: "0 2px 10px rgba(0, 102, 204, 0.35)",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "scale(1.03)";
+                    e.currentTarget.style.boxShadow =
+                      "0 4px 16px rgba(0, 102, 204, 0.45)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "scale(1)";
+                    e.currentTarget.style.boxShadow =
+                      "0 2px 10px rgba(0, 102, 204, 0.35)";
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: "1.1rem" }}
+                  >
+                    search
+                  </span>
+                  Search
+                </button>
               </div>
             </div>
           </div>
@@ -1231,6 +1464,7 @@ export default function Packages() {
 
         {/* Category Carousels */}
         <section
+          ref={packagesRef}
           className="w-full"
           style={{ maxWidth: "100rem", margin: "0 auto" }}
         >

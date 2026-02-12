@@ -57,6 +57,10 @@ interface Hotel {
   mapUrl?: string;
   popular: boolean;
   active: boolean;
+  isLuxury?: boolean;
+  isTeVerified?: boolean;
+  isDeal?: boolean;
+  dealDescription?: string;
   customFields?: { [key: string]: any };
 }
 
@@ -90,6 +94,10 @@ const emptyHotel: Hotel = {
   mapUrl: "",
   popular: false,
   active: true,
+  isLuxury: false,
+  isTeVerified: false,
+  isDeal: false,
+  dealDescription: "",
   customFields: {},
 };
 
@@ -1190,7 +1198,12 @@ export default function AdminHotels() {
                 </div>
 
                 <div
-                  style={{ display: "flex", gap: "1rem", alignItems: "center" }}
+                  style={{
+                    display: "flex",
+                    gap: "1rem",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                  }}
                 >
                   <label
                     style={{
@@ -1232,7 +1245,100 @@ export default function AdminHotels() {
                     />
                     Active
                   </label>
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      fontSize: "0.9rem",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.isLuxury}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          isLuxury: e.target.checked,
+                        }))
+                      }
+                    />
+                    Luxury Property
+                  </label>
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      fontSize: "0.9rem",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.isTeVerified}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          isTeVerified: e.target.checked,
+                        }))
+                      }
+                    />
+                    TE Verified
+                  </label>
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      fontSize: "0.9rem",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.isDeal}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          isDeal: e.target.checked,
+                        }))
+                      }
+                    />
+                    Is Deal
+                  </label>
                 </div>
+
+                {/* Deal Description - Show only when isDeal is checked */}
+                {formData.isDeal && (
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        marginBottom: "0.5rem",
+                        fontWeight: 600,
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      What is the Deal?
+                    </label>
+                    <input
+                      value={formData.dealDescription || ""}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          dealDescription: e.target.value,
+                        }))
+                      }
+                      placeholder="Describe the deal offer (e.g., 20% discount, Free breakfast, etc.)"
+                      style={{
+                        width: "100%",
+                        padding: "0.75rem",
+                        border: "1px solid #d1d5db",
+                        borderRadius: "8px",
+                        fontSize: "0.95rem",
+                      }}
+                    />
+                  </div>
+                )}
 
                 {/* Custom Fields Section */}
                 <div
@@ -3051,6 +3157,7 @@ export default function AdminHotels() {
                                 padding: "0.25rem 0.75rem",
                                 borderRadius: "6px",
                                 fontSize: "0.75rem",
+                                marginRight: "0.5rem",
                                 fontWeight: 600,
                               }}
                             >
@@ -3064,10 +3171,56 @@ export default function AdminHotels() {
                                 padding: "0.25rem 0.75rem",
                                 borderRadius: "6px",
                                 fontSize: "0.75rem",
+                                marginRight: "0.5rem",
                                 fontWeight: 600,
                               }}
                             >
                               Inactive
+                            </span>
+                          )}
+                          {hotel.isLuxury && (
+                            <span
+                              style={{
+                                background: "#e0e7ff",
+                                color: "#3730a3",
+                                padding: "0.25rem 0.75rem",
+                                borderRadius: "6px",
+                                fontSize: "0.75rem",
+                                marginRight: "0.5rem",
+                                fontWeight: 600,
+                              }}
+                            >
+                              💎 Luxury
+                            </span>
+                          )}
+                          {hotel.isTeVerified && (
+                            <span
+                              style={{
+                                background: "#dbeafe",
+                                color: "#0c4a6e",
+                                padding: "0.25rem 0.75rem",
+                                borderRadius: "6px",
+                                fontSize: "0.75rem",
+                                marginRight: "0.5rem",
+                                fontWeight: 600,
+                              }}
+                            >
+                              ✓ TE Verified
+                            </span>
+                          )}
+                          {hotel.isDeal && (
+                            <span
+                              style={{
+                                background: "#fecaca",
+                                color: "#7c2d12",
+                                padding: "0.25rem 0.75rem",
+                                borderRadius: "6px",
+                                fontSize: "0.75rem",
+                                marginRight: "0.5rem",
+                                fontWeight: 600,
+                              }}
+                            >
+                              🎁 Deal
                             </span>
                           )}
                         </div>

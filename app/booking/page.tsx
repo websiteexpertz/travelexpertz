@@ -205,7 +205,9 @@ function BookingPageContent() {
     return (
       <div>
         <Header />
-        <div style={{ padding: "3rem", textAlign: "center" }}>
+        <div
+          style={{ padding: "3rem", textAlign: "center", paddingTop: "4rem" }}
+        >
           <p>Loading booking details...</p>
         </div>
       </div>
@@ -223,6 +225,7 @@ function BookingPageContent() {
           maxWidth: "1200px",
           margin: "2rem auto",
           padding: "0 1.5rem",
+          paddingTop: "4rem",
         }}
       >
         <h1

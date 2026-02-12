@@ -141,8 +141,8 @@ export default function HomestayDetails() {
       const fetchHostProperties = async () => {
         try {
           const response = await fetch(
-            `/api/homestays?hostName=${encodeURIComponent(homestay.hostName)}&limit=10`,
-            { cache: "no-store" }
+            `/api/homestays?hostName=${encodeURIComponent(homestay.hostName || "")}&limit=10`,
+            { cache: "no-store" },
           );
           if (response.ok) {
             const data = await response.json();
@@ -766,7 +766,8 @@ export default function HomestayDetails() {
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.borderColor = "#3b82f6";
-                      e.currentTarget.style.boxShadow = "0 4px 12px rgba(59, 130, 246, 0.1)";
+                      e.currentTarget.style.boxShadow =
+                        "0 4px 12px rgba(59, 130, 246, 0.1)";
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.borderColor = "#e2e8f0";
@@ -1895,7 +1896,7 @@ export default function HomestayDetails() {
                   e.currentTarget.style.boxShadow = "none";
                 }}
               >
-                Book Now
+                Enquire Now
               </button>
 
               <div
@@ -2130,7 +2131,8 @@ export default function HomestayDetails() {
                       border: "1px solid #e2e8f0",
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.boxShadow = "0 10px 25px rgba(0, 0, 0, 0.1)";
+                      e.currentTarget.style.boxShadow =
+                        "0 10px 25px rgba(0, 0, 0, 0.1)";
                       e.currentTarget.style.transform = "translateY(-4px)";
                     }}
                     onMouseLeave={(e) => {
@@ -2173,7 +2175,10 @@ export default function HomestayDetails() {
                           marginBottom: "0.75rem",
                         }}
                       >
-                        <span className="material-symbols-outlined" style={{ fontSize: "1rem" }}>
+                        <span
+                          className="material-symbols-outlined"
+                          style={{ fontSize: "1rem" }}
+                        >
                           location_on
                         </span>
                         {prop.location}

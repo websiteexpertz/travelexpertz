@@ -40,7 +40,7 @@ export default function RootLayout({
       </head>
       <body
         className="bg-background-light font-display text-slate-800"
-        style={{ margin: 0, padding: 0, paddingTop: "64px" }}
+        style={{ margin: 0, padding: 0 }}
       >
         <RootLayoutClient>{children}</RootLayoutClient>
       </body>

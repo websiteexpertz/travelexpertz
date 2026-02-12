@@ -58,6 +58,27 @@ interface WhyUs {
   active: boolean;
 }
 
+interface Event {
+  _id?: string;
+  id?: string;
+  eventName: string;
+  description: string;
+  location: string;
+  state: string;
+  city: string;
+  startDate: string;
+  endDate: string;
+  profileImage: string;
+  galleryImages: string[];
+  organizer: string;
+  category: string;
+  ticketPrice: number;
+  registrationLink: string;
+  active: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 // All data will be fetched from database via API endpoints
 
 export default function Home() {
@@ -85,10 +106,35 @@ export default function Home() {
   const [whyUs, setWhyUs] = useState<WhyUs[]>([]);
   const [whyUsLoading, setWhyUsLoading] = useState(true);
 
+  // Events State
+  const [events, setEvents] = useState<Event[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
+
   // Service Booking Modal State
   const [selectedServiceForBooking, setSelectedServiceForBooking] = useState<
     string | null
   >(null);
+
+  // Hotel Search Filters State
+  const getTodayDate = () => {
+    const today = new Date();
+    return today.toISOString().split("T")[0];
+  };
+
+  const getTwoDaysLater = () => {
+    const date = new Date();
+    date.setDate(date.getDate() + 2);
+    return date.toISOString().split("T")[0];
+  };
+
+  const [filters, setFilters] = useState({
+    location: "",
+    checkIn: getTodayDate(),
+    checkOut: getTwoDaysLater(),
+    guests: "2",
+    rooms: "1",
+    priceRange: "all",
+  });
 
   // Map service title to booking form type
   const mapServiceToBookingType = (serviceTitle: string): string | null => {
@@ -195,6 +241,25 @@ export default function Home() {
       }
     };
     fetchWhyUs();
+  }, []);
+
+  // Fetch Events
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await fetch("/api/events", { cache: "no-store" });
+        if (response.ok) {
+          const data = await response.json();
+          const eventsList = Array.isArray(data) ? data : [];
+          if (eventsList.length > 0) setEvents(eventsList);
+        }
+      } catch (error) {
+        console.log("Failed to fetch events", error);
+      } finally {
+        setEventsLoading(false);
+      }
+    };
+    fetchEvents();
   }, []);
 
   // Debug: Monitor service booking modal state
@@ -406,7 +471,21 @@ export default function Home() {
               <div className="search-box-content">
                 <div className="search-item">
                   <span className="material-symbols-outlined">location_on</span>
-                  <span>Location</span>
+                  <input
+                    type="text"
+                    placeholder="Location"
+                    value={filters.location}
+                    onChange={(e) =>
+                      setFilters({ ...filters, location: e.target.value })
+                    }
+                    style={{
+                      border: "none",
+                      outline: "none",
+                      background: "transparent",
+                      flex: 1,
+                      fontSize: "0.9rem",
+                    }}
+                  />
                   <span
                     className="material-symbols-outlined"
                     style={{ marginLeft: "auto" }}
@@ -418,7 +497,20 @@ export default function Home() {
                   <span className="material-symbols-outlined">
                     calendar_month
                   </span>
-                  <span>Check-in</span>
+                  <input
+                    type="date"
+                    value={filters.checkIn}
+                    onChange={(e) =>
+                      setFilters({ ...filters, checkIn: e.target.value })
+                    }
+                    style={{
+                      border: "none",
+                      outline: "none",
+                      background: "transparent",
+                      flex: 1,
+                      fontSize: "0.9rem",
+                    }}
+                  />
                   <span
                     className="material-symbols-outlined"
                     style={{ marginLeft: "auto" }}
@@ -430,7 +522,20 @@ export default function Home() {
                   <span className="material-symbols-outlined">
                     calendar_month
                   </span>
-                  <span>Check-out</span>
+                  <input
+                    type="date"
+                    value={filters.checkOut}
+                    onChange={(e) =>
+                      setFilters({ ...filters, checkOut: e.target.value })
+                    }
+                    style={{
+                      border: "none",
+                      outline: "none",
+                      background: "transparent",
+                      flex: 1,
+                      fontSize: "0.9rem",
+                    }}
+                  />
                   <span
                     className="material-symbols-outlined"
                     style={{ marginLeft: "auto" }}
@@ -440,7 +545,26 @@ export default function Home() {
                 </div>
                 <div className="search-item">
                   <span className="material-symbols-outlined">group</span>
-                  <span>Guests</span>
+                  <select
+                    value={filters.guests}
+                    onChange={(e) =>
+                      setFilters({ ...filters, guests: e.target.value })
+                    }
+                    style={{
+                      border: "none",
+                      outline: "none",
+                      background: "transparent",
+                      flex: 1,
+                      fontSize: "0.9rem",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <option value="1">1 Guest</option>
+                    <option value="2">2 Guests</option>
+                    <option value="3">3 Guests</option>
+                    <option value="4">4 Guests</option>
+                    <option value="5">5+ Guests</option>
+                  </select>
                   <span
                     className="material-symbols-outlined"
                     style={{ marginLeft: "auto" }}
@@ -450,7 +574,25 @@ export default function Home() {
                 </div>
                 <div className="search-item">
                   <span className="material-symbols-outlined">bed</span>
-                  <span>Rooms</span>
+                  <select
+                    value={filters.rooms}
+                    onChange={(e) =>
+                      setFilters({ ...filters, rooms: e.target.value })
+                    }
+                    style={{
+                      border: "none",
+                      outline: "none",
+                      background: "transparent",
+                      flex: 1,
+                      fontSize: "0.9rem",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <option value="1">1 Room</option>
+                    <option value="2">2 Rooms</option>
+                    <option value="3">3 Rooms</option>
+                    <option value="4">4+ Rooms</option>
+                  </select>
                   <span
                     className="material-symbols-outlined"
                     style={{ marginLeft: "auto" }}
@@ -460,6 +602,17 @@ export default function Home() {
                 </div>
                 <button
                   className="search-btn"
+                  onClick={() => {
+                    const params = new URLSearchParams({
+                      location: filters.location || "",
+                      checkIn: filters.checkIn || "",
+                      checkOut: filters.checkOut || "",
+                      guests: filters.guests || "2",
+                      rooms: filters.rooms || "1",
+                      priceRange: filters.priceRange || "all",
+                    });
+                    window.location.href = `/hotels/search?${params.toString()}`;
+                  }}
                   style={{
                     background:
                       "linear-gradient(135deg, var(--primary) 0%, #0052a3 100%)",
@@ -691,6 +844,295 @@ export default function Home() {
             </div>
           </section>
 
+          {/* ========== UPCOMING EVENTS SECTION ========== */}
+          <section
+            className="upcoming-events-section"
+            style={{
+              padding: "clamp(2rem, 5vw, 4rem) clamp(0.5rem, 2vw, 1.5rem)",
+              background: "#fff",
+              position: "relative",
+              overflow: "hidden",
+            }}
+          >
+            {/* Background Decorations */}
+            <div
+              className="hidden md:block"
+              style={{
+                position: "absolute",
+                top: "-80px",
+                left: "-80px",
+                width: "300px",
+                height: "300px",
+                borderRadius: "50%",
+                background:
+                  "radial-gradient(circle, rgba(102, 126, 234, 0.05) 0%, transparent 70%)",
+                pointerEvents: "none",
+              }}
+            />
+            <div
+              className="hidden md:block"
+              style={{
+                position: "absolute",
+                bottom: "-60px",
+                right: "-60px",
+                width: "250px",
+                height: "250px",
+                borderRadius: "50%",
+                background:
+                  "radial-gradient(circle, rgba(118, 75, 162, 0.04) 0%, transparent 70%)",
+                pointerEvents: "none",
+              }}
+            />
+
+            <div
+              style={{
+                maxWidth: "1200px",
+                margin: "0 auto",
+                position: "relative",
+                zIndex: 1,
+              }}
+            >
+              {/* Section Header */}
+              <div
+                style={{
+                  textAlign: "center",
+                  marginBottom: "clamp(2rem, 5vw, 3rem)",
+                  padding: "0 0.5rem",
+                }}
+              >
+                <h2
+                  style={{
+                    fontSize: "clamp(1.5rem, 5vw, 2.25rem)",
+                    fontWeight: 800,
+                    textAlign: "center",
+                    margin: "0 0 0.5rem 0",
+                    color: "#1a1a2e",
+                    letterSpacing: "-0.5px",
+                  }}
+                >
+                  Upcoming Events
+                </h2>
+                <p
+                  style={{
+                    fontSize: "clamp(0.85rem, 2.5vw, 1rem)",
+                    color: "#666",
+                    maxWidth: "600px",
+                    margin: "0 auto",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Discover and join exciting travel events happening near you.
+                  From festivals to adventure experiences, find your next
+                  adventure
+                </p>
+              </div>
+
+              {/* Events Grid - Small Cards Like Services */}
+              {eventsLoading ? (
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: "2rem",
+                    color: "#999",
+                  }}
+                >
+                  Loading events...
+                </div>
+              ) : events.length === 0 ? (
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: "3rem 1rem",
+                    background:
+                      "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
+                    borderRadius: "16px",
+                    color: "#999",
+                    gridColumn: "1 / -1",
+                  }}
+                >
+                  <p style={{ fontSize: "1.1rem", marginBottom: "0.5rem" }}>
+                    No upcoming events at the moment
+                  </p>
+                  <p style={{ fontSize: "0.9rem", margin: 0 }}>
+                    Check back soon for exciting travel experiences!
+                  </p>
+                </div>
+              ) : (
+                <div
+                  className="events-grid"
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(4, 1fr)",
+                    gap: "clamp(0.5rem, 2vw, 1rem)",
+                  }}
+                >
+                  {events.map((event, index) => (
+                    <a
+                      key={event._id || event.id || index}
+                      href={`/events/${event._id}`}
+                      className="event-card"
+                      style={{
+                        cursor: "pointer",
+                        borderRadius: "clamp(10px, 2vw, 16px)",
+                        overflow: "hidden",
+                        background: "#fff",
+                        border: "1px solid rgba(0, 0, 0, 0.08)",
+                        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
+                        transition: "all 0.3s ease",
+                        position: "relative",
+                        textDecoration: "none",
+                        display: "flex",
+                        flexDirection: "column",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = "translateY(-6px)";
+                        e.currentTarget.style.boxShadow =
+                          "0 12px 24px rgba(0, 102, 204, 0.15)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = "translateY(0)";
+                        e.currentTarget.style.boxShadow =
+                          "0 2px 8px rgba(0, 0, 0, 0.06)";
+                      }}
+                    >
+                      {/* Image */}
+                      <div
+                        className="event-image-wrapper"
+                        style={{
+                          width: "100%",
+                          aspectRatio: "4/3",
+                          overflow: "hidden",
+                          background:
+                            "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)",
+                          position: "relative",
+                        }}
+                      >
+                        <img
+                          src={event.profileImage}
+                          alt={event.eventName}
+                          loading="lazy"
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                            transition: "transform 0.3s ease",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = "scale(1.05)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = "scale(1)";
+                          }}
+                        />
+                        {/* Category Badge */}
+                        {event.category && (
+                          <div
+                            style={{
+                              position: "absolute",
+                              top: "0.5rem",
+                              right: "0.5rem",
+                              background:
+                                "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                              color: "white",
+                              padding: "0.35rem 0.75rem",
+                              borderRadius: "16px",
+                              fontSize: "0.7rem",
+                              fontWeight: 600,
+                            }}
+                          >
+                            {event.category}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Content */}
+                      <div
+                        className="event-content"
+                        style={{
+                          padding: "clamp(0.625rem, 2vw, 1rem)",
+                          flex: 1,
+                          display: "flex",
+                          flexDirection: "column",
+                        }}
+                      >
+                        <h3
+                          className="event-title"
+                          style={{
+                            fontSize: "clamp(0.8rem, 2.5vw, 1rem)",
+                            fontWeight: 700,
+                            color: "#1a1a2e",
+                            marginBottom: "clamp(0.25rem, 1vw, 0.375rem)",
+                            lineHeight: 1.3,
+                            margin: "0 0 0.5rem 0",
+                          }}
+                        >
+                          {event.eventName}
+                        </h3>
+
+                        {/* Location */}
+                        <p
+                          style={{
+                            fontSize: "clamp(0.65rem, 2vw, 0.8rem)",
+                            color: "#666",
+                            lineHeight: 1.3,
+                            margin: "0 0 0.5rem 0",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 1,
+                            WebkitBoxOrient: "vertical",
+                            overflow: "hidden",
+                          }}
+                        >
+                          📍 {event.city}, {event.state}
+                        </p>
+
+                        {/* Dates */}
+                        <p
+                          style={{
+                            fontSize: "clamp(0.65rem, 2vw, 0.8rem)",
+                            color: "#666",
+                            lineHeight: 1.3,
+                            margin: "0 0 0.5rem 0",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 1,
+                            WebkitBoxOrient: "vertical",
+                            overflow: "hidden",
+                          }}
+                        >
+                          📅{" "}
+                          {new Date(event.startDate).toLocaleDateString(
+                            "en-IN",
+                            {
+                              month: "short",
+                              day: "numeric",
+                            },
+                          )}
+                        </p>
+
+                        {/* Price */}
+                        <div
+                          style={{ marginTop: "auto", paddingTop: "0.5rem" }}
+                        >
+                          <p
+                            style={{
+                              margin: "0",
+                              fontSize: "clamp(0.8rem, 2.5vw, 1rem)",
+                              fontWeight: 700,
+                              color: "#667eea",
+                            }}
+                          >
+                            {event.ticketPrice === 0
+                              ? "Free"
+                              : `₹${event.ticketPrice}`}
+                          </p>
+                        </div>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+
           {/* ========== WHY US SECTION ========== */}
           <section
             className="why-us-section"
@@ -778,7 +1220,7 @@ export default function Home() {
                 className="why-us-grid"
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(2, 1fr)",
+                  gridTemplateColumns: "repeat(3, 1fr)",
                   gap: "clamp(0.75rem, 2vw, 1.5rem)",
                 }}
               >
@@ -1530,6 +1972,11 @@ export default function Home() {
           div[style*="gridTemplateColumns: \"repeat(auto-fit, minmax(250px, 1fr))\""] {
             gap: 1rem !important;
           }
+          
+          /* Events grid mobile - 2 columns */
+          .events-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
         }
         
         @media (max-width: 480px) {
@@ -1540,6 +1987,11 @@ export default function Home() {
           
           h2 {
             font-size: 1.75rem !important;
+          }
+          
+          /* Events grid extra small screens - 1 column */
+          .events-grid {
+            grid-template-columns: 1fr !important;
           }
         }
       `}</style>

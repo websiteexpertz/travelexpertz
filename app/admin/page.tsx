@@ -81,6 +81,13 @@ export default function AdminDashboard() {
       icon: "🏨",
     },
     {
+      label: "Hotel Destinations",
+      count: 0,
+      href: "/admin/hotel-destinations",
+      color: "#00b4d8",
+      icon: "🗺️",
+    },
+    {
       label: "Services",
       count: stats.services,
       href: "/admin/services",

@@ -67,11 +67,14 @@ export default function DealsPage() {
       if (hotelsRes.ok) {
         const hotels = await hotelsRes.json();
         hotels.forEach((hotel: any) => {
-          if (
+          // Check for offers or isDeal flag
+          const hasOffers =
             hotel.offers &&
             hotel.offers.length > 0 &&
-            hotel.offers.some((o: Offer) => o.active)
-          ) {
+            hotel.offers.some((o: Offer) => o.active);
+          const isDeal = hotel.isDeal === true;
+
+          if (hasOffers || isDeal) {
             allDeals.push({ ...hotel, category: "hotel" });
           }
         });
@@ -80,11 +83,14 @@ export default function DealsPage() {
       if (homestaysRes.ok) {
         const homestays = await homestaysRes.json();
         homestays.forEach((homestay: any) => {
-          if (
+          // Check for offers or isDeal flag
+          const hasOffers =
             homestay.offers &&
             homestay.offers.length > 0 &&
-            homestay.offers.some((o: Offer) => o.active)
-          ) {
+            homestay.offers.some((o: Offer) => o.active);
+          const isDeal = homestay.isDeal === true;
+
+          if (hasOffers || isDeal) {
             allDeals.push({ ...homestay, category: "homestay" });
           }
         });
@@ -117,6 +123,7 @@ export default function DealsPage() {
   };
 
   const getActiveOffers = (item: DealItem) => {
+    if (!item.offers || !Array.isArray(item.offers)) return [];
     return item.offers.filter((o) => o.active);
   };
 

@@ -55,7 +55,7 @@ export default function Footer() {
             <h4>Destinations</h4>
             <ul className="footer-links">
               <li>
-                <a href="#">Countries</a>
+                <a href="#">States/Regions</a>
               </li>
               <li>
                 <a href="#">Cities</a>

@@ -62,7 +62,7 @@ export default function AdminLuxury() {
 
   const toggleLuxuryStatus = async (
     propertyId: string,
-    currentStatus: boolean
+    currentStatus: boolean,
   ) => {
     setUpdating(propertyId);
     try {
@@ -73,7 +73,8 @@ export default function AdminLuxury() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           _id: propertyId,
-          luxury: !currentStatus,
+          isLuxury: !currentStatus,
+          luxury: !currentStatus, // Keep for backward compatibility
         }),
       });
 
@@ -82,7 +83,7 @@ export default function AdminLuxury() {
         alert(
           `Property ${
             !currentStatus ? "added to" : "removed from"
-          } luxury collection!`
+          } luxury collection!`,
         );
       } else {
         alert("Failed to update property");
@@ -97,7 +98,8 @@ export default function AdminLuxury() {
 
   const getLuxuryCount = () => {
     const properties = getCurrentProperties();
-    return properties.filter((p) => p.luxury === true).length;
+    return properties.filter((p) => p.isLuxury === true || p.luxury === true)
+      .length;
   };
 
   return (
@@ -211,13 +213,14 @@ export default function AdminLuxury() {
                   borderRadius: "12px",
                   overflow: "hidden",
                   boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                  border: property.luxury
-                    ? "3px solid #d4af37"
-                    : "1px solid #e5e7eb",
+                  border:
+                    property.isLuxury || property.luxury
+                      ? "3px solid #d4af37"
+                      : "1px solid #e5e7eb",
                   position: "relative",
                 }}
               >
-                {property.luxury && (
+                {(property.isLuxury || property.luxury) && (
                   <div
                     style={{
                       position: "absolute",
@@ -303,8 +306,8 @@ export default function AdminLuxury() {
                     {updating === property._id
                       ? "Updating..."
                       : property.luxury
-                      ? "Remove from Luxury"
-                      : "Add to Luxury"}
+                        ? "Remove from Luxury"
+                        : "Add to Luxury"}
                   </button>
                 </div>
               </div>

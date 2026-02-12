@@ -12,6 +12,7 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { icon: "dashboard", label: "Dashboard", href: "/admin" },
+  { icon: "people", label: "Users", href: "/admin/users" },
   { icon: "hotel", label: "Hotels", href: "/admin/hotels" },
   { icon: "home", label: "Homestays", href: "/admin/homestays" },
   { icon: "flight", label: "Packages", href: "/admin/packages" },
@@ -23,6 +24,7 @@ const menuItems: MenuItem[] = [
     href: "/admin/service-bookings",
   },
   { icon: "calendar_month", label: "Bookings", href: "/admin/bookings" },
+  { icon: "event", label: "Upcoming Events", href: "/admin/events" },
   { icon: "star", label: "Reviews", href: "/admin/reviews" },
   { icon: "comment", label: "Testimonials", href: "/admin/testimonials" },
   { icon: "info", label: "About", href: "/admin/about" },
@@ -30,6 +32,16 @@ const menuItems: MenuItem[] = [
   { icon: "verified", label: "Why Us", href: "/admin/whyus" },
   { icon: "help", label: "FAQs", href: "/admin/faqs" },
   { icon: "description", label: "Form Fields", href: "/admin/form-fields" },
+  {
+    icon: "approval",
+    label: "Property Approvals",
+    href: "/admin/property-approvals",
+  },
+  {
+    icon: "location_city",
+    label: "Hotel Destinations",
+    href: "/admin/hotel-destinations",
+  },
 ];
 
 export default function AdminSidebar() {
