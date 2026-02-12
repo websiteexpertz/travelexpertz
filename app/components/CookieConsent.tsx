@@ -165,10 +165,9 @@ export default function CookieConsentBanner() {
   );
 }
 
-// Global type for gtag
+// Suppress TypeScript warning - gtag is injected by Google Tag Manager script
 declare global {
   interface Window {
     dataLayer: any[];
-    gtag: (...args: any[]) => void;
   }
 }
