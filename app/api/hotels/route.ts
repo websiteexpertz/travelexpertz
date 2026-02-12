@@ -25,36 +25,44 @@ export async function GET(request: NextRequest) {
     const hotelsCollection = db.collection("hotels");
     const ownerPropertiesCollection = db.collection("ownerproperties");
 
-    // If ID is provided, fetch single hotel
+    // If ID is provided, fetch single hotel (exclude homestays)
     if (id) {
       const { ObjectId } = await import("mongodb");
-      
+
       // Try to find in built-in hotels first
-      let hotel = await hotelsCollection.findOne({ 
+      let hotel = await hotelsCollection.findOne({
         _id: new ObjectId(id),
-        active: true 
+        active: true,
       });
-      
-      // If not found, try owner properties
+
+      // If not found, try approved owner properties that are hotels only
       if (!hotel) {
         hotel = await ownerPropertiesCollection.findOne({
           _id: new ObjectId(id),
-          status: "approved"
+          status: "approved",
+          $or: [
+            { type: "hotel" },
+            { type: "Hotel" },
+            { propertyType: "hotel" },
+            { propertyType: "Hotel" },
+          ],
         });
       }
-      
+
       if (!hotel) {
         return NextResponse.json({ error: "Hotel not found" }, { status: 404 });
       }
-      
+
       // Format owner property to match hotel format if needed
       if (!hotel.active && hotel.status === "approved") {
         hotel.name = hotel.propertyName || hotel.name;
         hotel.image = hotel.images?.[0] || hotel.image || "";
         hotel.rating = hotel.rating || 4.5;
         hotel.reviews = hotel.reviews || 0;
+        hotel.propertyType = hotel.type || hotel.propertyType || "hotel";
+        hotel.type = hotel.type || hotel.propertyType || "hotel";
       }
-      
+
       return NextResponse.json(hotel);
     }
 
@@ -64,24 +72,39 @@ export async function GET(request: NextRequest) {
       .sort({ popular: -1, createdAt: -1 })
       .toArray();
 
-    // Also fetch approved owner properties
+    // Also fetch approved owner properties that are hotels (exclude homestays)
     const ownerProperties = await ownerPropertiesCollection
-      .find({ status: "approved" })
+      .find({
+        status: "approved",
+        $or: [
+          { type: "hotel" },
+          { type: "Hotel" },
+          { propertyType: "hotel" },
+          { propertyType: "Hotel" },
+        ],
+      })
       .sort({ createdAt: -1 })
       .toArray();
 
     // Combine and sort by featured (popular first, then by creation date)
     const allHotels = [
-      ...builtInHotels.map(h => ({ ...h, source: "builtin" })),
-      ...ownerProperties.map(p => ({ 
-        ...p, 
+      ...builtInHotels.map((h) => ({
+        ...h,
+        source: "builtin",
+        propertyType: "hotel",
+        type: "hotel",
+      })),
+      ...ownerProperties.map((p) => ({
+        ...p,
         source: "owner",
         name: p.propertyName || p.name,
         image: p.images?.[0] || p.image || "",
         amenities: p.amenities || [],
         rating: p.rating || 4.5,
-        reviews: p.reviews || 0
-      }))
+        reviews: p.reviews || 0,
+        propertyType: p.type || p.propertyType || "hotel",
+        type: p.type || p.propertyType || "hotel",
+      })),
     ];
 
     return NextResponse.json(allHotels);

@@ -21,6 +21,7 @@ interface OwnerProperty {
   _id?: string;
   name: string;
   type: string; // "hotel" or "homestay"
+  propertyType?: string;
   location: string;
   address: string;
   price: number;
@@ -51,7 +52,8 @@ interface OwnerProperty {
 
 const emptyProperty: OwnerProperty = {
   name: "",
-  type: "hotel",
+  type: "homestay",
+  propertyType: "homestay",
   location: "",
   address: "",
   price: 0,
@@ -148,9 +150,21 @@ export default function OwnerAddProperty() {
     >,
   ) => {
     const { name, value, type } = e.target;
+    const nextValue = type === "number" ? Number(value) : value;
+
+    if (name === "type") {
+      const normalizedType = String(nextValue).toLowerCase();
+      setFormData((prev) => ({
+        ...prev,
+        type: normalizedType,
+        propertyType: normalizedType,
+      }));
+      return;
+    }
+
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "number" ? Number(value) : value,
+      [name]: nextValue,
     }));
   };
 
@@ -372,8 +386,16 @@ export default function OwnerAddProperty() {
   };
 
   const submitProperty = async () => {
+    const normalizedType = (
+      formData.type ||
+      formData.propertyType ||
+      "homestay"
+    ).toLowerCase();
+
     const sanitizedPayload = {
       ...formData,
+      type: normalizedType,
+      propertyType: normalizedType,
       amenities: (formData.amenities || []).filter((a) => a.trim().length > 0),
     };
 

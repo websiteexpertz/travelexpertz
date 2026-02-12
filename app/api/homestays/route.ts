@@ -24,27 +24,100 @@ export async function GET(request: NextRequest) {
 
     const db = client.db(MONGODB_DB);
     const homestaysCollection = db.collection("homestays");
+    const ownerPropertiesCollection = db.collection("ownerproperties");
 
-    // If ID is provided, fetch single homestay
+    // If ID is provided, fetch single homestay (built-in or owner property)
     if (id) {
-      const query = admin ? { _id: new ObjectId(id) } : { _id: new ObjectId(id), active: true };
+      const query = admin
+        ? { _id: new ObjectId(id) }
+        : { _id: new ObjectId(id), active: true };
+
+      // Try built-in collection first
       const homestay = await homestaysCollection.findOne(query);
-      
-      if (!homestay) {
+      if (homestay) {
+        return NextResponse.json(homestay);
+      }
+
+      // Try owner properties (approved homestays)
+      const ownerHomestay = await ownerPropertiesCollection.findOne({
+        _id: new ObjectId(id),
+        status: "approved",
+        $or: [
+          { type: "homestay" },
+          { type: "Homestay" },
+          { propertyType: "homestay" },
+          { propertyType: "Homestay" },
+        ],
+      });
+
+      if (!ownerHomestay) {
         return NextResponse.json({ error: "Homestay not found" }, { status: 404 });
       }
-      
-      return NextResponse.json(homestay);
+
+      const mappedOwnerHomestay = {
+        ...ownerHomestay,
+        name: ownerHomestay.propertyName || ownerHomestay.name,
+        location: ownerHomestay.location || ownerHomestay.address || "",
+        price:
+          ownerHomestay.price ||
+          ownerHomestay.rooms?.[0]?.price ||
+          0,
+        rating: ownerHomestay.rating || 4.5,
+        reviews: ownerHomestay.reviews || 0,
+        image: ownerHomestay.images?.[0] || ownerHomestay.image || "",
+        amenities: Array.isArray(ownerHomestay.amenities)
+          ? ownerHomestay.amenities
+          : [],
+        popular: Boolean(ownerHomestay.popular),
+        active: true,
+        propertyType:
+          ownerHomestay.type || ownerHomestay.propertyType || "homestay",
+      };
+
+      return NextResponse.json(mappedOwnerHomestay);
     }
 
-    // Otherwise, fetch all homestays
+    // Otherwise, fetch all homestays (built-in + approved owner homestays)
     const query = admin ? {} : { active: true };
     const homestays = await homestaysCollection
       .find(query)
       .sort({ popular: -1, createdAt: -1 })
       .toArray();
 
-    return NextResponse.json(homestays);
+    const ownerHomestays = await ownerPropertiesCollection
+      .find({
+        status: "approved",
+        $or: [
+          { type: "homestay" },
+          { type: "Homestay" },
+          { propertyType: "homestay" },
+          { propertyType: "Homestay" },
+        ],
+      })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    const mappedOwnerHomestays = ownerHomestays.map((p) => ({
+      ...p,
+      source: "owner",
+      name: p.propertyName || p.name,
+      location: p.location || p.address || "",
+      price: p.price || p.rooms?.[0]?.price || 0,
+      rating: p.rating || 4.5,
+      reviews: p.reviews || 0,
+      image: p.images?.[0] || p.image || "",
+      amenities: Array.isArray(p.amenities) ? p.amenities : [],
+      popular: Boolean(p.popular),
+      active: true,
+      propertyType: p.type || p.propertyType || "homestay",
+      hostName: p.hostName || "",
+      hostEmail: p.hostEmail || "",
+      hostPhone: p.hostPhone || "",
+    }));
+
+    const allHomestays = [...homestays, ...mappedOwnerHomestays];
+
+    return NextResponse.json(allHomestays);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("Error fetching homestays:", errorMessage);
@@ -154,6 +227,7 @@ export async function DELETE(request: NextRequest) {
   let client: MongoClient | null = null;
   try {
     if (!MONGODB_URI) {
+      console.error("MONGODB_URI is not configured");
       return NextResponse.json(
         { error: "Database not configured" },
         { status: 500 }
@@ -173,22 +247,34 @@ export async function DELETE(request: NextRequest) {
     const db = client.db(MONGODB_DB);
     const homestaysCollection = db.collection("homestays");
 
-    const result = await homestaysCollection.deleteOne({
-      _id: new ObjectId(id),
-    });
+    let result;
+    try {
+      result = await homestaysCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
+    } catch (err) {
+      console.error("ObjectId conversion or delete error:", err);
+      return NextResponse.json(
+        { error: "Invalid ID format or database error" },
+        { status: 400 }
+      );
+    }
 
     if (result.deletedCount === 0) {
+      console.warn(`Homestay not found with ID: ${id}`);
       return NextResponse.json(
         { error: "Homestay not found" },
         { status: 404 }
       );
     }
 
+    console.log(`Homestay deleted successfully: ${id}`);
     return NextResponse.json({ message: "Homestay deleted successfully" });
   } catch (error) {
-    console.error("Failed to delete homestay:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Failed to delete homestay:", errorMessage);
     return NextResponse.json(
-      { error: "Failed to delete homestay" },
+      { error: "Failed to delete homestay", details: errorMessage },
       { status: 500 }
     );
   } finally {

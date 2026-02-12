@@ -44,16 +44,17 @@ export default function OwnerLayout({
       return;
     }
 
-    const ownerData = localStorage.getItem("owner");
+    const storedOwner =
+      localStorage.getItem("owner") || localStorage.getItem("user");
     const token = localStorage.getItem("ownerToken");
 
-    if (!ownerData || !token) {
+    if (!storedOwner || !token) {
       router.push("/owner/auth/login");
       return;
     }
 
     try {
-      const parsedOwner = JSON.parse(ownerData);
+      const parsedOwner = JSON.parse(storedOwner);
       setOwner(parsedOwner);
       fetchStats();
     } catch {
@@ -142,6 +143,11 @@ export default function OwnerLayout({
               href: "/owner/properties/add",
               label: "➕ Add Property",
               icon: "➕",
+            },
+            {
+              href: "/owner/profile",
+              label: "👤 Profile",
+              icon: "👤",
             },
           ].map((item) => (
             <Link

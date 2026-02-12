@@ -284,7 +284,16 @@ export default function Homestays() {
               >
                 <button
                   onClick={() => {
-                    window.location.href = "/hotels";
+                    const params = new URLSearchParams({
+                      location: filters.location,
+                      checkIn: filters.checkIn,
+                      checkOut: filters.checkOut,
+                      guests: filters.guests,
+                      rooms: filters.rooms,
+                      priceRange: filters.priceRange,
+                      type: "hotels",
+                    });
+                    window.location.href = `/hotels/search?${params.toString()}`;
                   }}
                   style={{
                     padding: "0.5rem 1rem",
@@ -312,6 +321,18 @@ export default function Homestays() {
                   🏨 Hotels
                 </button>
                 <button
+                  onClick={() => {
+                    const params = new URLSearchParams({
+                      location: filters.location,
+                      checkIn: filters.checkIn,
+                      checkOut: filters.checkOut,
+                      guests: filters.guests,
+                      rooms: filters.rooms,
+                      priceRange: filters.priceRange,
+                      type: "homestays",
+                    });
+                    window.location.href = `/hotels/search?${params.toString()}`;
+                  }}
                   style={{
                     padding: "0.5rem 1rem",
                     borderRadius: "8px",
@@ -320,7 +341,7 @@ export default function Homestays() {
                     color: "white",
                     fontSize: "0.9rem",
                     fontWeight: 600,
-                    cursor: "default",
+                    cursor: "pointer",
                   }}
                 >
                   🏠 Homestays

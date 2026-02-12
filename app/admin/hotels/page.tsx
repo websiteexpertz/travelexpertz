@@ -452,9 +452,18 @@ export default function AdminHotels() {
         method: "DELETE",
       });
       if (response.ok) {
+        alert("Hotel deleted successfully!");
         await fetchHotels();
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to delete: ${errorData.error || "Unknown error"}`);
+        console.error("Delete failed:", errorData);
       }
     } catch (error) {
+      alert(
+        "Error deleting hotel: " +
+          (error instanceof Error ? error.message : String(error)),
+      );
       console.error("Failed to delete hotel:", error);
     }
   };

@@ -11,12 +11,12 @@ export default function GoogleAnalytics() {
 
     if (consentGiven) {
       // Initialize gtag if not already done
-      if (!window.gtag) {
-        window.dataLayer = window.dataLayer || [];
+      if (!(window as any).gtag) {
+        (window as any).dataLayer = (window as any).dataLayer || [];
         function gtag(...args: any[]) {
-          window.dataLayer.push(arguments);
+          (window as any).dataLayer.push(args);
         }
-        window.gtag = gtag;
+        (window as any).gtag = gtag;
       }
 
       // Load GA4 script
@@ -26,23 +26,23 @@ export default function GoogleAnalytics() {
       document.head.appendChild(script);
 
       // Initialize GA4 config
-      window.gtag("js", new Date());
-      window.gtag("config", GA4_ID, {
+      (window as any).gtag("js", new Date());
+      (window as any).gtag("config", GA4_ID, {
         page_path: window.location.pathname,
         anonymize_ip: true,
       });
 
       // Update Google Consent Mode
-      window.gtag("consent", "update", {
+      (window as any).gtag("consent", "update", {
         analytics_storage: "granted",
       });
     } else {
       // Initialize consent mode without GA4
-      window.dataLayer = window.dataLayer || [];
+      (window as any).dataLayer = (window as any).dataLayer || [];
       function gtag(...args: any[]) {
-        window.dataLayer.push(arguments);
+        (window as any).dataLayer.push(args);
       }
-      window.gtag = gtag;
+      (window as any).gtag = gtag;
 
       gtag("consent", "default", {
         analytics_storage: "denied",
@@ -51,12 +51,4 @@ export default function GoogleAnalytics() {
   }, []);
 
   return null;
-}
-
-// Global type for gtag
-declare global {
-  interface Window {
-    dataLayer: any[];
-    gtag?: (...args: any[]) => void;
-  }
 }

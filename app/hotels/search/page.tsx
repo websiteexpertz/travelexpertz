@@ -18,7 +18,8 @@ interface Hotel {
   hostName?: string;
   hostEmail?: string;
   hostPhone?: string;
-  type?: "hotel" | "homestay"; // Add property type
+  type?: "hotel" | "homestay";
+  propertyType?: string;
 }
 
 const inrFormatter = new Intl.NumberFormat("en-IN", {
@@ -32,6 +33,9 @@ const formatInr = (value: number) =>
 
 const normalizeHotel = (hotel: Partial<Hotel>): Hotel => {
   const rawId = (hotel as { _id?: unknown })._id;
+  const typeValue = (hotel as any).type || (hotel as any).propertyType;
+  const normalizedType = typeValue ? String(typeValue).toLowerCase() : "hotel";
+  const imageSrc = hotel.image ?? (hotel as any).images?.[0] ?? "";
   return {
     _id: typeof rawId === "string" ? rawId : rawId ? String(rawId) : undefined,
     name: hotel.name ?? "",
@@ -39,13 +43,39 @@ const normalizeHotel = (hotel: Partial<Hotel>): Hotel => {
     price: Number((hotel as { price?: unknown }).price ?? 0) || 0,
     rating: Number((hotel as { rating?: unknown }).rating ?? 0) || 0,
     reviews: Number((hotel as { reviews?: unknown }).reviews ?? 0) || 0,
-    image: hotel.image ?? "",
+    image: imageSrc || "https://via.placeholder.com/220x180?text=Hotel+Image",
     amenities: Array.isArray(hotel.amenities) ? hotel.amenities : [],
     popular: typeof hotel.popular === "boolean" ? hotel.popular : false,
     active: typeof hotel.active === "boolean" ? hotel.active : true,
     hostName: hotel.hostName ?? "",
     hostEmail: hotel.hostEmail ?? "",
     hostPhone: hotel.hostPhone ?? "",
+    type: normalizedType as Hotel["type"],
+    propertyType: normalizedType,
+  };
+};
+
+const normalizeHomestay = (homestay: any): Hotel => {
+  const rawId = homestay._id;
+  const normalizedType = "homestay";
+  const imageSrc = homestay.image ?? homestay.images?.[0] ?? "";
+  return {
+    _id: typeof rawId === "string" ? rawId : rawId ? String(rawId) : undefined,
+    name: homestay.name ?? homestay.propertyName ?? "",
+    location: homestay.location ?? homestay.address ?? "",
+    price: Number(homestay.price ?? homestay.rooms?.[0]?.price ?? 0) || 0,
+    rating: Number(homestay.rating ?? 4.5) || 0,
+    reviews: Number(homestay.reviews ?? 0) || 0,
+    image:
+      imageSrc || "https://via.placeholder.com/220x180?text=Homestay+Image",
+    amenities: Array.isArray(homestay.amenities) ? homestay.amenities : [],
+    popular: Boolean(homestay.popular),
+    active: true,
+    hostName: homestay.hostName ?? "",
+    hostEmail: homestay.hostEmail ?? "",
+    hostPhone: homestay.hostPhone ?? "",
+    type: normalizedType,
+    propertyType: normalizedType,
   };
 };
 
@@ -155,8 +185,10 @@ function HotelSearchContent() {
   const [isSearchBarSticky, setIsSearchBarSticky] = useState(false);
   const [scrollDirection, setScrollDirection] = useState<"up" | "down">("down");
   const [lastScrollY, setLastScrollY] = useState(0);
+  const initialType =
+    (searchParams.get("type") as "hotels" | "homestays") || "hotels";
   const [propertyType, setPropertyType] = useState<"hotels" | "homestays">(
-    "hotels",
+    initialType,
   );
   const [destinationData, setDestinationData] = useState<any>(null);
   const [allDestinations, setAllDestinations] = useState<any[]>([]);
@@ -182,27 +214,35 @@ function HotelSearchContent() {
     fetchDestinations();
   }, []);
 
-  // Fetch all hotels
+  // Fetch hotels and homestays so the search page can toggle between both
   useEffect(() => {
-    const fetchHotels = async () => {
+    const fetchHotelsAndHomestays = async () => {
       setLoading(true);
       try {
-        const response = await fetch("/api/hotels", { cache: "no-store" });
-        if (response.ok) {
-          const data = await response.json();
-          const normalized = (Array.isArray(data) ? data : []).map((item) =>
-            normalizeHotel(item),
-          );
-          setHotels(normalized);
-        }
+        const [hotelsRes, homestaysRes] = await Promise.all([
+          fetch("/api/hotels", { cache: "no-store" }),
+          fetch("/api/homestays", { cache: "no-store" }),
+        ]);
+
+        const hotelsData = hotelsRes.ok ? await hotelsRes.json() : [];
+        const homestaysData = homestaysRes.ok ? await homestaysRes.json() : [];
+
+        const normalizedHotels = (
+          Array.isArray(hotelsData) ? hotelsData : []
+        ).map((item) => normalizeHotel(item));
+        const normalizedHomestays = (
+          Array.isArray(homestaysData) ? homestaysData : []
+        ).map((item) => normalizeHomestay(item));
+
+        setHotels([...normalizedHotels, ...normalizedHomestays]);
       } catch (error) {
-        console.error("Failed to fetch hotels:", error);
+        console.error("Failed to fetch hotels/homestays:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchHotels();
+    fetchHotelsAndHomestays();
   }, []);
 
   // Handle scroll event for sticky header
@@ -239,11 +279,13 @@ function HotelSearchContent() {
   const filteredHotels = useMemo(() => {
     return hotels
       .filter((hotel) => {
-        // Filter by property type
+        const itemType =
+          (hotel as any).type || (hotel as any).propertyType || "hotel";
+        const normalizedType = String(itemType).toLowerCase();
         const propertyTypeMatch =
           propertyType === "hotels"
-            ? hotel.type !== "homestay"
-            : hotel.type === "homestay";
+            ? normalizedType !== "homestay"
+            : normalizedType === "homestay";
 
         const matchesLocation = filters.location
           ? hotel.location
@@ -1509,7 +1551,10 @@ function HotelSearchContent() {
                       }}
                     >
                       <img
-                        src={hotel.image}
+                        src={
+                          hotel.image ||
+                          "https://via.placeholder.com/220x180?text=Hotel+Image"
+                        }
                         alt={hotel.name}
                         style={{
                           width: "100%",

@@ -455,9 +455,18 @@ export default function AdminHomestays() {
         method: "DELETE",
       });
       if (response.ok) {
+        alert("Homestay deleted successfully!");
         await fetchHomestays();
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to delete: ${errorData.error || "Unknown error"}`);
+        console.error("Delete failed:", errorData);
       }
     } catch (error) {
+      alert(
+        "Error deleting homestay: " +
+          (error instanceof Error ? error.message : String(error)),
+      );
       console.error("Failed to delete homestay:", error);
     }
   };
