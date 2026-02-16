@@ -87,6 +87,7 @@ export async function GET(request: NextRequest) {
     const ownerHomestays = await ownerPropertiesCollection
       .find({
         status: "approved",
+        ...(admin ? {} : { active: true }),
         $or: [
           { type: "homestay" },
           { type: "Homestay" },
@@ -183,10 +184,14 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    const { ObjectId } = await import("mongodb");
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
     const body = await request.json();
-    const { _id, ...updateData } = body;
+    const { _id, source, ...updateData } = body;
 
-    if (!_id) {
+    const homestayId = id || _id;
+    if (!homestayId) {
       return NextResponse.json({ error: "ID is required" }, { status: 400 });
     }
 
@@ -195,21 +200,41 @@ export async function PATCH(request: NextRequest) {
 
     const db = client.db(MONGODB_DB);
     const homestaysCollection = db.collection("homestays");
+    const ownerPropertiesCollection = db.collection("ownerproperties");
 
-    const result = await homestaysCollection.findOneAndUpdate(
-      { _id: new ObjectId(_id) },
-      { $set: { ...updateData, updatedAt: new Date() } },
-      { returnDocument: "after" }
-    );
+    // Determine which collection to update based on source parameter
+    const collection = source === "owner" ? ownerPropertiesCollection : homestaysCollection;
+    
+    let result: any;
+    if (source === "owner") {
+      result = await collection.updateOne(
+        { _id: new ObjectId(homestayId) },
+        { $set: { ...updateData, updatedAt: new Date() } }
+      );
+    } else {
+      result = await homestaysCollection.findOneAndUpdate(
+        { _id: new ObjectId(homestayId) },
+        { $set: { ...updateData, updatedAt: new Date() } },
+        { returnDocument: "after" }
+      );
+    }
 
-    if (!result) {
+    // If not found in intended collection, try the other one
+    if (!result && source !== "owner") {
+      result = await ownerPropertiesCollection.updateOne(
+        { _id: new ObjectId(homestayId) },
+        { $set: { ...updateData, updatedAt: new Date() } }
+      );
+    }
+
+    if (!result || (result.matchedCount !== undefined && result.matchedCount === 0)) {
       return NextResponse.json(
         { error: "Homestay not found" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json(result);
+    return NextResponse.json({ message: "Homestay updated successfully" });
   } catch (error) {
     console.error("Failed to update homestay:", error);
     return NextResponse.json(
@@ -236,6 +261,7 @@ export async function DELETE(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
+    const source = searchParams.get("source") || "builtin";
 
     if (!id) {
       return NextResponse.json({ error: "ID is required" }, { status: 400 });
@@ -246,12 +272,27 @@ export async function DELETE(request: NextRequest) {
 
     const db = client.db(MONGODB_DB);
     const homestaysCollection = db.collection("homestays");
+    const ownerPropertiesCollection = db.collection("ownerproperties");
+
+    // Determine which collection to delete from based on source parameter
+    const collection = source === "owner" ? ownerPropertiesCollection : homestaysCollection;
 
     let result;
     try {
-      result = await homestaysCollection.deleteOne({
+      result = await collection.deleteOne({
         _id: new ObjectId(id),
       });
+      
+      // If not found in intended collection, try the other one
+      if (result.deletedCount === 0 && source !== "owner") {
+        result = await ownerPropertiesCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+      } else if (result.deletedCount === 0 && source === "owner") {
+        result = await homestaysCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+      }
     } catch (err) {
       console.error("ObjectId conversion or delete error:", err);
       return NextResponse.json(

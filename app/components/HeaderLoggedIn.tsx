@@ -13,7 +13,6 @@ type HeaderLoggedInProps = {
     | "deals"
     | "luxury"
     | "verified"
-    | "blogs"
     | "profile"
     | "bookings"
     | "wishlist"
@@ -32,7 +31,6 @@ const navItems: Array<{
   { key: "packages", label: "Packages", href: "/packages" },
   { key: "deals", label: "Deals", href: "/deals" },
   { key: "luxury", label: "Luxury", href: "/luxury" },
-  { key: "blogs", label: "Blogs", href: "/blogs" },
   { key: "verified", label: "Travel Expertz Properties", href: "/verified" },
 ];
 

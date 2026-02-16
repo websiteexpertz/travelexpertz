@@ -259,7 +259,7 @@ export default function RegisterPage() {
                   color: accountType === "user" ? "white" : "#6b7280",
                 }}
               >
-                Personal Account
+                Traveler Account
               </button>
               <button
                 type="button"
@@ -282,7 +282,7 @@ export default function RegisterPage() {
                   color: accountType === "owner" ? "white" : "#6b7280",
                 }}
               >
-                Owner Account
+                Property Owner Account
               </button>
             </div>
 

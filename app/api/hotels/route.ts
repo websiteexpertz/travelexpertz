@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
+    const admin = searchParams.get("admin") === "true";
 
     client = new MongoClient(MONGODB_URI);
     await client.connect();
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
       // Try to find in built-in hotels first
       let hotel = await hotelsCollection.findOne({
         _id: new ObjectId(id),
-        active: true,
+        ...(admin ? {} : { active: true }),
       });
 
       // If not found, try approved owner properties that are hotels only
@@ -68,7 +69,7 @@ export async function GET(request: NextRequest) {
 
     // Otherwise, fetch all hotels from built-in collection
     const builtInHotels = await hotelsCollection
-      .find({ active: true })
+      .find(admin ? {} : { active: true })
       .sort({ popular: -1, createdAt: -1 })
       .toArray();
 
@@ -76,6 +77,7 @@ export async function GET(request: NextRequest) {
     const ownerProperties = await ownerPropertiesCollection
       .find({
         status: "approved",
+        ...(admin ? {} : { active: true }),
         $or: [
           { type: "hotel" },
           { type: "Hotel" },
@@ -171,10 +173,13 @@ export async function PATCH(request: NextRequest) {
     }
 
     const { ObjectId } = await import("mongodb");
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
     const body = await request.json();
-    const { _id, ...updateData } = body;
+    const { _id, source, ...updateData } = body;
 
-    if (!_id) {
+    const hotelId = id || _id;
+    if (!hotelId) {
       return NextResponse.json({ error: "Hotel ID is required" }, { status: 400 });
     }
 
@@ -183,9 +188,13 @@ export async function PATCH(request: NextRequest) {
 
     const db = client.db(MONGODB_DB);
     const hotelsCollection = db.collection("hotels");
+    const ownerPropertiesCollection = db.collection("ownerproperties");
 
-    const result = await hotelsCollection.updateOne(
-      { _id: new ObjectId(_id) },
+    // Determine which collection to update based on source parameter
+    const collection = source === "owner" ? ownerPropertiesCollection : hotelsCollection;
+    
+    const result = await collection.updateOne(
+      { _id: new ObjectId(hotelId) },
       {
         $set: {
           ...updateData,
@@ -193,6 +202,23 @@ export async function PATCH(request: NextRequest) {
         },
       }
     );
+
+    // If not found in intended collection, try the other one
+    if (result.matchedCount === 0 && source !== "owner") {
+      const result2 = await ownerPropertiesCollection.updateOne(
+        { _id: new ObjectId(hotelId) },
+        {
+          $set: {
+            ...updateData,
+            updatedAt: new Date(),
+          },
+        }
+      );
+      if (result2.matchedCount === 0) {
+        return NextResponse.json({ error: "Hotel not found" }, { status: 404 });
+      }
+      return NextResponse.json({ message: "Hotel updated successfully" });
+    }
 
     if (result.matchedCount === 0) {
       return NextResponse.json({ error: "Hotel not found" }, { status: 404 });
@@ -225,6 +251,7 @@ export async function DELETE(request: NextRequest) {
     const { ObjectId } = await import("mongodb");
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
+    const source = searchParams.get("source") || "builtin";
 
     if (!id) {
       return NextResponse.json({ error: "Hotel ID is required" }, { status: 400 });
@@ -235,8 +262,19 @@ export async function DELETE(request: NextRequest) {
 
     const db = client.db(MONGODB_DB);
     const hotelsCollection = db.collection("hotels");
+    const ownerPropertiesCollection = db.collection("ownerproperties");
 
-    const result = await hotelsCollection.deleteOne({ _id: new ObjectId(id) });
+    // Determine which collection to delete from based on source parameter
+    const collection = source === "owner" ? ownerPropertiesCollection : hotelsCollection;
+    
+    let result = await collection.deleteOne({ _id: new ObjectId(id) });
+
+    // If not found in intended collection, try the other one
+    if (result.deletedCount === 0 && source !== "owner") {
+      result = await ownerPropertiesCollection.deleteOne({ _id: new ObjectId(id) });
+    } else if (result.deletedCount === 0 && source === "owner") {
+      result = await hotelsCollection.deleteOne({ _id: new ObjectId(id) });
+    }
 
     if (result.deletedCount === 0) {
       return NextResponse.json({ error: "Hotel not found" }, { status: 404 });

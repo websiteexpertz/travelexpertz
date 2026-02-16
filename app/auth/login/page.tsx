@@ -136,7 +136,7 @@ export default function LoginPage() {
                   letterSpacing: "0.05em",
                 }}
               >
-                Personal Account
+                Traveler Account
               </button>
               <button
                 type="button"
@@ -166,7 +166,7 @@ export default function LoginPage() {
                   letterSpacing: "0.05em",
                 }}
               >
-                Owner Account
+                Property Owner Account
               </button>
             </div>
 

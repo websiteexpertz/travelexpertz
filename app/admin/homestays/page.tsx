@@ -152,7 +152,9 @@ export default function AdminHomestays() {
 
   const fetchHomestays = async () => {
     try {
-      const response = await fetch("/api/homestays", { cache: "no-store" });
+      const response = await fetch("/api/homestays?admin=true", {
+        cache: "no-store",
+      });
       if (response.ok) {
         const data = await response.json();
         const normalized = (Array.isArray(data) ? data : []).map((h: any) => ({
@@ -165,7 +167,20 @@ export default function AdminHomestays() {
           userReviews: h.userReviews || [],
           images: Array.isArray(h.images) ? h.images : [],
         }));
-        setHomestays(normalized);
+
+        // Deduplicate by _id (keep first occurrence)
+        const seen = new Set<string>();
+        const deduped = normalized.filter((h: any) => {
+          if (h._id && seen.has(h._id)) {
+            return false;
+          }
+          if (h._id) {
+            seen.add(h._id);
+          }
+          return true;
+        });
+
+        setHomestays(deduped);
       }
     } catch (error) {
       console.error("Failed to fetch homestays:", error);
@@ -449,13 +464,16 @@ export default function AdminHomestays() {
     }
   };
 
-  const deleteHomestay = async (id?: string) => {
+  const deleteHomestay = async (id?: string, source?: string) => {
     if (!id || !confirm("Are you sure you want to delete this homestay?"))
       return;
     try {
-      const response = await fetch(`/api/homestays?id=${id}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `/api/homestays?id=${id}&source=${source || "builtin"}`,
+        {
+          method: "DELETE",
+        },
+      );
       if (response.ok) {
         alert("Homestay deleted successfully!");
         await fetchHomestays();
@@ -470,6 +488,42 @@ export default function AdminHomestays() {
           (error instanceof Error ? error.message : String(error)),
       );
       console.error("Failed to delete homestay:", error);
+    }
+  };
+
+  const toggleActive = async (
+    id?: string,
+    currentActive?: boolean,
+    source?: string,
+  ) => {
+    if (!id) return;
+    try {
+      const response = await fetch(`/api/homestays?id=${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          active: !currentActive,
+          source: source || "builtin",
+        }),
+      });
+      if (response.ok) {
+        alert(
+          `Homestay ${!currentActive ? "activated" : "deactivated"} successfully!`,
+        );
+        await fetchHomestays();
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to update: ${errorData.error || "Unknown error"}`);
+        console.error("Update failed:", errorData);
+      }
+    } catch (error) {
+      alert(
+        "Error updating homestay: " +
+          (error instanceof Error ? error.message : String(error)),
+      );
+      console.error("Failed to update homestay:", error);
     }
   };
 
@@ -3333,7 +3387,30 @@ export default function AdminHomestays() {
                         Edit
                       </button>
                       <button
-                        onClick={() => deleteHomestay(homestay._id)}
+                        onClick={() =>
+                          toggleActive(
+                            homestay._id,
+                            homestay.active,
+                            (homestay as any).source,
+                          )
+                        }
+                        style={{
+                          padding: "0.5rem 1.5rem",
+                          background: homestay.active ? "#f59e0b" : "#10b981",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "6px",
+                          cursor: "pointer",
+                          fontSize: "0.9rem",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {homestay.active ? "Deactivate" : "Activate"}
+                      </button>
+                      <button
+                        onClick={() =>
+                          deleteHomestay(homestay._id, (homestay as any).source)
+                        }
                         style={{
                           padding: "0.5rem 1.5rem",
                           background: "#ef4444",

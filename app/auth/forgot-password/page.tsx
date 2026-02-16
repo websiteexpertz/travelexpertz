@@ -223,7 +223,7 @@ export default function ForgotPasswordPage() {
                       : "none",
                 }}
               >
-                Personal Account
+                Traveler Account
               </button>
               <button
                 type="button"
@@ -253,7 +253,7 @@ export default function ForgotPasswordPage() {
                       : "none",
                 }}
               >
-                Owner Account
+                Property Owner Account
               </button>
             </div>
 

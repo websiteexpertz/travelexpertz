@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import Footer from "./components/Footer";
 import CookieConsent from "./components/CookieConsent";
 import GoogleAnalytics from "./components/GoogleAnalytics";
+import WhatsAppChat from "./components/WhatsAppChat";
 
 export default function RootLayoutClient({
   children,
@@ -18,6 +19,7 @@ export default function RootLayoutClient({
     <>
       <GoogleAnalytics />
       <CookieConsent />
+      <WhatsAppChat />
       {children}
       {!isAdminPage && !isOwnerPage && <Footer />}
     </>
