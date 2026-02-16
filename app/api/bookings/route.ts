@@ -226,6 +226,7 @@ export async function POST(request: Request) {
     }
 
     // Send owner notification for confirmed bookings
+    let propertyName = "Property";
     if (booking.bookingStatus === "confirmed" && booking.ownerId) {
       if (booking.bookingStatus === "confirmed" && booking.ownerId) {
         try {
@@ -239,7 +240,6 @@ export async function POST(request: Request) {
           const hotelsCollection = db.collection("hotels");
 
           // Get property name
-          let propertyName = "Property";
           try {
             const isHotel = !!booking.hotelId;
             const collection = isHotel ? hotelsCollection : homestaysCollection;
