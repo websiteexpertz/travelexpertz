@@ -38,15 +38,19 @@ export async function POST(request: NextRequest) {
 
     // Check if user exists
     const existingUser = await usersCollection.findOne({ email: email.toLowerCase() });
+    
+    // Also check propertyowners collection
+    const ownersCollection = db.collection("propertyowners");
+    const existingOwner = await ownersCollection.findOne({ email: email.toLowerCase() });
 
-    if (purpose === "signup" && existingUser) {
+    if (purpose === "signup" && (existingUser || existingOwner)) {
       return NextResponse.json(
         { error: "Email already registered. Please login." },
         { status: 400 }
       );
     }
 
-    if ((purpose === "login" || purpose === "reset_password") && !existingUser) {
+    if ((purpose === "login" || purpose === "reset_password") && !existingUser && !existingOwner) {
       return NextResponse.json(
         { error: "Email not registered. Please sign up." },
         { status: 404 }

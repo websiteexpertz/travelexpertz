@@ -47,6 +47,7 @@ interface OwnerProperty {
   latitude?: number;
   longitude?: number;
   mapUrl?: string;
+  starCategory?: number;
   customFields?: { [key: string]: any };
 }
 
@@ -79,6 +80,7 @@ const emptyProperty: OwnerProperty = {
   latitude: 0,
   longitude: 0,
   mapUrl: "",
+  starCategory: 3,
   customFields: {},
 };
 
@@ -603,6 +605,41 @@ export default function OwnerAddProperty() {
                       fontSize: "0.9rem",
                     }}
                   >
+                    Property Sub-Type
+                  </label>
+                  <select
+                    name="propertyType"
+                    value={formData.propertyType || "Entire Place"}
+                    onChange={handleInputChange}
+                    style={{
+                      width: "100%",
+                      padding: "0.75rem",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "8px",
+                      fontSize: "0.95rem",
+                    }}
+                  >
+                    <option value="Entire Place">Entire Place</option>
+                    <option value="Private Room">Private Room</option>
+                    <option value="Shared Room">Shared Room</option>
+                    <option value="Villa">Villa</option>
+                    <option value="Flat">Flat</option>
+                    <option value="Apartment">Apartment</option>
+                    <option value="Cottage">Cottage</option>
+                    <option value="Bungalow">Bungalow</option>
+                    <option value="Farmhouse">Farmhouse</option>
+                    <option value="Penthouse">Penthouse</option>
+                  </select>
+                </div>
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "0.5rem",
+                      fontWeight: 600,
+                      fontSize: "0.9rem",
+                    }}
+                  >
                     Location *
                   </label>
                   <input
@@ -761,6 +798,39 @@ export default function OwnerAddProperty() {
                       fontSize: "0.95rem",
                     }}
                   />
+                </div>
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "0.5rem",
+                      fontWeight: 600,
+                      fontSize: "0.9rem",
+                    }}
+                  >
+                    Star Category
+                  </label>
+                  <select
+                    name="starCategory"
+                    value={formData.starCategory ?? 3}
+                    onChange={handleInputChange}
+                    style={{
+                      width: "100%",
+                      padding: "0.75rem",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "8px",
+                      fontSize: "0.95rem",
+                      backgroundColor: "white",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <option value={1}>1 Star</option>
+                    <option value={2}>2 Star</option>
+                    <option value={3}>3 Star</option>
+                    <option value={4}>4 Star</option>
+                    <option value={5}>5 Star</option>
+                    <option value={7}>7 Star</option>
+                  </select>
                 </div>
               </div>
 

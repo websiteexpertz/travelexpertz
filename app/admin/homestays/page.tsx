@@ -62,6 +62,7 @@ interface Homestay {
   isTeVerified?: boolean;
   isDeal?: boolean;
   dealDescription?: string;
+  starCategory?: number;
   customFields?: { [key: string]: any };
 }
 
@@ -100,6 +101,7 @@ const emptyHomestay: Homestay = {
   isTeVerified: false,
   isDeal: false,
   dealDescription: "",
+  starCategory: 3,
   customFields: {},
 };
 
@@ -251,8 +253,8 @@ export default function AdminHomestays() {
   };
 
   const addRoom = () => {
-    if (!roomFormData.type || !roomFormData.price) {
-      alert("Please fill in room type and price");
+    if (!roomFormData.type) {
+      alert("Please fill in room type");
       return;
     }
     const newRoom = {
@@ -759,7 +761,7 @@ export default function AdminHomestays() {
                         fontSize: "0.9rem",
                       }}
                     >
-                      Starting Price (₹) *
+                      Starting Price (₹)
                     </label>
                     <input
                       name="price"
@@ -830,6 +832,39 @@ export default function AdminHomestays() {
                         fontSize: "0.95rem",
                       }}
                     />
+                  </div>
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        marginBottom: "0.5rem",
+                        fontWeight: 600,
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      Star Category
+                    </label>
+                    <select
+                      name="starCategory"
+                      value={formData.starCategory ?? 3}
+                      onChange={handleInputChange}
+                      style={{
+                        width: "100%",
+                        padding: "0.75rem",
+                        border: "1px solid #d1d5db",
+                        borderRadius: "8px",
+                        fontSize: "0.95rem",
+                        backgroundColor: "white",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <option value={1}>1 Star</option>
+                      <option value={2}>2 Star</option>
+                      <option value={3}>3 Star</option>
+                      <option value={4}>4 Star</option>
+                      <option value={5}>5 Star</option>
+                      <option value={7}>7 Star</option>
+                    </select>
                   </div>
                 </div>
 
@@ -925,6 +960,13 @@ export default function AdminHomestays() {
                       <option value="Entire Place">Entire Place</option>
                       <option value="Private Room">Private Room</option>
                       <option value="Shared Room">Shared Room</option>
+                      <option value="Villa">Villa</option>
+                      <option value="Flat">Flat</option>
+                      <option value="Apartment">Apartment</option>
+                      <option value="Cottage">Cottage</option>
+                      <option value="Bungalow">Bungalow</option>
+                      <option value="Farmhouse">Farmhouse</option>
+                      <option value="Penthouse">Penthouse</option>
                     </select>
                   </div>
                   <div>
@@ -2031,7 +2073,7 @@ export default function AdminHomestays() {
                             fontSize: "0.9rem",
                           }}
                         >
-                          Price (₹/night) *
+                          Price (₹/night)
                         </label>
                         <input
                           type="number"

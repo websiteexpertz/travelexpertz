@@ -84,6 +84,22 @@ const PRICE_THRESHOLDS = {
   midMax: 22000,
 } as const;
 
+const SIDEBAR_PRICE_RANGES = [
+  { label: "₹0 - ₹2,500", min: 0, max: 2500, key: "0-2500" },
+  { label: "₹2,500 - ₹5,000", min: 2500, max: 5000, key: "2500-5000" },
+  { label: "₹5,000 - ₹8,500", min: 5000, max: 8500, key: "5000-8500" },
+  { label: "₹8,500 - ₹12,000", min: 8500, max: 12000, key: "8500-12000" },
+  { label: "₹12,000 - ₹15,000", min: 12000, max: 15000, key: "12000-15000" },
+  { label: "₹15,000 - ₹30,000", min: 15000, max: 30000, key: "15000-30000" },
+  { label: "₹30,000+", min: 30000, max: Infinity, key: "30000+" },
+];
+
+const STAR_OPTIONS = [
+  { label: "5 Star", value: 5, minRating: 4.5, maxRating: 5.01 },
+  { label: "4 Star", value: 4, minRating: 3.5, maxRating: 4.5 },
+  { label: "3 Star", value: 3, minRating: 2.5, maxRating: 3.5 },
+];
+
 // Top attractions data - can be fetched from API
 const ATTRACTIONS = {
   Goa: [
@@ -182,6 +198,32 @@ function HotelSearchContent() {
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<string>("featured");
+  const [selectedStars, setSelectedStars] = useState<number[]>([]);
+  const [selectedPriceRanges, setSelectedPriceRanges] = useState<string[]>([]);
+  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
+  const [showPopularOnly, setShowPopularOnly] = useState(false);
+  const [showAllAmenities, setShowAllAmenities] = useState(false);
+
+  const toggleStar = (star: number) =>
+    setSelectedStars((prev) =>
+      prev.includes(star) ? prev.filter((s) => s !== star) : [...prev, star],
+    );
+  const togglePriceRange = (key: string) =>
+    setSelectedPriceRanges((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
+    );
+  const toggleAmenity = (amenity: string) =>
+    setSelectedAmenities((prev) =>
+      prev.includes(amenity)
+        ? prev.filter((a) => a !== amenity)
+        : [...prev, amenity],
+    );
+  const clearSidebarFilters = () => {
+    setSelectedStars([]);
+    setSelectedPriceRanges([]);
+    setSelectedAmenities([]);
+    setShowPopularOnly(false);
+  };
   const [isSearchBarSticky, setIsSearchBarSticky] = useState(false);
   const [scrollDirection, setScrollDirection] = useState<"up" | "down">("down");
   const [lastScrollY, setLastScrollY] = useState(0);
@@ -275,6 +317,49 @@ function HotelSearchContent() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [lastScrollY, scrollDirection]);
 
+  const allAmenities = useMemo(() => {
+    const set = new Set<string>();
+    hotels.forEach((h) => h.amenities.forEach((a) => set.add(a)));
+    return Array.from(set).sort();
+  }, [hotels]);
+
+  const priceRangeCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    SIDEBAR_PRICE_RANGES.forEach((range) => {
+      counts[range.key] = hotels.filter(
+        (h) =>
+          h.price >= range.min &&
+          (range.max === Infinity ? true : h.price < range.max),
+      ).length;
+    });
+    return counts;
+  }, [hotels]);
+
+  const starCounts = useMemo<Record<number, number>>(
+    () => ({
+      5: hotels.filter((h) => h.rating >= 4.5).length,
+      4: hotels.filter((h) => h.rating >= 3.5 && h.rating < 4.5).length,
+      3: hotels.filter((h) => h.rating >= 2.5 && h.rating < 3.5).length,
+    }),
+    [hotels],
+  );
+
+  const amenityCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    hotels.forEach((h) =>
+      h.amenities.forEach((a) => {
+        counts[a] = (counts[a] || 0) + 1;
+      }),
+    );
+    return counts;
+  }, [hotels]);
+
+  const hasSidebarFilters =
+    selectedStars.length > 0 ||
+    selectedPriceRanges.length > 0 ||
+    selectedAmenities.length > 0 ||
+    showPopularOnly;
+
   // Filter hotels based on search criteria
   const filteredHotels = useMemo(() => {
     return hotels
@@ -315,8 +400,39 @@ function HotelSearchContent() {
           return hotel.rating >= minRating;
         })();
 
+        const matchesSidebarPrice =
+          selectedPriceRanges.length === 0 ||
+          selectedPriceRanges.some((key) => {
+            const range = SIDEBAR_PRICE_RANGES.find((r) => r.key === key);
+            return range
+              ? hotel.price >= range.min &&
+                  (range.max === Infinity || hotel.price < range.max)
+              : false;
+          });
+
+        const matchesStars =
+          selectedStars.length === 0 ||
+          selectedStars.some((star) => {
+            const opt = STAR_OPTIONS.find((s) => s.value === star);
+            return opt
+              ? hotel.rating >= opt.minRating && hotel.rating < opt.maxRating
+              : false;
+          });
+
+        const matchesAmenities =
+          selectedAmenities.length === 0 ||
+          selectedAmenities.every((a) => hotel.amenities.includes(a));
+        const matchesPopular = !showPopularOnly || hotel.popular;
+
         return (
-          propertyTypeMatch && matchesLocation && matchesPrice && matchesRating
+          propertyTypeMatch &&
+          matchesLocation &&
+          matchesPrice &&
+          matchesRating &&
+          matchesSidebarPrice &&
+          matchesStars &&
+          matchesAmenities &&
+          matchesPopular
         );
       })
       .sort((a, b) => {
@@ -325,7 +441,16 @@ function HotelSearchContent() {
         if (sortBy === "rating") return b.rating - a.rating;
         return (b.popular ? 1 : 0) - (a.popular ? 1 : 0);
       });
-  }, [filters, hotels, sortBy, propertyType]);
+  }, [
+    filters,
+    hotels,
+    sortBy,
+    propertyType,
+    selectedStars,
+    selectedPriceRanges,
+    selectedAmenities,
+    showPopularOnly,
+  ]);
 
   // Get destination data based on search location
   const getDestinationData = () => {
@@ -1389,14 +1514,15 @@ function HotelSearchContent() {
 
         {/* Main Content - Hotels List + Filters Layout */}
         <div
+          className="search-main-layout"
           style={{
             width: "100%",
             maxWidth: "1400px",
             padding: "4rem 1.5rem",
             marginBottom: "2rem",
             display: "grid",
-            gridTemplateColumns: "1fr 300px",
-            gap: "2rem",
+            gridTemplateColumns: "1fr 320px",
+            gap: "1.5rem",
             transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
           }}
         >
@@ -1771,158 +1897,412 @@ function HotelSearchContent() {
 
           {/* RIGHT: Advanced Filters Sidebar */}
           <div
+            className="search-filter-sidebar"
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: "1.5rem",
+              gap: "0",
+              position: "sticky",
+              top: "5rem",
+              maxHeight: "calc(100vh - 6rem)",
+              overflowY: "auto",
             }}
           >
-            {/* Price Filter */}
             <div
               style={{
-                background: "white",
-                borderRadius: "12px",
-                padding: "1.5rem",
+                background: "#ffffff",
+                borderRadius: "16px",
+                boxShadow: "0 2px 12px rgba(0, 0, 0, 0.08)",
                 border: "1px solid #e2e8f0",
-                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
+                padding: "1.25rem",
               }}
             >
-              <h3
+              {/* Sidebar Header */}
+              <div
                 style={{
-                  fontSize: "1rem",
-                  fontWeight: 700,
-                  marginBottom: "1rem",
-                  color: "#1f2937",
                   display: "flex",
+                  justifyContent: "space-between",
                   alignItems: "center",
-                  gap: "0.5rem",
+                  marginBottom: "1.25rem",
+                  paddingBottom: "0.75rem",
+                  borderBottom: "2px solid #e2e8f0",
                 }}
               >
-                <span
-                  className="material-symbols-outlined"
-                  style={{ fontSize: "1.3rem" }}
+                <h3
+                  style={{
+                    fontSize: "1rem",
+                    fontWeight: 700,
+                    color: "#1e293b",
+                    margin: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                  }}
                 >
-                  currency_rupee
-                </span>
-                Price Range
-              </h3>
-              <select
-                value={filters.priceRange}
-                onChange={(e) =>
-                  setFilters({ ...filters, priceRange: e.target.value })
-                }
-                style={{
-                  width: "100%",
-                  padding: "0.75rem",
-                  borderRadius: "8px",
-                  border: "2px solid #e2e8f0",
-                  fontSize: "0.9rem",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  backgroundColor: "#f8fafc",
-                  color: "#1e293b",
-                }}
-              >
-                <option value="all">All Prices</option>
-                <option value="budget">Under ₹15,000</option>
-                <option value="mid">₹15,000 - ₹22,000</option>
-                <option value="luxury">₹22,000+</option>
-              </select>
-            </div>
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: "1.1rem", color: "#3b82f6" }}
+                  >
+                    tune
+                  </span>
+                  Filters
+                </h3>
+                {hasSidebarFilters && (
+                  <button
+                    onClick={clearSidebarFilters}
+                    style={{
+                      fontSize: "0.8rem",
+                      color: "#dc2626",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      padding: "0.25rem 0.5rem",
+                      borderRadius: "6px",
+                      transition: "background 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#fef2f2";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "none";
+                    }}
+                  >
+                    Clear All
+                  </button>
+                )}
+              </div>
 
-            {/* Rating Filter */}
-            <div
-              style={{
-                background: "white",
-                borderRadius: "12px",
-                padding: "1.5rem",
-                border: "1px solid #e2e8f0",
-                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
-              }}
-            >
-              <h3
+              {/* Suggested For You */}
+              <div
                 style={{
-                  fontSize: "1rem",
-                  fontWeight: 700,
-                  marginBottom: "1rem",
-                  color: "#1f2937",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
+                  marginBottom: "1.25rem",
+                  paddingBottom: "1.25rem",
+                  borderBottom: "1px solid #f1f5f9",
                 }}
               >
-                <span
-                  className="material-symbols-outlined"
-                  style={{ fontSize: "1.3rem" }}
+                <h4
+                  style={{
+                    fontSize: "0.8rem",
+                    fontWeight: 700,
+                    color: "#1e293b",
+                    marginBottom: "0.75rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}
                 >
-                  star
-                </span>
-                Rating
-              </h3>
-              <select
-                value={filters.rating}
-                onChange={(e) =>
-                  setFilters({ ...filters, rating: e.target.value })
-                }
-                style={{
-                  width: "100%",
-                  padding: "0.75rem",
-                  borderRadius: "8px",
-                  border: "2px solid #e2e8f0",
-                  fontSize: "0.9rem",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  backgroundColor: "#f8fafc",
-                  color: "#1e293b",
-                }}
-              >
-                <option value="all">All Ratings</option>
-                <option value="4.5">4.5+ Stars</option>
-                <option value="4">4+ Stars</option>
-                <option value="3">3+ Stars</option>
-              </select>
-            </div>
+                  Suggested For You
+                </h4>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.625rem",
+                    padding: "0.4rem 0.5rem",
+                    cursor: "pointer",
+                    fontSize: "0.85rem",
+                    color: "#374151",
+                    borderRadius: "8px",
+                    transition: "background 0.15s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#f8fafc";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={showPopularOnly}
+                    onChange={() => setShowPopularOnly(!showPopularOnly)}
+                    style={{
+                      width: "16px",
+                      height: "16px",
+                      accentColor: "#3b82f6",
+                      cursor: "pointer",
+                    }}
+                  />
+                  <span>🔥 Popular Hotels</span>
+                </label>
+              </div>
 
-            {/* Search Tips */}
-            <div
-              style={{
-                background: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
-                borderRadius: "12px",
-                padding: "1.5rem",
-                border: "1px solid #bae6fd",
-              }}
-            >
-              <h3
+              {/* Price Per Night */}
+              <div
                 style={{
-                  fontSize: "0.95rem",
-                  fontWeight: 700,
-                  marginBottom: "0.75rem",
-                  color: "#0369a1",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
+                  marginBottom: "1.25rem",
+                  paddingBottom: "1.25rem",
+                  borderBottom: "1px solid #f1f5f9",
                 }}
               >
-                <span
-                  className="material-symbols-outlined"
-                  style={{ fontSize: "1.2rem" }}
+                <h4
+                  style={{
+                    fontSize: "0.8rem",
+                    fontWeight: 700,
+                    color: "#1e293b",
+                    marginBottom: "0.75rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}
                 >
-                  info
-                </span>
-                Tips
-              </h3>
-              <ul
+                  Price Per Night
+                </h4>
+                {SIDEBAR_PRICE_RANGES.map((range) => (
+                  <label
+                    key={range.key}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.625rem",
+                      padding: "0.35rem 0.5rem",
+                      cursor: "pointer",
+                      fontSize: "0.85rem",
+                      color: "#374151",
+                      borderRadius: "8px",
+                      transition: "background 0.15s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#f8fafc";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedPriceRanges.includes(range.key)}
+                      onChange={() => togglePriceRange(range.key)}
+                      style={{
+                        width: "16px",
+                        height: "16px",
+                        accentColor: "#3b82f6",
+                        cursor: "pointer",
+                      }}
+                    />
+                    <span>{range.label}</span>
+                    <span
+                      style={{
+                        marginLeft: "auto",
+                        fontSize: "0.75rem",
+                        color: "#9ca3af",
+                      }}
+                    >
+                      ({priceRangeCounts[range.key] || 0})
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              {/* Star Category */}
+              <div
                 style={{
-                  fontSize: "0.85rem",
-                  color: "#0c4a6e",
-                  lineHeight: "1.6",
-                  paddingLeft: "1.5rem",
+                  marginBottom: "1.25rem",
+                  paddingBottom: "1.25rem",
+                  borderBottom: "1px solid #f1f5f9",
                 }}
               >
-                <li>✓ Adjust dates to find better prices</li>
-                <li>✓ Filter by rating for quality</li>
-                <li>✓ Compare amenities and reviews</li>
-              </ul>
+                <h4
+                  style={{
+                    fontSize: "0.8rem",
+                    fontWeight: 700,
+                    color: "#1e293b",
+                    marginBottom: "0.75rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}
+                >
+                  Star Category
+                </h4>
+                {STAR_OPTIONS.map((opt) => (
+                  <label
+                    key={opt.value}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.625rem",
+                      padding: "0.35rem 0.5rem",
+                      cursor: "pointer",
+                      fontSize: "0.85rem",
+                      color: "#374151",
+                      borderRadius: "8px",
+                      transition: "background 0.15s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#f8fafc";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedStars.includes(opt.value)}
+                      onChange={() => toggleStar(opt.value)}
+                      style={{
+                        width: "16px",
+                        height: "16px",
+                        accentColor: "#3b82f6",
+                        cursor: "pointer",
+                      }}
+                    />
+                    <span>
+                      {"⭐".repeat(Math.min(opt.value, 5))} {opt.label}
+                    </span>
+                    <span
+                      style={{
+                        marginLeft: "auto",
+                        fontSize: "0.75rem",
+                        color: "#9ca3af",
+                      }}
+                    >
+                      ({starCounts[opt.value] || 0})
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              {/* Amenities */}
+              {allAmenities.length > 0 && (
+                <div
+                  style={{
+                    marginBottom: "1.25rem",
+                    paddingBottom: "1.25rem",
+                    borderBottom: "1px solid #f1f5f9",
+                  }}
+                >
+                  <h4
+                    style={{
+                      fontSize: "0.8rem",
+                      fontWeight: 700,
+                      color: "#1e293b",
+                      marginBottom: "0.75rem",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                    }}
+                  >
+                    Amenities
+                  </h4>
+                  {(showAllAmenities
+                    ? allAmenities
+                    : allAmenities.slice(0, 5)
+                  ).map((amenity) => (
+                    <label
+                      key={amenity}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.625rem",
+                        padding: "0.35rem 0.5rem",
+                        cursor: "pointer",
+                        fontSize: "0.85rem",
+                        color: "#374151",
+                        borderRadius: "8px",
+                        transition: "background 0.15s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "#f8fafc";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "transparent";
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedAmenities.includes(amenity)}
+                        onChange={() => toggleAmenity(amenity)}
+                        style={{
+                          width: "16px",
+                          height: "16px",
+                          accentColor: "#3b82f6",
+                          cursor: "pointer",
+                        }}
+                      />
+                      <span>{amenity}</span>
+                      <span
+                        style={{
+                          marginLeft: "auto",
+                          fontSize: "0.75rem",
+                          color: "#9ca3af",
+                        }}
+                      >
+                        ({amenityCounts[amenity] || 0})
+                      </span>
+                    </label>
+                  ))}
+                  {allAmenities.length > 5 && (
+                    <button
+                      onClick={() => setShowAllAmenities(!showAllAmenities)}
+                      style={{
+                        fontSize: "0.8rem",
+                        color: "#3b82f6",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        fontWeight: 600,
+                        padding: "0.5rem 0",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.25rem",
+                        marginTop: "0.25rem",
+                      }}
+                    >
+                      {showAllAmenities
+                        ? "Show Less"
+                        : `Show ${allAmenities.length - 5} more`}
+                      <span
+                        className="material-symbols-outlined"
+                        style={{ fontSize: "1rem" }}
+                      >
+                        {showAllAmenities ? "expand_less" : "expand_more"}
+                      </span>
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Search Tips */}
+              <div
+                style={{
+                  background:
+                    "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
+                  borderRadius: "10px",
+                  padding: "1rem",
+                  border: "1px solid #bae6fd",
+                }}
+              >
+                <h4
+                  style={{
+                    fontSize: "0.8rem",
+                    fontWeight: 700,
+                    color: "#0369a1",
+                    marginBottom: "0.5rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.4rem",
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: "1rem" }}
+                  >
+                    info
+                  </span>
+                  Tips
+                </h4>
+                <ul
+                  style={{
+                    fontSize: "0.8rem",
+                    color: "#0c4a6e",
+                    lineHeight: "1.6",
+                    paddingLeft: "1.25rem",
+                    margin: 0,
+                  }}
+                >
+                  <li>Adjust dates for better prices</li>
+                  <li>Filter by rating for quality</li>
+                  <li>Compare amenities & reviews</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
@@ -1932,6 +2312,28 @@ function HotelSearchContent() {
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(-20px); }
+        }
+
+        /* Filter Sidebar Scrollbar */
+        .search-filter-sidebar {
+          scrollbar-width: thin;
+          scrollbar-color: #cbd5e1 transparent;
+        }
+        .search-filter-sidebar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .search-filter-sidebar::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 4px;
+        }
+
+        @media (max-width: 868px) {
+          .search-filter-sidebar {
+            display: none !important;
+          }
+          .search-main-layout {
+            grid-template-columns: 1fr !important;
+          }
         }
 
         /* Carousel Scrollbar Styling */

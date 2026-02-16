@@ -26,6 +26,9 @@ export default function ProfilePage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
@@ -658,22 +661,47 @@ export default function ProfilePage() {
                   >
                     Current Password
                   </label>
-                  <input
-                    type="password"
-                    value={passwordData.currentPassword}
-                    onChange={(e) =>
-                      setPasswordData({
-                        ...passwordData,
-                        currentPassword: e.target.value,
-                      })
-                    }
-                    style={{
-                      width: "100%",
-                      padding: "0.75rem",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "8px",
-                    }}
-                  />
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showCurrentPassword ? "text" : "password"}
+                      value={passwordData.currentPassword}
+                      onChange={(e) =>
+                        setPasswordData({
+                          ...passwordData,
+                          currentPassword: e.target.value,
+                        })
+                      }
+                      style={{
+                        width: "100%",
+                        padding: "0.75rem",
+                        paddingRight: "2.5rem",
+                        border: "1px solid #d1d5db",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowCurrentPassword(!showCurrentPassword)
+                      }
+                      style={{
+                        position: "absolute",
+                        right: "0.5rem",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        fontSize: "1.1rem",
+                        color: "#6b7280",
+                        padding: "0.25rem",
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                    >
+                      {showCurrentPassword ? "🙈" : "👁️"}
+                    </button>
+                  </div>
                 </div>
 
                 <div style={{ marginBottom: "1rem" }}>
@@ -687,22 +715,45 @@ export default function ProfilePage() {
                   >
                     New Password
                   </label>
-                  <input
-                    type="password"
-                    value={passwordData.newPassword}
-                    onChange={(e) =>
-                      setPasswordData({
-                        ...passwordData,
-                        newPassword: e.target.value,
-                      })
-                    }
-                    style={{
-                      width: "100%",
-                      padding: "0.75rem",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "8px",
-                    }}
-                  />
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      value={passwordData.newPassword}
+                      onChange={(e) =>
+                        setPasswordData({
+                          ...passwordData,
+                          newPassword: e.target.value,
+                        })
+                      }
+                      style={{
+                        width: "100%",
+                        padding: "0.75rem",
+                        paddingRight: "2.5rem",
+                        border: "1px solid #d1d5db",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      style={{
+                        position: "absolute",
+                        right: "0.5rem",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        fontSize: "1.1rem",
+                        color: "#6b7280",
+                        padding: "0.25rem",
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                    >
+                      {showNewPassword ? "🙈" : "👁️"}
+                    </button>
+                  </div>
                 </div>
 
                 <div style={{ marginBottom: "1.5rem" }}>
@@ -716,22 +767,47 @@ export default function ProfilePage() {
                   >
                     Confirm New Password
                   </label>
-                  <input
-                    type="password"
-                    value={passwordData.confirmPassword}
-                    onChange={(e) =>
-                      setPasswordData({
-                        ...passwordData,
-                        confirmPassword: e.target.value,
-                      })
-                    }
-                    style={{
-                      width: "100%",
-                      padding: "0.75rem",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "8px",
-                    }}
-                  />
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={passwordData.confirmPassword}
+                      onChange={(e) =>
+                        setPasswordData({
+                          ...passwordData,
+                          confirmPassword: e.target.value,
+                        })
+                      }
+                      style={{
+                        width: "100%",
+                        padding: "0.75rem",
+                        paddingRight: "2.5rem",
+                        border: "1px solid #d1d5db",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
+                      style={{
+                        position: "absolute",
+                        right: "0.5rem",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        fontSize: "1.1rem",
+                        color: "#6b7280",
+                        padding: "0.25rem",
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                    >
+                      {showConfirmPassword ? "🙈" : "👁️"}
+                    </button>
+                  </div>
                 </div>
 
                 <div style={{ display: "flex", gap: "1rem" }}>

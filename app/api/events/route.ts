@@ -21,6 +21,13 @@ export async function GET(request: NextRequest) {
     const db = client.db(MONGODB_DB);
     const eventsCollection = db.collection("events");
 
+    // Auto-deactivate expired events
+    const now = new Date();
+    await eventsCollection.updateMany(
+      { endDate: { $lt: now }, active: true },
+      { $set: { active: false, updatedAt: new Date() } }
+    );
+
     if (eventId) {
       const event = await eventsCollection.findOne({
         _id: new ObjectId(eventId),

@@ -75,7 +75,7 @@ export default function HotelDetails() {
   const [fullscreenImageIndex, setFullscreenImageIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<
     "overview" | "rooms" | "amenities" | "reviews" | "location"
-  >("overview");
+  >("rooms");
 
   // Room filters
   const [roomFilters, setRoomFilters] = useState({
@@ -100,10 +100,17 @@ export default function HotelDetails() {
     name: "",
     email: "",
     phone: "",
+    message: "",
   });
+
+  const [selectedRoomForBooking, setSelectedRoomForBooking] =
+    useState<Room | null>(null);
+  const [showRoomSelectionModal, setShowRoomSelectionModal] = useState(false);
 
   const [showHostProperties, setShowHostProperties] = useState(false);
   const [hostProperties, setHostProperties] = useState<any[]>([]);
+  const [similarHotels, setSimilarHotels] = useState<any[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     checkAuth();
@@ -111,6 +118,26 @@ export default function HotelDetails() {
 
   const checkAuth = async () => {
     try {
+      // First check localStorage for quick auth detection
+      const userString = localStorage.getItem("user");
+      if (userString) {
+        try {
+          const user = JSON.parse(userString);
+          setUserProfile(user);
+          setIsAuthenticated(true);
+          setGuestDetails((prev) => ({
+            ...prev,
+            name: user.name || prev.name,
+            email: user.email || prev.email,
+            phone: user.mobile || prev.phone,
+          }));
+          return;
+        } catch (e) {
+          console.error("Failed to parse stored user:", e);
+        }
+      }
+
+      // Then verify with API
       const response = await fetch("/api/auth/user-profile", {
         credentials: "include",
       });
@@ -140,6 +167,11 @@ export default function HotelDetails() {
       return;
     }
 
+    if (!selectedRoomForBooking) {
+      alert("Please select a room first");
+      return;
+    }
+
     if (!bookingDetails.checkIn || !bookingDetails.checkOut) {
       alert("Please select check-in and check-out dates");
       return;
@@ -147,11 +179,6 @@ export default function HotelDetails() {
 
     if (!guestDetails.name || !guestDetails.email || !guestDetails.phone) {
       alert("Please fill in guest details");
-      return;
-    }
-
-    if (!hotel?.rooms[0]) {
-      alert("Room information not available");
       return;
     }
 
@@ -168,7 +195,7 @@ export default function HotelDetails() {
         return;
       }
 
-      const basePrice = hotel.rooms[0].price;
+      const basePrice = selectedRoomForBooking.price;
       const taxes = basePrice * nights * 0.12;
       const platformFee = basePrice * nights * 0.05;
       const totalPrice = basePrice * nights + taxes + platformFee;
@@ -181,7 +208,8 @@ export default function HotelDetails() {
           hotelId: hotelId,
           propertyName: hotel.name,
           propertyType: "hotel",
-          roomId: hotel.rooms[0].id,
+          roomId: selectedRoomForBooking.id,
+          roomType: selectedRoomForBooking.type,
           guestName: guestDetails.name,
           guestEmail: guestDetails.email,
           guestPhone: guestDetails.phone,
@@ -190,7 +218,7 @@ export default function HotelDetails() {
           checkIn: bookingDetails.checkIn,
           checkOut: bookingDetails.checkOut,
           guests: bookingDetails.guests,
-          basePrice: hotel.rooms[0].price,
+          basePrice: selectedRoomForBooking.price,
           city: hotel.location || "Unknown",
           userId: userProfile._id,
         }),
@@ -217,9 +245,12 @@ export default function HotelDetails() {
       if (!hotelId) return;
       setLoading(true);
       try {
-        const response = await fetch(`/api/hotels?id=${hotelId}`, {
-          cache: "no-store",
-        });
+        const response = await fetch(
+          `/api/hotels?id=${hotelId}&t=${Date.now()}`,
+          {
+            cache: "no-store",
+          },
+        );
         if (response.ok) {
           const data = await response.json();
           setHotel(data);
@@ -233,9 +264,12 @@ export default function HotelDetails() {
 
     const fetchReviews = async () => {
       try {
-        const response = await fetch(`/api/reviews?propertyId=${hotelId}`, {
-          cache: "no-store",
-        });
+        const response = await fetch(
+          `/api/reviews?propertyId=${hotelId}&t=${Date.now()}`,
+          {
+            cache: "no-store",
+          },
+        );
         if (response.ok) {
           const data = await response.json();
           setReviews(data);
@@ -247,7 +281,43 @@ export default function HotelDetails() {
 
     fetchHotelDetails();
     fetchReviews();
-  }, [hotelId]);
+  }, [hotelId, refreshKey]);
+
+  // Fetch similar hotels based on location
+  useEffect(() => {
+    if (!hotel) return;
+    const fetchSimilarHotels = async () => {
+      try {
+        const response = await fetch(`/api/hotels`, { cache: "no-store" });
+        if (response.ok) {
+          const allHotels = await response.json();
+          const hotelLocation = hotel.location?.toLowerCase().trim() || "";
+          const similar = (Array.isArray(allHotels) ? allHotels : [])
+            .filter(
+              (h: any) =>
+                h._id !== hotel._id &&
+                h.location?.toLowerCase().trim() === hotelLocation,
+            )
+            .slice(0, 6);
+          // If fewer than 4 from same location, fill with other hotels
+          if (similar.length < 4) {
+            const otherHotels = (Array.isArray(allHotels) ? allHotels : [])
+              .filter(
+                (h: any) =>
+                  h._id !== hotel._id &&
+                  !similar.some((s: any) => s._id === h._id),
+              )
+              .slice(0, 6 - similar.length);
+            similar.push(...otherHotels);
+          }
+          setSimilarHotels(similar);
+        }
+      } catch (error) {
+        console.error("Failed to fetch similar hotels:", error);
+      }
+    };
+    fetchSimilarHotels();
+  }, [hotel]);
 
   useEffect(() => {
     if (showHostProperties && hotel?.hostName) {
@@ -567,6 +637,39 @@ export default function HotelDetails() {
                       </div>
                     </div>
                   </div>
+                  <button
+                    onClick={() => setRefreshKey((prev) => prev + 1)}
+                    style={{
+                      padding: "0.5rem 1rem",
+                      background: "#f1f5f9",
+                      border: "1px solid #cbd5e1",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      fontSize: "0.9rem",
+                      color: "#64748b",
+                      transition: "all 0.3s ease",
+                      marginLeft: "1rem",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#e2e8f0";
+                      e.currentTarget.style.borderColor = "#94a3b8";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "#f1f5f9";
+                      e.currentTarget.style.borderColor = "#cbd5e1";
+                    }}
+                  >
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: "1.2rem" }}
+                    >
+                      refresh
+                    </span>
+                    Refresh
+                  </button>
                 </div>
               </div>
             </div>
@@ -1360,38 +1463,52 @@ export default function HotelDetails() {
                                 </div>
                                 <button
                                   onClick={() => {
-                                    setShowBookingForm(true);
-                                    window.scrollTo({
-                                      top: 0,
-                                      behavior: "smooth",
-                                    });
+                                    if (room.availability <= 0) {
+                                      alert("This room is no longer available");
+                                      return;
+                                    }
+                                    setSelectedRoomForBooking(room);
+                                    setShowRoomSelectionModal(true);
                                   }}
                                   style={{
                                     width: "100%",
                                     padding: "0.75rem 1.5rem",
                                     background:
-                                      "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
+                                      room.availability <= 0
+                                        ? "#cbd5e1"
+                                        : "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
                                     color: "white",
                                     border: "none",
                                     borderRadius: "8px",
                                     fontSize: "1rem",
                                     fontWeight: 700,
-                                    cursor: "pointer",
+                                    cursor:
+                                      room.availability <= 0
+                                        ? "not-allowed"
+                                        : "pointer",
                                     transition: "all 0.3s ease",
+                                    opacity: room.availability <= 0 ? 0.6 : 1,
                                   }}
+                                  disabled={room.availability <= 0}
                                   onMouseEnter={(e) => {
-                                    e.currentTarget.style.transform =
-                                      "translateY(-2px)";
-                                    e.currentTarget.style.boxShadow =
-                                      "0 8px 20px rgba(0, 102, 204, 0.3)";
+                                    if (room.availability > 0) {
+                                      e.currentTarget.style.transform =
+                                        "translateY(-2px)";
+                                      e.currentTarget.style.boxShadow =
+                                        "0 8px 20px rgba(0, 102, 204, 0.3)";
+                                    }
                                   }}
                                   onMouseLeave={(e) => {
-                                    e.currentTarget.style.transform =
-                                      "translateY(0)";
-                                    e.currentTarget.style.boxShadow = "none";
+                                    if (room.availability > 0) {
+                                      e.currentTarget.style.transform =
+                                        "translateY(0)";
+                                      e.currentTarget.style.boxShadow = "none";
+                                    }
                                   }}
                                 >
-                                  Select Room
+                                  {room.availability <= 0
+                                    ? "No Rooms Available"
+                                    : "Select Room"}
                                 </button>
                               </div>
                             </div>
@@ -1735,26 +1852,6 @@ export default function HotelDetails() {
                 border: "2px solid #e2e8f0",
               }}
             >
-              <div className="booking-price-section">
-                <span
-                  className="booking-price"
-                  style={{
-                    fontSize: "1.75rem",
-                    fontWeight: 800,
-                    color: "#0066cc",
-                  }}
-                >
-                  {hotel.rooms && hotel.rooms[0]
-                    ? formatInr(hotel.rooms[0].price)
-                    : "N/A"}
-                </span>
-                <span
-                  className="booking-per-night"
-                  style={{ color: "#64748b", fontSize: "0.9rem" }}
-                >
-                  /night
-                </span>
-              </div>
               <h3
                 className="booking-title-desktop"
                 style={{
@@ -1881,6 +1978,41 @@ export default function HotelDetails() {
                           boxSizing: "border-box",
                         }}
                         placeholder="+91 9876543210"
+                      />
+                    </div>
+                    <div style={{ gridColumn: "1 / -1" }}>
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "0.875rem",
+                          fontWeight: 600,
+                          marginBottom: "0.5rem",
+                          color: "#64748b",
+                        }}
+                      >
+                        Message (Optional)
+                      </label>
+                      <textarea
+                        value={guestDetails.message}
+                        onChange={(e) =>
+                          setGuestDetails({
+                            ...guestDetails,
+                            message: e.target.value,
+                          })
+                        }
+                        style={{
+                          width: "100%",
+                          padding: "0.75rem",
+                          borderRadius: "8px",
+                          border: "2px solid #e2e8f0",
+                          fontSize: "1rem",
+                          boxSizing: "border-box",
+                          resize: "vertical",
+                          minHeight: "80px",
+                          fontFamily: "inherit",
+                        }}
+                        placeholder="Any special requests or messages..."
+                        rows={3}
                       />
                     </div>
                   </div>
@@ -2035,57 +2167,39 @@ export default function HotelDetails() {
                     marginBottom: "1rem",
                   }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: "0.5rem",
-                    }}
-                  >
-                    <span style={{ color: "#64748b" }}>
-                      {calculateNights()} night(s)
-                    </span>
-                    <span style={{ fontWeight: 600 }}>
-                      {formatInr(hotel.rooms[0].price * calculateNights())}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: "0.5rem",
-                    }}
-                  >
-                    <span style={{ color: "#64748b" }}>Taxes & Fees</span>
-                    <span style={{ fontWeight: 600 }}>
-                      {formatInr(
-                        hotel.rooms[0].price * calculateNights() * 0.12,
-                      )}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      borderTop: "1px solid #cbd5e1",
-                      paddingTop: "0.5rem",
-                      display: "flex",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <span style={{ fontWeight: 700, fontSize: "1.1rem" }}>
-                      Total
-                    </span>
-                    <span
+                  {selectedRoomForBooking && (
+                    <div
                       style={{
-                        fontWeight: 800,
-                        fontSize: "1.25rem",
-                        color: "#0066cc",
+                        marginBottom: "1rem",
+                        paddingBottom: "1rem",
+                        borderBottom: "2px solid #cbd5e1",
                       }}
                     >
-                      {formatInr(
-                        hotel.rooms[0].price * calculateNights() * 1.12,
-                      )}
-                    </span>
-                  </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                          color: "#16a34a",
+                          fontWeight: 700,
+                          marginBottom: "0.5rem",
+                        }}
+                      >
+                        <span
+                          className="material-symbols-outlined"
+                          style={{ fontSize: "1.25rem" }}
+                        >
+                          check_circle
+                        </span>
+                        Selected Room: {selectedRoomForBooking.type}
+                      </div>
+                      <div style={{ fontSize: "0.9rem", color: "#64748b" }}>
+                        {selectedRoomForBooking.maxGuests} guests •{" "}
+                        {selectedRoomForBooking.bedType} •{" "}
+                        {selectedRoomForBooking.size}m²
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -2151,6 +2265,12 @@ export default function HotelDetails() {
                 <button
                   className="book-now-btn"
                   onClick={() => {
+                    if (!selectedRoomForBooking) {
+                      alert(
+                        "Please select a room first by clicking 'Select Room' on any room card",
+                      );
+                      return;
+                    }
                     if (!bookingDetails.checkIn || !bookingDetails.checkOut) {
                       alert("Please select check-in and check-out dates");
                       return;
@@ -2161,28 +2281,37 @@ export default function HotelDetails() {
                   style={{
                     width: "100%",
                     padding: "1rem",
-                    background:
-                      "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
+                    background: selectedRoomForBooking
+                      ? "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)"
+                      : "#cbd5e1",
                     color: "white",
                     border: "none",
                     borderRadius: "12px",
                     fontSize: "1.1rem",
                     fontWeight: 700,
-                    cursor: "pointer",
+                    cursor: selectedRoomForBooking ? "pointer" : "not-allowed",
                     transition: "all 0.3s ease",
                     marginBottom: "1rem",
+                    opacity: selectedRoomForBooking ? 1 : 0.6,
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "translateY(-2px)";
-                    e.currentTarget.style.boxShadow =
-                      "0 8px 24px rgba(0, 102, 204, 0.3)";
+                    if (selectedRoomForBooking) {
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                      e.currentTarget.style.boxShadow =
+                        "0 8px 24px rgba(0, 102, 204, 0.3)";
+                    }
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "translateY(0)";
-                    e.currentTarget.style.boxShadow = "none";
+                    if (selectedRoomForBooking) {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "none";
+                    }
                   }}
+                  disabled={!selectedRoomForBooking}
                 >
-                  Enquire Now
+                  {selectedRoomForBooking
+                    ? `Enquire Now • ${selectedRoomForBooking.type}`
+                    : "Select a Room First"}
                 </button>
               )}
 
@@ -2204,6 +2333,175 @@ export default function HotelDetails() {
             </div>
           </div>
         </div>
+
+        {/* Similar Properties Section */}
+        {similarHotels.length > 0 && (
+          <section
+            style={{
+              maxWidth: "1280px",
+              margin: "3rem auto 0",
+              padding: "0 1.5rem 3rem",
+            }}
+          >
+            <h2
+              style={{
+                fontSize: "1.75rem",
+                fontWeight: 800,
+                color: "#0f172a",
+                marginBottom: "0.5rem",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              Similar Properties
+            </h2>
+            <p
+              style={{
+                color: "#64748b",
+                fontSize: "1rem",
+                marginBottom: "2rem",
+              }}
+            >
+              You might also like these properties
+              {hotel?.location ? ` in ${hotel.location}` : ""}
+            </p>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+                gap: "1.5rem",
+              }}
+            >
+              {similarHotels.map((h: any) => (
+                <a
+                  key={h._id}
+                  href={`/hotels/${h._id}`}
+                  style={{
+                    textDecoration: "none",
+                    color: "inherit",
+                    background: "#ffffff",
+                    borderRadius: "16px",
+                    overflow: "hidden",
+                    boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+                    border: "1px solid #e2e8f0",
+                    transition: "all 0.3s ease",
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateY(-4px)";
+                    e.currentTarget.style.boxShadow =
+                      "0 12px 32px rgba(0,0,0,0.12)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow =
+                      "0 2px 12px rgba(0,0,0,0.08)";
+                  }}
+                >
+                  <div
+                    style={{
+                      position: "relative",
+                      width: "100%",
+                      paddingTop: "60%",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <img
+                      src={h.images?.[0] || h.image || "/placeholder-hotel.jpg"}
+                      alt={h.name}
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                    {h.rating && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "12px",
+                          left: "12px",
+                          background: "#16a34a",
+                          color: "white",
+                          padding: "0.25rem 0.6rem",
+                          borderRadius: "6px",
+                          fontSize: "0.8rem",
+                          fontWeight: 700,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.25rem",
+                        }}
+                      >
+                        ⭐ {h.rating}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ padding: "1rem 1.25rem 1.25rem" }}>
+                    <h3
+                      style={{
+                        fontSize: "1.1rem",
+                        fontWeight: 700,
+                        color: "#0f172a",
+                        marginBottom: "0.35rem",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {h.name}
+                    </h3>
+                    <p
+                      style={{
+                        fontSize: "0.85rem",
+                        color: "#64748b",
+                        marginBottom: "0.75rem",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.25rem",
+                      }}
+                    >
+                      📍 {h.location}
+                    </p>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: "1.15rem",
+                          fontWeight: 800,
+                          color: "#0066cc",
+                        }}
+                      >
+                        {h.rooms?.[0]?.price
+                          ? formatInr(h.rooms[0].price)
+                          : h.price
+                            ? formatInr(h.price)
+                            : ""}
+                      </span>
+                      {(h.rooms?.[0]?.price || h.price) && (
+                        <span
+                          style={{
+                            fontSize: "0.8rem",
+                            color: "#94a3b8",
+                          }}
+                        >
+                          /night
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
 
       {/* Fullscreen Image Gallery Modal */}
@@ -3119,6 +3417,364 @@ export default function HotelDetails() {
                 <p>Loading properties...</p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Room Selection Modal */}
+      {showRoomSelectionModal && selectedRoomForBooking && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: "1rem",
+          }}
+          onClick={() => setShowRoomSelectionModal(false)}
+        >
+          <div
+            style={{
+              background: "white",
+              borderRadius: "16px",
+              maxWidth: "600px",
+              width: "100%",
+              maxHeight: "90vh",
+              overflow: "auto",
+              boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                padding: "2rem",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "1.5rem",
+                }}
+              >
+                <h2
+                  style={{
+                    fontSize: "1.5rem",
+                    fontWeight: 700,
+                    margin: 0,
+                  }}
+                >
+                  Select Room
+                </h2>
+                <button
+                  onClick={() => setShowRoomSelectionModal(false)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    fontSize: "1.5rem",
+                    cursor: "pointer",
+                    color: "#64748b",
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "1.5rem",
+                  marginBottom: "2rem",
+                }}
+              >
+                <div>
+                  {selectedRoomForBooking.images?.[0] ? (
+                    <img
+                      src={selectedRoomForBooking.images[0]}
+                      alt={selectedRoomForBooking.type}
+                      style={{
+                        width: "100%",
+                        height: "250px",
+                        objectFit: "cover",
+                        borderRadius: "12px",
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: "100%",
+                        height: "250px",
+                        background: "#f1f5f9",
+                        borderRadius: "12px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <span
+                        className="material-symbols-outlined"
+                        style={{ fontSize: "3rem", color: "#cbd5e1" }}
+                      >
+                        bed
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.75rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      color: "#475569",
+                    }}
+                  >
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: "1.25rem" }}
+                    >
+                      group
+                    </span>
+                    <span>{selectedRoomForBooking.maxGuests} Guests</span>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      color: "#475569",
+                    }}
+                  >
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: "1.25rem" }}
+                    >
+                      bed
+                    </span>
+                    <span>{selectedRoomForBooking.bedType}</span>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      color: "#475569",
+                    }}
+                  >
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: "1.25rem" }}
+                    >
+                      straighten
+                    </span>
+                    <span>{selectedRoomForBooking.size} m²</span>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      color:
+                        selectedRoomForBooking.availability > 3
+                          ? "#16a34a"
+                          : "#dc2626",
+                      fontWeight: 600,
+                    }}
+                  >
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: "1.25rem" }}
+                    >
+                      {selectedRoomForBooking.availability > 3
+                        ? "check_circle"
+                        : "warning"}
+                    </span>
+                    <span>
+                      {selectedRoomForBooking.availability} rooms left
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  padding: "1rem",
+                  background: "#f0f9ff",
+                  borderRadius: "8px",
+                  borderLeft: "4px solid #0066cc",
+                  marginBottom: "2rem",
+                }}
+              >
+                <div style={{ color: "#64748b", fontSize: "0.875rem" }}>
+                  Price per night
+                </div>
+                <div
+                  style={{
+                    fontSize: "1.75rem",
+                    fontWeight: 800,
+                    color: "#0066cc",
+                  }}
+                >
+                  {formatInr(selectedRoomForBooking.price)}
+                </div>
+              </div>
+
+              {selectedRoomForBooking.amenities &&
+                selectedRoomForBooking.amenities.length > 0 && (
+                  <div
+                    style={{
+                      marginBottom: "2rem",
+                    }}
+                  >
+                    <h4
+                      style={{
+                        fontWeight: 700,
+                        marginBottom: "0.75rem",
+                        color: "#1f2937",
+                      }}
+                    >
+                      Room Amenities
+                    </h4>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: "0.5rem",
+                      }}
+                    >
+                      {selectedRoomForBooking.amenities.map(
+                        (amenity: string, idx: number) => (
+                          <span
+                            key={idx}
+                            style={{
+                              fontSize: "0.8rem",
+                              padding: "0.4rem 0.75rem",
+                              background: "#f0f9ff",
+                              color: "#0369a1",
+                              borderRadius: "6px",
+                              border: "1px solid #e0f2fe",
+                              fontWeight: 500,
+                            }}
+                          >
+                            {amenity}
+                          </span>
+                        ),
+                      )}
+                    </div>
+                  </div>
+                )}
+
+              <div
+                style={{
+                  padding: "1rem",
+                  background: "#f8fafc",
+                  borderRadius: "8px",
+                  marginBottom: "2rem",
+                  borderLeft: "4px solid #64748b",
+                }}
+              >
+                <h4
+                  style={{
+                    fontSize: "0.875rem",
+                    fontWeight: 700,
+                    color: "#64748b",
+                    marginBottom: "0.5rem",
+                  }}
+                >
+                  Cancellation Policy
+                </h4>
+                <p
+                  style={{
+                    margin: 0,
+                    color: "#475569",
+                    fontSize: "0.9rem",
+                    lineHeight: "1.5",
+                  }}
+                >
+                  {selectedRoomForBooking.cancellationPolicy ||
+                    "Free cancellation up to 48 hours before check-in. 50% refund for cancellations within 48 hours."}
+                </p>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "1rem",
+                }}
+              >
+                <button
+                  onClick={() => setShowRoomSelectionModal(false)}
+                  style={{
+                    padding: "0.75rem 1.5rem",
+                    background: "#e2e8f0",
+                    color: "#1f2937",
+                    border: "none",
+                    borderRadius: "8px",
+                    fontSize: "1rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    transition: "all 0.3s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#cbd5e1";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "#e2e8f0";
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowRoomSelectionModal(false);
+                    setShowBookingForm(true);
+                    window.scrollTo({
+                      top: 0,
+                      behavior: "smooth",
+                    });
+                  }}
+                  style={{
+                    padding: "0.75rem 1.5rem",
+                    background:
+                      "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    fontSize: "1rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    transition: "all 0.3s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.boxShadow =
+                      "0 8px 20px rgba(0, 102, 204, 0.3)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                >
+                  Confirm & Proceed
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

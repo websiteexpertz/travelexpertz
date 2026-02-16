@@ -98,7 +98,10 @@ export default function OwnerLayout({
   }
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#f5f7fa" }}>
+    <div
+      className="owner-panel"
+      style={{ display: "flex", minHeight: "100vh", background: "#f5f7fa" }}
+    >
       {/* Sidebar */}
       <div
         style={{

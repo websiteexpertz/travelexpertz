@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import BookingNotifications from "@/app/owner/components/BookingNotifications";
 
 interface PropertyStats {
   total: number;
@@ -158,6 +159,15 @@ export default function OwnerDashboard() {
 
   return (
     <div>
+      {/* Booking Notifications Section */}
+      <div
+        style={{
+          marginBottom: "2rem",
+        }}
+      >
+        <BookingNotifications />
+      </div>
+
       {/* Stats Grid */}
       <div
         style={{

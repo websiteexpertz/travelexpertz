@@ -77,6 +77,29 @@ const homestayHeroStyles = `
       transform: translateY(0);
     }
   }
+
+  @keyframes heroBlob1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(30px, -30px) scale(1.05); }
+    66% { transform: translate(-20px, 20px) scale(0.95); }
+  }
+  @keyframes heroBlob2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(-25px, 25px) scale(1.03); }
+    66% { transform: translate(15px, -15px) scale(0.97); }
+  }
+  @keyframes heroBlob3 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(20px, -20px) scale(1.05); }
+  }
+  @keyframes heroSparkle {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.5); }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
 `;
 
 export default function Homestays() {
@@ -179,107 +202,202 @@ export default function Homestays() {
           className="w-full"
           style={{
             background: "transparent",
-            padding: "0 1.5rem",
+            padding: "0 0.75rem",
             marginTop: "0",
           }}
         >
           <div
             className="hero-section"
             style={{
+              backgroundImage: "url('/hero-banner.png')",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
               position: "relative",
-              height: "480px",
-              borderRadius: "24px",
               overflow: "hidden",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "2rem 1.5rem",
             }}
           >
-            {/* Background with Gradient Overlay */}
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                backgroundImage: "url('/hero-banner.png')",
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }}
-            />
+            {/* Light Gradient Overlay */}
             <div
               style={{
                 position: "absolute",
                 inset: 0,
                 background:
-                  "linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.2) 50%, rgba(0, 0, 0, 0.5) 100%)",
+                  "linear-gradient(135deg, rgba(239,246,255,0.92) 0%, rgba(219,234,254,0.88) 40%, rgba(191,219,254,0.85) 70%, rgba(147,197,253,0.82) 100%)",
+                zIndex: 1,
               }}
             />
 
-            {/* Floating Decorative Elements */}
+            {/* Animated Mesh Gradient Blobs */}
             <div
-              className="floating-element"
               style={{
                 position: "absolute",
-                top: "15%",
-                left: "8%",
-                width: "80px",
-                height: "80px",
-                borderRadius: "50%",
-                background: "rgba(255, 255, 255, 0.1)",
-                backdropFilter: "blur(10px)",
-                animation: "float 6s ease-in-out infinite",
+                top: "-10%",
+                left: "-10%",
+                width: "50%",
+                height: "60%",
+                background:
+                  "radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%)",
+                animation: "heroBlob1 8s ease-in-out infinite",
+                zIndex: 1,
               }}
             />
             <div
-              className="floating-element"
               style={{
                 position: "absolute",
-                bottom: "20%",
-                right: "10%",
-                width: "120px",
-                height: "120px",
-                borderRadius: "50%",
-                background: "rgba(255, 255, 255, 0.08)",
-                backdropFilter: "blur(10px)",
-                animation: "float 8s ease-in-out infinite reverse",
+                bottom: "-15%",
+                right: "-5%",
+                width: "45%",
+                height: "55%",
+                background:
+                  "radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%)",
+                animation: "heroBlob2 10s ease-in-out infinite",
+                zIndex: 1,
               }}
             />
             <div
-              className="floating-element"
               style={{
                 position: "absolute",
-                top: "60%",
-                left: "15%",
-                width: "50px",
-                height: "50px",
-                borderRadius: "50%",
-                background: "rgba(255, 255, 255, 0.12)",
-                backdropFilter: "blur(10px)",
-                animation: "float 5s ease-in-out infinite 1s",
+                top: "30%",
+                right: "20%",
+                width: "30%",
+                height: "40%",
+                background:
+                  "radial-gradient(circle, rgba(14,165,233,0.1) 0%, transparent 70%)",
+                animation: "heroBlob3 12s ease-in-out infinite",
+                zIndex: 1,
               }}
             />
+
+            {/* Subtle Grid Pattern */}
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                backgroundImage:
+                  "linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px)",
+                backgroundSize: "40px 40px",
+                zIndex: 1,
+              }}
+            />
+
+            {/* Floating Glass Orbs */}
+            <div className="hidden sm:block">
+              <div
+                style={{
+                  position: "absolute",
+                  top: "15%",
+                  left: "8%",
+                  width: "60px",
+                  height: "60px",
+                  borderRadius: "50%",
+                  background:
+                    "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(59,130,246,0.1))",
+                  boxShadow: "0 8px 32px rgba(59,130,246,0.1)",
+                  animation: "heroBlob1 6s ease-in-out infinite",
+                  zIndex: 1,
+                }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: "20%",
+                  right: "10%",
+                  width: "80px",
+                  height: "80px",
+                  borderRadius: "50%",
+                  background:
+                    "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.7), rgba(99,102,241,0.1))",
+                  boxShadow: "0 8px 32px rgba(99,102,241,0.1)",
+                  animation: "heroBlob2 8s ease-in-out infinite",
+                  zIndex: 1,
+                }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  top: "55%",
+                  left: "15%",
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "50%",
+                  background:
+                    "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), rgba(14,165,233,0.1))",
+                  boxShadow: "0 8px 32px rgba(14,165,233,0.1)",
+                  animation: "heroBlob3 5s ease-in-out infinite",
+                  zIndex: 1,
+                }}
+              />
+            </div>
+
+            {/* Floating Sparkle Particles */}
+            {[...Array(6)].map((_, i) => (
+              <div
+                key={i}
+                style={{
+                  position: "absolute",
+                  width: `${3 + (i % 3) * 2}px`,
+                  height: `${3 + (i % 3) * 2}px`,
+                  borderRadius: "50%",
+                  background: "rgba(59,130,246,0.4)",
+                  top: `${15 + i * 12}%`,
+                  left: `${10 + i * 15}%`,
+                  animation: `heroSparkle ${2 + i * 0.5}s ease-in-out infinite`,
+                  animationDelay: `${i * 0.3}s`,
+                  zIndex: 1,
+                }}
+              />
+            ))}
 
             {/* Hero Content */}
             <div
               className="hero-content"
-              style={{
-                position: "relative",
-                zIndex: 10,
-                textAlign: "center",
-                color: "white",
-                padding: "0 1.5rem",
-                maxWidth: "800px",
-                marginBottom: "2rem",
-              }}
+              style={{ position: "relative", zIndex: 2 }}
             >
+              {/* Badge Pill */}
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  padding: "0.4rem 1rem",
+                  borderRadius: "9999px",
+                  background: "rgba(59,130,246,0.08)",
+                  border: "1px solid rgba(59,130,246,0.15)",
+                  marginBottom: "1.25rem",
+                  animation: "fadeInUp 0.8s ease-out",
+                }}
+              >
+                <span
+                  style={{
+                    width: "6px",
+                    height: "6px",
+                    borderRadius: "50%",
+                    background: "#3b82f6",
+                    animation: "pulse 2s ease-in-out infinite",
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: "0.8rem",
+                    fontWeight: 600,
+                    color: "#3b82f6",
+                    letterSpacing: "0.02em",
+                  }}
+                >
+                  Authentic Home Experiences
+                </span>
+              </div>
+
               {/* Toggle Buttons */}
               <div
                 style={{
                   display: "flex",
                   justifyContent: "center",
                   gap: "0.5rem",
-                  marginBottom: "1.5rem",
+                  marginBottom: "1.25rem",
+                  animation: "fadeInUp 0.8s ease-out",
+                  animationDelay: "0.1s",
+                  animationFillMode: "both",
                 }}
               >
                 <button
@@ -296,26 +414,24 @@ export default function Homestays() {
                     window.location.href = `/hotels/search?${params.toString()}`;
                   }}
                   style={{
-                    padding: "0.5rem 1rem",
-                    borderRadius: "8px",
-                    border: "2px solid rgba(255, 255, 255, 0.3)",
-                    backgroundColor: "transparent",
-                    color: "white",
-                    fontSize: "0.9rem",
+                    padding: "0.5rem 1.25rem",
+                    borderRadius: "9999px",
+                    border: "1px solid rgba(59,130,246,0.2)",
+                    background: "rgba(255,255,255,0.7)",
+                    color: "#3b82f6",
+                    fontSize: "0.85rem",
                     fontWeight: 600,
                     cursor: "pointer",
                     transition: "all 0.3s ease",
+                    backdropFilter: "blur(8px)",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor =
-                      "rgba(255, 255, 255, 0.1)";
-                    e.currentTarget.style.borderColor =
-                      "rgba(255, 255, 255, 0.5)";
+                    e.currentTarget.style.background = "rgba(59,130,246,0.08)";
+                    e.currentTarget.style.borderColor = "rgba(59,130,246,0.3)";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "transparent";
-                    e.currentTarget.style.borderColor =
-                      "rgba(255, 255, 255, 0.3)";
+                    e.currentTarget.style.background = "rgba(255,255,255,0.7)";
+                    e.currentTarget.style.borderColor = "rgba(59,130,246,0.2)";
                   }}
                 >
                   🏨 Hotels
@@ -334,14 +450,15 @@ export default function Homestays() {
                     window.location.href = `/hotels/search?${params.toString()}`;
                   }}
                   style={{
-                    padding: "0.5rem 1rem",
-                    borderRadius: "8px",
-                    border: "2px solid rgba(255, 255, 255, 0.8)",
-                    backgroundColor: "rgba(255, 255, 255, 0.2)",
+                    padding: "0.5rem 1.25rem",
+                    borderRadius: "9999px",
+                    border: "none",
+                    background: "linear-gradient(135deg, #3b82f6, #2563eb)",
                     color: "white",
-                    fontSize: "0.9rem",
+                    fontSize: "0.85rem",
                     fontWeight: 600,
-                    cursor: "pointer",
+                    cursor: "default",
+                    boxShadow: "0 2px 8px rgba(59,130,246,0.3)",
                   }}
                 >
                   🏠 Homestays
@@ -354,22 +471,23 @@ export default function Homestays() {
                   fontWeight: 800,
                   marginBottom: "0.75rem",
                   lineHeight: 1.15,
-                  textShadow: "0 4px 20px rgba(0, 0, 0, 0.3)",
                   letterSpacing: "-0.02em",
                   margin: "0 auto 0.75rem",
                   display: "block",
                   animation: "fadeInUp 0.8s ease-out",
+                  animationDelay: "0.2s",
+                  animationFillMode: "both",
+                  color: "#1e293b",
                 }}
               >
-                Find Your Perfect
+                Find Your Perfect{" "}
                 <span
                   style={{
                     background:
-                      "linear-gradient(135deg, #FFD700 0%, #FFA500 100%)",
+                      "linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%)",
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",
                     backgroundClip: "text",
-                    marginLeft: "0.5rem",
                   }}
                 >
                   Homestay
@@ -378,34 +496,76 @@ export default function Homestays() {
               <p
                 style={{
                   fontSize: "clamp(0.9rem, 2vw, 1.1rem)",
-                  opacity: 0.95,
                   maxWidth: "600px",
-                  margin: "0 auto 0",
-                  lineHeight: 1.5,
+                  margin: "0 auto",
+                  lineHeight: 1.6,
                   fontWeight: 500,
                   letterSpacing: "0.3px",
-                  animation: "fadeInUp 0.8s ease-out 0.2s both",
+                  animation: "fadeInUp 0.8s ease-out",
+                  animationDelay: "0.4s",
+                  animationFillMode: "both",
+                  color: "#475569",
                 }}
               >
                 Discover authentic local experiences with welcoming hosts
               </p>
+
+              {/* Trust Indicators */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  gap: "1.5rem",
+                  marginTop: "1.25rem",
+                  flexWrap: "wrap",
+                  animation: "fadeInUp 0.8s ease-out",
+                  animationDelay: "0.6s",
+                  animationFillMode: "both",
+                }}
+              >
+                {[
+                  { icon: "verified", label: "Verified Properties" },
+                  { icon: "support_agent", label: "24/7 Support" },
+                  { icon: "lock", label: "Secure Booking" },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.35rem",
+                      fontSize: "0.8rem",
+                      color: "#64748b",
+                      fontWeight: 500,
+                    }}
+                  >
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: "1rem", color: "#3b82f6" }}
+                    >
+                      {item.icon}
+                    </span>
+                    {item.label}
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Search Box - Inside Hero */}
             <div
               className="search-box"
               style={{
-                background: "rgba(255, 255, 255, 0.97)",
-                backdropFilter: "blur(20px)",
-                borderRadius: "16px",
-                padding: "0.5rem",
-                boxShadow: "0 10px 40px rgba(0, 0, 0, 0.2)",
-                maxWidth: "1000px",
-                width: "100%",
                 position: "relative",
-                zIndex: 20,
-                border: "1.5px solid rgba(255, 255, 255, 0.4)",
-                animation: "fadeInUp 0.8s ease-out 0.4s both",
+                zIndex: 2,
+                animation: "fadeInUp 0.8s ease-out",
+                animationDelay: "0.8s",
+                animationFillMode: "both",
+                backdropFilter: "blur(16px)",
+                WebkitBackdropFilter: "blur(16px)",
+                background: "rgba(255, 255, 255, 0.85)",
+                border: "1px solid rgba(59,130,246,0.1)",
+                boxShadow:
+                  "0 8px 32px rgba(59,130,246,0.08), 0 2px 8px rgba(0,0,0,0.04)",
               }}
             >
               <div

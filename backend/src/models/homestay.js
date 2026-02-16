@@ -57,11 +57,12 @@ const homestaySchema = new mongoose.Schema(
       smoking: String,
     },
     houseRules: [String],
+    starCategory: { type: Number, default: 3, min: 1, max: 7 },
     popular: { type: Boolean, default: false },
     active: { type: Boolean, default: true },
     propertyType: {
       type: String,
-      enum: ["Entire Place", "Private Room", "Shared Room"],
+      enum: ["Entire Place", "Private Room", "Shared Room", "Villa", "Flat", "Apartment", "Cottage", "Bungalow", "Farmhouse", "Penthouse"],
       default: "Entire Place",
     },
     customFields: [

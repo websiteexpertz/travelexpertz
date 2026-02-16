@@ -377,73 +377,76 @@ export default function ServiceBookingFormEnhanced({
             __html: `
           .booking-form-container {
             background: white;
-            border-radius: 20px;
+            border-radius: 1.25rem;
             overflow: hidden;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 0 0 1px rgba(0,0,0,0.03), 0 20px 50px -12px rgba(0,0,0,0.18);
+            animation: formSlideIn 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+          }
+          @keyframes formSlideIn {
+            from { opacity: 0; transform: translateY(24px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
           }
           .success-screen {
             padding: 3rem 2rem;
             text-align: center;
           }
           .success-animation {
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.75rem;
           }
           .success-circle {
-            width: 100px;
-            height: 100px;
+            width: 88px;
+            height: 88px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             margin: 0 auto;
-            animation: scaleIn 0.5s ease;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            animation: successPop 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+          }
+          @keyframes successPop {
+            0% { transform: scale(0) rotate(-10deg); }
+            60% { transform: scale(1.1) rotate(2deg); }
+            100% { transform: scale(1) rotate(0); }
           }
           .checkmark {
-            width: 50px;
-            height: 50px;
+            width: 44px;
+            height: 44px;
           }
           .checkmark-check {
             stroke: white;
             stroke-width: 4;
             stroke-linecap: round;
             stroke-linejoin: round;
-            animation: draw 0.6s ease 0.3s forwards;
+            animation: drawCheck 0.5s ease 0.3s forwards;
             stroke-dasharray: 50;
             stroke-dashoffset: 50;
           }
-          @keyframes scaleIn {
-            from {
-              transform: scale(0);
-            }
-            to {
-              transform: scale(1);
-            }
-          }
-          @keyframes draw {
-            to {
-              stroke-dashoffset: 0;
-            }
+          @keyframes drawCheck {
+            to { stroke-dashoffset: 0; }
           }
           h2 {
             color: #0f172a;
-            font-size: 1.25rem;
+            font-size: 1.5rem;
+            font-weight: 700;
             margin-bottom: 0.5rem;
           }
           p {
             color: #6b7280;
             margin-bottom: 0.5rem;
+            font-size: 0.95rem;
           }
           .sub-text {
-            font-size: 0.65rem;
+            font-size: 0.85rem;
             color: #9ca3af;
             margin-bottom: 1.5rem;
           }
           .contact-info {
             display: flex;
             justify-content: center;
-            gap: 2rem;
-            margin-bottom: 2rem;
+            gap: 1.5rem;
+            margin-bottom: 1.75rem;
+            flex-wrap: wrap;
           }
           .contact-item {
             display: flex;
@@ -451,25 +454,29 @@ export default function ServiceBookingFormEnhanced({
             gap: 0.5rem;
             color: #374151;
             font-weight: 500;
-          }
-          .icon {
             font-size: 0.9rem;
           }
+          .icon {
+            font-size: 1.15rem;
+          }
           .close-button {
-            padding: 0.7rem 2rem;
+            padding: 0.75rem 2rem;
             color: white;
             border: none;
-            border-radius: 12px;
-            font-size: 0.7rem;
+            border-radius: 0.75rem;
+            font-size: 0.9rem;
             font-weight: 600;
             cursor: pointer;
-            transition:
-              transform 0.2s,
-              box-shadow 0.2s;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.12);
           }
           .close-button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+          }
+          @media (max-width: 768px) {
+            .success-screen { padding: 2.5rem 1.5rem; }
+            .contact-info { flex-direction: column; gap: 0.75rem; align-items: center; }
           }
         `,
           }}
@@ -568,38 +575,37 @@ export default function ServiceBookingFormEnhanced({
           <div
             className="section-card"
             style={{
-              borderColor: `${config.color}30`,
-              background: `linear-gradient(135deg, ${config.lightBg} 0%, rgba(255,255,255,0.6) 100%)`,
+              borderColor: `${config.color}25`,
             }}
           >
             <div
               className="section-header"
               style={{
-                background: `linear-gradient(135deg, ${config.color}15 0%, ${config.color}08 100%)`,
-                borderBottom: `2px solid ${config.color}20`,
+                background: config.lightBg,
+                borderBottom: `1.5px solid ${config.color}15`,
               }}
             >
               <span className="section-icon">💬</span>
               <h3>Special Requests</h3>
             </div>
-            <div className="section-body" style={{ padding: "1rem" }}>
+            <div className="section-body" style={{ padding: "1.125rem" }}>
               <div
                 style={{
-                  background: "white",
-                  borderRadius: "12px",
-                  padding: "0.75rem",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-                  border: `1px solid ${config.color}20`,
+                  background: "#fafbfc",
+                  borderRadius: "0.75rem",
+                  padding: "0.875rem",
+                  border: `1.5px solid ${config.color}15`,
+                  transition: "all 0.2s ease",
                 }}
               >
                 <label
                   style={{
-                    fontSize: "0.65rem",
+                    fontSize: "0.925rem",
                     fontWeight: 600,
                     color: "#374151",
                     display: "flex",
                     alignItems: "center",
-                    gap: "0.5rem",
+                    gap: "0.375rem",
                     marginBottom: "0.5rem",
                   }}
                 >
@@ -615,24 +621,24 @@ export default function ServiceBookingFormEnhanced({
                   style={{
                     width: "100%",
                     padding: "0.75rem",
-                    fontSize: "0.7rem",
-                    lineHeight: "1.5",
-                    border: `2px solid ${config.color}20`,
-                    borderRadius: "8px",
+                    fontSize: "1rem",
+                    lineHeight: "1.6",
+                    border: `1.5px solid ${config.color}20`,
+                    borderRadius: "0.625rem",
                     resize: "vertical",
-                    minHeight: "110px",
+                    minHeight: "100px",
                     fontFamily: "inherit",
                     transition: "all 0.2s ease",
-                    background: "#f9fafb",
+                    background: "white",
+                    color: "#1e293b",
+                    outline: "none",
                   }}
                   onFocus={(e) => {
                     e.target.style.borderColor = config.color;
-                    e.target.style.background = "white";
-                    e.target.style.boxShadow = `0 0 0 3px ${config.color}15`;
+                    e.target.style.boxShadow = `0 0 0 3px ${config.color}18`;
                   }}
                   onBlur={(e) => {
                     e.target.style.borderColor = `${config.color}20`;
-                    e.target.style.background = "#f9fafb";
                     e.target.style.boxShadow = "none";
                   }}
                 />
@@ -664,7 +670,7 @@ export default function ServiceBookingFormEnhanced({
               >
                 {formData.agreeContact && <span className="check">✓</span>}
               </span>
-              <span className="agreement-text" style={{ fontSize: "0.75rem" }}>
+              <span className="agreement-text">
                 I agree to be contacted via call, WhatsApp, or email regarding
                 this booking request
               </span>
@@ -708,15 +714,21 @@ export default function ServiceBookingFormEnhanced({
           __html: `
         .booking-form-container {
           background: white;
-          border-radius: 20px;
+          border-radius: 1.25rem;
           overflow: hidden;
           max-width: 900px;
           margin: 0 auto;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+          box-shadow: 0 0 0 1px rgba(0,0,0,0.03), 0 20px 50px -12px rgba(0,0,0,0.18);
+          animation: formSlideIn 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes formSlideIn {
+          from { opacity: 0; transform: translateY(24px) scale(0.97); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
         .form-header {
-          padding: 2.5rem 2rem;
+          padding: 2rem 2rem 1.75rem;
           text-align: center;
           color: white;
           position: relative;
@@ -725,22 +737,12 @@ export default function ServiceBookingFormEnhanced({
 
         .header-pattern {
           position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
+          inset: 0;
           background-image:
-            radial-gradient(
-              circle at 20% 50%,
-              rgba(255, 255, 255, 0.1) 1px,
-              transparent 1px
-            ),
-            radial-gradient(
-              circle at 80% 50%,
-              rgba(255, 255, 255, 0.1) 1px,
-              transparent 1px
-            );
-          background-size: 30px 30px;
+            radial-gradient(circle at 15% 80%, rgba(255,255,255,0.1) 0%, transparent 50%),
+            radial-gradient(circle at 85% 20%, rgba(255,255,255,0.1) 0%, transparent 50%),
+            radial-gradient(circle at 50% 50%, rgba(255,255,255,0.06) 0%, transparent 60%);
+          pointer-events: none;
         }
 
         .header-content {
@@ -749,152 +751,106 @@ export default function ServiceBookingFormEnhanced({
         }
 
         .header-icon {
-          font-size: 1.7rem;
-          margin-bottom: 0.15rem;
-          animation: float 3s ease-in-out infinite;
-          filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+          font-size: 2.5rem;
+          margin-bottom: 0.5rem;
+          display: inline-block;
+          animation: headerFloat 3s ease-in-out infinite;
+          filter: drop-shadow(0 6px 12px rgba(0,0,0,0.25));
         }
 
-        @keyframes float {
-          0%,
-          100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-8px);
-          }
+        @keyframes headerFloat {
+          0%, 100% { transform: translateY(0) scale(1); }
+          50% { transform: translateY(-6px) scale(1.05); }
         }
 
         .form-header h2 {
-          font-size: 1.05rem;
+          font-size: 1.35rem;
           font-weight: 700;
-          margin-bottom: 0.15rem;
-          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          margin-bottom: 0.35rem;
+          letter-spacing: -0.01em;
+          text-shadow: 0 2px 8px rgba(0,0,0,0.15);
         }
 
         .form-header p {
           opacity: 0.9;
-          font-size: 0.9rem;
+          font-size: 0.875rem;
+          letter-spacing: 0.01em;
         }
 
-        .step-indicator {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 1.75rem 2rem;
-          background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
-          border-bottom: 1px solid #e2e8f0;
-        }
-
-        .step {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
-
-        .step-number {
-          width: 36px;
-          height: 36px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-weight: 700;
-          font-size: 0.9rem;
-          transition: all 0.3s ease;
-        }
-
-        .step-info {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .step-label {
-          font-size: 0.7rem;
-          color: #9ca3af;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .step-title {
-          font-weight: 600;
-          color: #374151;
-          font-size: 0.9rem;
-        }
-
-        .step-connector {
-          width: 80px;
-          height: 4px;
-          margin: 0 1.25rem;
-          border-radius: 2px;
-          transition: all 0.3s ease;
-        }
+        .step-indicator { display: none; }
 
         .form-content {
-          padding: 2rem;
+          padding: 1.75rem;
         }
 
-        .step-content {
-          animation: fadeSlideIn 0.4s ease;
+        .combined-form {
+          display: flex;
+          flex-direction: column;
+          gap: 1.25rem;
         }
 
-        @keyframes fadeSlideIn {
-          from {
-            opacity: 0;
-            transform: translateY(15px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+        @keyframes sectionFadeIn {
+          from { opacity: 0; transform: translateY(12px); }
+          to { opacity: 1; transform: translateY(0); }
         }
 
         .section-card {
           background: white;
-          border-radius: 16px;
-          border: 2px solid #e5e7eb;
+          border-radius: 1rem;
+          border: 1.5px solid #e5e7eb;
           overflow: hidden;
-          margin-bottom: 1.5rem;
-          transition: border-color 0.2s;
+          transition: border-color 0.25s ease, box-shadow 0.25s ease;
+          animation: sectionFadeIn 0.4s ease both;
         }
 
+        .section-card:nth-child(1) { animation-delay: 0.05s; }
+        .section-card:nth-child(2) { animation-delay: 0.12s; }
+        .section-card:nth-child(3) { animation-delay: 0.19s; }
+
         .section-card:hover {
+          box-shadow: 0 4px 20px rgba(0,0,0,0.04);
           border-color: ${config.color}50;
         }
 
         .section-header {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
-          padding: 0.75rem 0.9rem;
-          border-bottom: 1px solid #e5e7eb;
+          gap: 0.625rem;
+          padding: 0.875rem 1.125rem;
+          border-bottom: 1.5px solid #f1f5f9;
         }
 
         .section-icon {
-          font-size: 1rem;
+          font-size: 1.1rem;
         }
 
         .section-header h3 {
           font-size: 0.95rem;
-          font-weight: 600;
-          color: #1f2937;
+          font-weight: 650;
+          color: #1e293b;
           margin: 0;
+          letter-spacing: -0.01em;
         }
 
         .section-body {
-          padding: 0.75rem;
+          padding: 1.125rem;
         }
 
         .fields-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
-          gap: 1.25rem;
+          gap: 1.125rem;
         }
 
         .enhanced-field {
           display: flex;
           flex-direction: column;
+          animation: fieldFadeIn 0.3s ease both;
+        }
+
+        @keyframes fieldFadeIn {
+          from { opacity: 0; transform: translateY(6px); }
+          to { opacity: 1; transform: translateY(0); }
         }
 
         .enhanced-field.full-width {
@@ -904,19 +860,21 @@ export default function ServiceBookingFormEnhanced({
         .field-label {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
+          gap: 0.375rem;
           font-weight: 600;
           color: #374151;
-          margin-bottom: 0.5rem;
-          font-size: 0.85rem;
+          margin-bottom: 0.4rem;
+          font-size: 0.8rem;
         }
 
         .field-icon {
-          font-size: 0.85rem;
+          font-size: 0.875rem;
+          line-height: 1;
         }
 
         .required {
           color: #ef4444;
+          font-weight: 500;
         }
 
         .input-wrapper {
@@ -927,21 +885,29 @@ export default function ServiceBookingFormEnhanced({
 
         .input-icon {
           position: absolute;
-          left: 1rem;
-          font-size: 1.1rem;
+          left: 0.875rem;
+          font-size: 1rem;
           z-index: 1;
-          opacity: 0.7;
+          opacity: 0.5;
+          transition: opacity 0.2s ease;
+          pointer-events: none;
+        }
+
+        .input-wrapper:focus-within .input-icon {
+          opacity: 0.85;
         }
 
         .enhanced-input {
           width: 100%;
-          padding: 0.8rem 0.9rem 0.8rem 2.5rem;
-          border: 2px solid #e5e7eb;
-          border-radius: 12px;
-          font-size: 0.9rem;
+          padding: 0.7rem 0.875rem 0.7rem 2.5rem;
+          border: 1.5px solid #e5e7eb;
+          border-radius: 0.75rem;
+          font-size: 0.875rem;
           transition: all 0.2s ease;
-          background: #fafafa;
-          color: #1f2937;
+          background: #fafbfc;
+          color: #1e293b;
+          font-family: inherit;
+          outline: none;
         }
 
         .enhanced-input:hover {
@@ -950,16 +916,14 @@ export default function ServiceBookingFormEnhanced({
         }
 
         .enhanced-input:focus {
-          outline: none;
           border-color: ${config.color};
           background: white;
-          box-shadow:
-            0 0 0 4px ${config.color}15,
-            0 4px 12px rgba(0, 0, 0, 0.05);
+          box-shadow: 0 0 0 3px ${config.color}18, 0 2px 8px rgba(0,0,0,0.04);
         }
 
         .enhanced-input::placeholder {
           color: #9ca3af;
+          font-weight: 400;
         }
 
         .phone-wrapper {
@@ -974,18 +938,19 @@ export default function ServiceBookingFormEnhanced({
           display: flex;
           align-items: center;
           padding: 0 0.75rem;
-          background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-          border: 2px solid #e5e7eb;
+          background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+          border: 1.5px solid #e5e7eb;
           border-right: none;
-          border-radius: 12px 0 0 12px;
+          border-radius: 0.75rem 0 0 0.75rem;
           font-weight: 600;
-          color: #374151;
-          font-size: 0.65rem;
+          color: #475569;
+          font-size: 0.8rem;
+          letter-spacing: 0.02em;
         }
 
         .phone-input {
-          padding-left: 4.5rem !important;
-          border-radius: 0 12px 12px 0 !important;
+          padding-left: 4rem !important;
+          border-radius: 0 0.75rem 0.75rem 0 !important;
           border-left: none !important;
         }
 
@@ -995,15 +960,17 @@ export default function ServiceBookingFormEnhanced({
 
         .enhanced-select {
           width: 100%;
-          padding: 0.8rem 2.2rem 0.8rem 2.5rem;
-          border: 2px solid #e5e7eb;
-          border-radius: 12px;
-          font-size: 0.9rem;
+          padding: 0.7rem 2rem 0.7rem 2.5rem;
+          border: 1.5px solid #e5e7eb;
+          border-radius: 0.75rem;
+          font-size: 0.875rem;
           transition: all 0.2s ease;
-          background: #fafafa;
-          color: #1f2937;
+          background: #fafbfc;
+          color: #1e293b;
           appearance: none;
           cursor: pointer;
+          font-family: inherit;
+          outline: none;
         }
 
         .enhanced-select:hover {
@@ -1012,21 +979,20 @@ export default function ServiceBookingFormEnhanced({
         }
 
         .enhanced-select:focus {
-          outline: none;
           border-color: ${config.color};
           background: white;
-          box-shadow:
-            0 0 0 4px ${config.color}15,
-            0 4px 12px rgba(0, 0, 0, 0.05);
+          box-shadow: 0 0 0 3px ${config.color}18, 0 2px 8px rgba(0,0,0,0.04);
         }
 
         .select-arrow {
           position: absolute;
-          right: 1rem;
+          right: 0.875rem;
+          top: 50%;
+          transform: translateY(-50%);
           color: #9ca3af;
-          font-size: 0.7rem;
+          font-size: 0.6rem;
           pointer-events: none;
-          transition: transform 0.2s;
+          transition: color 0.2s ease;
         }
 
         .select-wrapper:focus-within .select-arrow {
@@ -1040,23 +1006,25 @@ export default function ServiceBookingFormEnhanced({
         .textarea-icon {
           position: absolute;
           left: 0.75rem;
-          top: 0.6rem;
-          font-size: 0.65rem;
-          opacity: 0.7;
+          top: 0.75rem;
+          font-size: 1rem;
+          opacity: 0.5;
+          pointer-events: none;
         }
 
         .enhanced-textarea {
           width: 100%;
-          padding: 0.8rem 0.9rem 0.8rem 2.5rem;
-          border: 2px solid #e5e7eb;
-          border-radius: 12px;
-          font-size: 0.9rem;
+          padding: 0.75rem 0.875rem 0.75rem 2.5rem;
+          border: 1.5px solid #e5e7eb;
+          border-radius: 0.75rem;
+          font-size: 0.875rem;
           transition: all 0.2s ease;
-          background: #fafafa;
-          color: #1f2937;
+          background: #fafbfc;
+          color: #1e293b;
           resize: vertical;
-          min-height: 100px;
+          min-height: 80px;
           font-family: inherit;
+          outline: none;
         }
 
         .enhanced-textarea:hover {
@@ -1065,29 +1033,45 @@ export default function ServiceBookingFormEnhanced({
         }
 
         .enhanced-textarea:focus {
-          outline: none;
           border-color: ${config.color};
           background: white;
-          box-shadow:
-            0 0 0 4px ${config.color}15,
-            0 4px 12px rgba(0, 0, 0, 0.05);
+          box-shadow: 0 0 0 3px ${config.color}18, 0 2px 8px rgba(0,0,0,0.04);
         }
 
         .enhanced-textarea::placeholder {
           color: #9ca3af;
+          font-weight: 400;
+        }
+
+        .section-divider {
+          grid-column: 1 / -1;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, #e2e8f0 20%, #e2e8f0 80%, transparent);
+          margin: 0.375rem 0;
+        }
+
+        .subsection-title {
+          color: #1e293b;
+          font-size: 0.875rem;
+          font-weight: 650;
+          margin: 0.25rem 0 0;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
         }
 
         .agreement-card {
-          padding: 1.25rem;
-          border-radius: 12px;
-          border: 2px solid #e5e7eb;
-          margin-bottom: 1.5rem;
+          padding: 1rem 1.125rem;
+          border-radius: 0.875rem;
+          border: 1.5px solid #e5e7eb;
+          transition: border-color 0.2s ease;
+          animation: sectionFadeIn 0.4s ease 0.25s both;
         }
 
         .checkbox-label {
           display: flex;
           align-items: flex-start;
-          gap: 0.875rem;
+          gap: 0.75rem;
           cursor: pointer;
         }
 
@@ -1096,182 +1080,162 @@ export default function ServiceBookingFormEnhanced({
         }
 
         .custom-checkbox {
-          width: 24px;
-          height: 24px;
+          width: 22px;
+          height: 22px;
+          min-width: 22px;
           border: 2px solid #d1d5db;
-          border-radius: 8px;
+          border-radius: 6px;
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
           transition: all 0.2s ease;
+          margin-top: 1px;
         }
 
         .check {
           color: white;
-          font-size: 0.85rem;
+          font-size: 0.75rem;
           font-weight: bold;
+          line-height: 1;
         }
 
         .agreement-text {
-          font-size: 0.9rem;
+          font-size: 0.825rem;
           color: #4b5563;
-          line-height: 1.5;
+          line-height: 1.55;
         }
 
         .error-message {
-          background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-          border: 2px solid #fecaca;
+          background: linear-gradient(135deg, #fef2f2, #fee2e2);
+          border: 1.5px solid #fecaca;
           color: #dc2626;
-          padding: 1rem 1.25rem;
-          border-radius: 12px;
-          margin-bottom: 1.5rem;
+          padding: 0.875rem 1.125rem;
+          border-radius: 0.75rem;
           display: flex;
           align-items: center;
-          gap: 0.75rem;
+          gap: 0.625rem;
           font-weight: 500;
-          animation: shake 0.5s ease;
+          font-size: 0.85rem;
+          animation: errorShake 0.4s ease;
         }
 
-        @keyframes shake {
-          0%,
-          100% {
-            transform: translateX(0);
-          }
-          25% {
-            transform: translateX(-5px);
-          }
-          75% {
-            transform: translateX(5px);
-          }
+        @keyframes errorShake {
+          0%, 100% { transform: translateX(0); }
+          20% { transform: translateX(-4px); }
+          40% { transform: translateX(4px); }
+          60% { transform: translateX(-3px); }
+          80% { transform: translateX(3px); }
         }
 
         .error-icon {
-          font-size: 1.25rem;
+          font-size: 1.1rem;
+          flex-shrink: 0;
         }
 
         .form-actions {
           display: flex;
           justify-content: flex-end;
-          padding-top: 0.5rem;
-        }
-
-        .form-actions.two-buttons {
-          justify-content: space-between;
+          padding-top: 0.25rem;
+          animation: sectionFadeIn 0.4s ease 0.3s both;
         }
 
         .primary-button {
-          padding: 1rem 2rem;
+          padding: 0.875rem 2rem;
           color: white;
           border: none;
-          border-radius: 12px;
-          font-size: 1rem;
+          border-radius: 0.75rem;
+          font-size: 0.95rem;
           font-weight: 600;
           cursor: pointer;
           display: flex;
           align-items: center;
-          gap: 0.6rem;
-          transition: all 0.2s ease;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+          gap: 0.5rem;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+          letter-spacing: 0.01em;
+          width: 100%;
+          justify-content: center;
         }
 
         .primary-button:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+          filter: brightness(1.05);
+        }
+
+        .primary-button:active:not(:disabled) {
+          transform: translateY(0);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.12);
         }
 
         .primary-button:disabled {
-          opacity: 0.7;
+          opacity: 0.65;
           cursor: not-allowed;
           transform: none;
         }
 
-        .secondary-button {
-          padding: 1rem 2rem;
-          background: white;
-          border: 2px solid #e5e7eb;
-          border-radius: 12px;
-          font-size: 1rem;
-          font-weight: 600;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 0.6rem;
-          color: #374151;
-          transition: all 0.2s ease;
-        }
-
-        .secondary-button:hover {
-          background: #f9fafb;
-          border-color: #d1d5db;
-        }
-
         .btn-arrow {
+          font-size: 1rem;
           transition: transform 0.2s ease;
         }
 
         .primary-button:hover:not(:disabled) .btn-arrow {
-          transform: translateX(4px);
-        }
-
-        .secondary-button:hover .btn-arrow {
-          transform: translateX(-4px);
+          transform: translateX(3px);
         }
 
         .spinner {
-          width: 20px;
-          height: 20px;
-          border: 2px solid rgba(255, 255, 255, 0.3);
+          width: 18px;
+          height: 18px;
+          border: 2.5px solid rgba(255,255,255,0.3);
           border-top-color: white;
           border-radius: 50%;
-          animation: spin 0.8s linear infinite;
+          animation: spin 0.7s linear infinite;
         }
 
         @keyframes spin {
-          to {
-            transform: rotate(360deg);
-          }
+          to { transform: rotate(360deg); }
+        }
+
+        .full-width {
+          grid-column: 1 / -1;
         }
 
         @media (max-width: 768px) {
           .form-header {
-            padding: 2rem 1.5rem;
+            padding: 1.5rem 1.25rem 1.35rem;
           }
           .header-icon {
-            font-size: 2.75rem;
+            font-size: 2rem;
           }
           .form-header h2 {
-            font-size: 1.5rem;
+            font-size: 1.15rem;
           }
-          .step-indicator {
-            padding: 1.25rem 1rem;
-          }
-          .step-info {
-            display: none;
-          }
-          .step-connector {
-            width: 50px;
-            margin: 0 0.75rem;
+          .form-header p {
+            font-size: 0.8rem;
           }
           .form-content {
-            padding: 1.5rem 1rem;
+            padding: 1.25rem 1rem;
           }
           .section-body {
-            padding: 1.25rem;
+            padding: 0.875rem;
           }
           .fields-grid {
             grid-template-columns: 1fr;
-            gap: 1rem;
+            gap: 0.875rem;
           }
-          .form-actions.two-buttons {
-            flex-direction: column-reverse;
-            gap: 0.75rem;
-          }
-          .secondary-button,
           .primary-button {
             width: 100%;
             justify-content: center;
           }
+        }
+
+        @media (max-width: 480px) {
+          .form-header { padding: 1.25rem 1rem; }
+          .form-content { padding: 1rem 0.875rem; }
+          .section-header { padding: 0.75rem 0.875rem; }
+          .section-body { padding: 0.75rem; }
+          .enhanced-input, .enhanced-select { font-size: 16px; }
         }
       `,
         }}

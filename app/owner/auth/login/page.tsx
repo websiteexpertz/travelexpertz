@@ -13,6 +13,7 @@ export default function OwnerLoginPage() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,28 +169,51 @@ export default function OwnerLoginPage() {
                 >
                   Password
                 </label>
-                <input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) =>
-                    handleInputChange("password", e.target.value)
-                  }
-                  placeholder="Enter your password"
-                  required
-                  style={{
-                    width: "100%",
-                    padding: "0.625rem",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "8px",
-                    fontSize: "0.875rem",
-                    boxSizing: "border-box",
-                  }}
-                />
+                <div style={{ position: "relative" }}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={(e) =>
+                      handleInputChange("password", e.target.value)
+                    }
+                    placeholder="Enter your password"
+                    required
+                    style={{
+                      width: "100%",
+                      padding: "0.625rem",
+                      paddingRight: "2.5rem",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "8px",
+                      fontSize: "0.875rem",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: "absolute",
+                      right: "0.5rem",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      fontSize: "1.1rem",
+                      color: "#6b7280",
+                      padding: "0.25rem",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    {showPassword ? "🙈" : "👁️"}
+                  </button>
+                </div>
               </div>
 
               <div style={{ marginBottom: "1.5rem", textAlign: "right" }}>
                 <a
-                  href="/owner/auth/forgot-password"
+                  href="/auth/forgot-password"
                   style={{
                     color: "#0066cc",
                     fontSize: "0.9rem",

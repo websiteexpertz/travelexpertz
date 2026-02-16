@@ -54,6 +54,22 @@ const PRICE_THRESHOLDS = {
   midMax: 22000,
 } as const;
 
+const SIDEBAR_PRICE_RANGES = [
+  { label: "₹0 - ₹2,500", min: 0, max: 2500, key: "0-2500" },
+  { label: "₹2,500 - ₹5,000", min: 2500, max: 5000, key: "2500-5000" },
+  { label: "₹5,000 - ₹8,500", min: 5000, max: 8500, key: "5000-8500" },
+  { label: "₹8,500 - ₹12,000", min: 8500, max: 12000, key: "8500-12000" },
+  { label: "₹12,000 - ₹15,000", min: 12000, max: 15000, key: "12000-15000" },
+  { label: "₹15,000 - ₹30,000", min: 15000, max: 30000, key: "15000-30000" },
+  { label: "₹30,000+", min: 30000, max: Infinity, key: "30000+" },
+];
+
+const STAR_OPTIONS = [
+  { label: "5 Star", value: 5, minRating: 4.5, maxRating: 5.01 },
+  { label: "4 Star", value: 4, minRating: 3.5, maxRating: 4.5 },
+  { label: "3 Star", value: 3, minRating: 2.5, maxRating: 3.5 },
+];
+
 export default function Hotels() {
   // Get today's date and 2 days later
   const getTodayDate = () => {
@@ -80,6 +96,32 @@ export default function Hotels() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<string>("featured");
+  const [selectedStars, setSelectedStars] = useState<number[]>([]);
+  const [selectedPriceRanges, setSelectedPriceRanges] = useState<string[]>([]);
+  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
+  const [showPopularOnly, setShowPopularOnly] = useState(false);
+  const [showAllAmenities, setShowAllAmenities] = useState(false);
+
+  const toggleStar = (star: number) =>
+    setSelectedStars((prev) =>
+      prev.includes(star) ? prev.filter((s) => s !== star) : [...prev, star],
+    );
+  const togglePriceRange = (key: string) =>
+    setSelectedPriceRanges((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
+    );
+  const toggleAmenity = (amenity: string) =>
+    setSelectedAmenities((prev) =>
+      prev.includes(amenity)
+        ? prev.filter((a) => a !== amenity)
+        : [...prev, amenity],
+    );
+  const clearSidebarFilters = () => {
+    setSelectedStars([]);
+    setSelectedPriceRanges([]);
+    setSelectedAmenities([]);
+    setShowPopularOnly(false);
+  };
 
   useEffect(() => {
     const fetchHotels = async () => {
@@ -103,6 +145,49 @@ export default function Hotels() {
     fetchHotels();
   }, []);
 
+  const allAmenities = useMemo(() => {
+    const set = new Set<string>();
+    hotels.forEach((h) => h.amenities.forEach((a) => set.add(a)));
+    return Array.from(set).sort();
+  }, [hotels]);
+
+  const priceRangeCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    SIDEBAR_PRICE_RANGES.forEach((range) => {
+      counts[range.key] = hotels.filter(
+        (h) =>
+          h.price >= range.min &&
+          (range.max === Infinity ? true : h.price < range.max),
+      ).length;
+    });
+    return counts;
+  }, [hotels]);
+
+  const starCounts = useMemo<Record<number, number>>(
+    () => ({
+      5: hotels.filter((h) => h.rating >= 4.5).length,
+      4: hotels.filter((h) => h.rating >= 3.5 && h.rating < 4.5).length,
+      3: hotels.filter((h) => h.rating >= 2.5 && h.rating < 3.5).length,
+    }),
+    [hotels],
+  );
+
+  const amenityCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    hotels.forEach((h) =>
+      h.amenities.forEach((a) => {
+        counts[a] = (counts[a] || 0) + 1;
+      }),
+    );
+    return counts;
+  }, [hotels]);
+
+  const hasSidebarFilters =
+    selectedStars.length > 0 ||
+    selectedPriceRanges.length > 0 ||
+    selectedAmenities.length > 0 ||
+    showPopularOnly;
+
   const filteredHotels = useMemo(() => {
     return hotels
       .filter((hotel) => {
@@ -118,22 +203,51 @@ export default function Hotels() {
           : true;
 
         const matchesPrice = (() => {
-          if (filters.priceRange === "budget") {
+          if (filters.priceRange === "budget")
             return hotel.price < PRICE_THRESHOLDS.budgetMax;
-          }
-          if (filters.priceRange === "mid") {
+          if (filters.priceRange === "mid")
             return (
               hotel.price >= PRICE_THRESHOLDS.budgetMax &&
               hotel.price <= PRICE_THRESHOLDS.midMax
             );
-          }
-          if (filters.priceRange === "luxury") {
+          if (filters.priceRange === "luxury")
             return hotel.price > PRICE_THRESHOLDS.midMax;
-          }
           return true;
         })();
 
-        return matchesLocation && matchesPrice && matchesSearch;
+        const matchesSidebarPrice =
+          selectedPriceRanges.length === 0 ||
+          selectedPriceRanges.some((key) => {
+            const range = SIDEBAR_PRICE_RANGES.find((r) => r.key === key);
+            return range
+              ? hotel.price >= range.min &&
+                  (range.max === Infinity || hotel.price < range.max)
+              : false;
+          });
+
+        const matchesStars =
+          selectedStars.length === 0 ||
+          selectedStars.some((star) => {
+            const opt = STAR_OPTIONS.find((s) => s.value === star);
+            return opt
+              ? hotel.rating >= opt.minRating && hotel.rating < opt.maxRating
+              : false;
+          });
+
+        const matchesAmenities =
+          selectedAmenities.length === 0 ||
+          selectedAmenities.every((a) => hotel.amenities.includes(a));
+        const matchesPopular = !showPopularOnly || hotel.popular;
+
+        return (
+          matchesLocation &&
+          matchesPrice &&
+          matchesSearch &&
+          matchesSidebarPrice &&
+          matchesStars &&
+          matchesAmenities &&
+          matchesPopular
+        );
       })
       .sort((a, b) => {
         if (sortBy === "price-low") return a.price - b.price;
@@ -141,7 +255,17 @@ export default function Hotels() {
         if (sortBy === "rating") return b.rating - a.rating;
         return (b.popular ? 1 : 0) - (a.popular ? 1 : 0);
       });
-  }, [filters.location, filters.priceRange, hotels, searchQuery, sortBy]);
+  }, [
+    filters.location,
+    filters.priceRange,
+    hotels,
+    searchQuery,
+    sortBy,
+    selectedStars,
+    selectedPriceRanges,
+    selectedAmenities,
+    showPopularOnly,
+  ]);
 
   return (
     <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden">
@@ -153,119 +277,215 @@ export default function Hotels() {
           className="w-full"
           style={{
             background: "transparent",
-            padding: "0 1.5rem",
+            padding: "0 0.75rem",
             marginTop: "0",
           }}
         >
           <div
             className="hero-section"
             style={{
+              backgroundImage: "url('/hero-banner.png')",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
               position: "relative",
-              height: "480px",
-              borderRadius: "24px",
               overflow: "hidden",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "2rem 1.5rem",
             }}
           >
-            {/* Background with Gradient Overlay */}
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                backgroundImage: "url('/hero-banner.png')",
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }}
-            />
+            {/* Light Gradient Overlay */}
             <div
               style={{
                 position: "absolute",
                 inset: 0,
                 background:
-                  "linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.2) 50%, rgba(0, 0, 0, 0.5) 100%)",
+                  "linear-gradient(135deg, rgba(239,246,255,0.92) 0%, rgba(219,234,254,0.88) 40%, rgba(191,219,254,0.85) 70%, rgba(147,197,253,0.82) 100%)",
+                zIndex: 1,
               }}
             />
 
-            {/* Floating Decorative Elements */}
+            {/* Animated Mesh Gradient Blobs */}
             <div
-              className="floating-element"
               style={{
                 position: "absolute",
-                top: "15%",
-                left: "8%",
-                width: "80px",
-                height: "80px",
-                borderRadius: "50%",
-                background: "rgba(255, 255, 255, 0.1)",
-                backdropFilter: "blur(10px)",
-                animation: "float 6s ease-in-out infinite",
+                top: "-10%",
+                left: "-10%",
+                width: "50%",
+                height: "60%",
+                background:
+                  "radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%)",
+                animation: "heroBlob1 8s ease-in-out infinite",
+                zIndex: 1,
               }}
             />
             <div
-              className="floating-element"
               style={{
                 position: "absolute",
-                bottom: "20%",
-                right: "10%",
-                width: "120px",
-                height: "120px",
-                borderRadius: "50%",
-                background: "rgba(255, 255, 255, 0.08)",
-                backdropFilter: "blur(10px)",
-                animation: "float 8s ease-in-out infinite reverse",
+                bottom: "-15%",
+                right: "-5%",
+                width: "45%",
+                height: "55%",
+                background:
+                  "radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%)",
+                animation: "heroBlob2 10s ease-in-out infinite",
+                zIndex: 1,
               }}
             />
             <div
-              className="floating-element"
               style={{
                 position: "absolute",
-                top: "60%",
-                left: "15%",
-                width: "50px",
-                height: "50px",
-                borderRadius: "50%",
-                background: "rgba(255, 255, 255, 0.12)",
-                backdropFilter: "blur(10px)",
-                animation: "float 5s ease-in-out infinite 1s",
+                top: "30%",
+                right: "20%",
+                width: "30%",
+                height: "40%",
+                background:
+                  "radial-gradient(circle, rgba(14,165,233,0.1) 0%, transparent 70%)",
+                animation: "heroBlob3 12s ease-in-out infinite",
+                zIndex: 1,
               }}
             />
+
+            {/* Subtle Grid Pattern */}
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                backgroundImage:
+                  "linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px)",
+                backgroundSize: "40px 40px",
+                zIndex: 1,
+              }}
+            />
+
+            {/* Floating Glass Orbs */}
+            <div className="hidden sm:block">
+              <div
+                style={{
+                  position: "absolute",
+                  top: "15%",
+                  left: "8%",
+                  width: "60px",
+                  height: "60px",
+                  borderRadius: "50%",
+                  background:
+                    "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(59,130,246,0.1))",
+                  boxShadow: "0 8px 32px rgba(59,130,246,0.1)",
+                  animation: "heroBlob1 6s ease-in-out infinite",
+                  zIndex: 1,
+                }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: "20%",
+                  right: "10%",
+                  width: "80px",
+                  height: "80px",
+                  borderRadius: "50%",
+                  background:
+                    "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.7), rgba(99,102,241,0.1))",
+                  boxShadow: "0 8px 32px rgba(99,102,241,0.1)",
+                  animation: "heroBlob2 8s ease-in-out infinite",
+                  zIndex: 1,
+                }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  top: "55%",
+                  left: "15%",
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "50%",
+                  background:
+                    "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), rgba(14,165,233,0.1))",
+                  boxShadow: "0 8px 32px rgba(14,165,233,0.1)",
+                  animation: "heroBlob3 5s ease-in-out infinite",
+                  zIndex: 1,
+                }}
+              />
+            </div>
+
+            {/* Floating Sparkle Particles */}
+            {[...Array(6)].map((_, i) => (
+              <div
+                key={i}
+                style={{
+                  position: "absolute",
+                  width: `${3 + (i % 3) * 2}px`,
+                  height: `${3 + (i % 3) * 2}px`,
+                  borderRadius: "50%",
+                  background: "rgba(59,130,246,0.4)",
+                  top: `${15 + i * 12}%`,
+                  left: `${10 + i * 15}%`,
+                  animation: `heroSparkle ${2 + i * 0.5}s ease-in-out infinite`,
+                  animationDelay: `${i * 0.3}s`,
+                  zIndex: 1,
+                }}
+              />
+            ))}
 
             {/* Hero Content */}
             <div
               className="hero-content"
-              style={{
-                position: "relative",
-                zIndex: 10,
-                textAlign: "center",
-                color: "white",
-                padding: "0 1.5rem",
-                maxWidth: "800px",
-                marginBottom: "2rem",
-              }}
+              style={{ position: "relative", zIndex: 2 }}
             >
+              {/* Badge Pill */}
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  padding: "0.4rem 1rem",
+                  borderRadius: "9999px",
+                  background: "rgba(59,130,246,0.08)",
+                  border: "1px solid rgba(59,130,246,0.15)",
+                  marginBottom: "1.25rem",
+                  animation: "fadeInUp 0.8s ease-out",
+                }}
+              >
+                <span
+                  style={{
+                    width: "6px",
+                    height: "6px",
+                    borderRadius: "50%",
+                    background: "#3b82f6",
+                    animation: "pulse 2s ease-in-out infinite",
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: "0.8rem",
+                    fontWeight: 600,
+                    color: "#3b82f6",
+                    letterSpacing: "0.02em",
+                  }}
+                >
+                  Premium Hotel Collection
+                </span>
+              </div>
+
               {/* Toggle Buttons */}
               <div
                 style={{
                   display: "flex",
                   justifyContent: "center",
                   gap: "0.5rem",
-                  marginBottom: "1.5rem",
+                  marginBottom: "1.25rem",
+                  animation: "fadeInUp 0.8s ease-out",
+                  animationDelay: "0.1s",
+                  animationFillMode: "both",
                 }}
               >
                 <button
                   style={{
-                    padding: "0.5rem 1rem",
-                    borderRadius: "8px",
-                    border: "2px solid rgba(255, 255, 255, 0.8)",
-                    backgroundColor: "rgba(255, 255, 255, 0.2)",
+                    padding: "0.5rem 1.25rem",
+                    borderRadius: "9999px",
+                    border: "none",
+                    background: "linear-gradient(135deg, #3b82f6, #2563eb)",
                     color: "white",
-                    fontSize: "0.9rem",
+                    fontSize: "0.85rem",
                     fontWeight: 600,
                     cursor: "default",
+                    boxShadow: "0 2px 8px rgba(59,130,246,0.3)",
                   }}
                 >
                   🏨 Hotels
@@ -275,26 +495,24 @@ export default function Hotels() {
                     window.location.href = "/homestays";
                   }}
                   style={{
-                    padding: "0.5rem 1rem",
-                    borderRadius: "8px",
-                    border: "2px solid rgba(255, 255, 255, 0.3)",
-                    backgroundColor: "transparent",
-                    color: "white",
-                    fontSize: "0.9rem",
+                    padding: "0.5rem 1.25rem",
+                    borderRadius: "9999px",
+                    border: "1px solid rgba(59,130,246,0.2)",
+                    background: "rgba(255,255,255,0.7)",
+                    color: "#3b82f6",
+                    fontSize: "0.85rem",
                     fontWeight: 600,
                     cursor: "pointer",
                     transition: "all 0.3s ease",
+                    backdropFilter: "blur(8px)",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor =
-                      "rgba(255, 255, 255, 0.1)";
-                    e.currentTarget.style.borderColor =
-                      "rgba(255, 255, 255, 0.5)";
+                    e.currentTarget.style.background = "rgba(59,130,246,0.08)";
+                    e.currentTarget.style.borderColor = "rgba(59,130,246,0.3)";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "transparent";
-                    e.currentTarget.style.borderColor =
-                      "rgba(255, 255, 255, 0.3)";
+                    e.currentTarget.style.background = "rgba(255,255,255,0.7)";
+                    e.currentTarget.style.borderColor = "rgba(59,130,246,0.2)";
                   }}
                 >
                   🏠 Homestays
@@ -307,22 +525,23 @@ export default function Hotels() {
                   fontWeight: 800,
                   marginBottom: "0.75rem",
                   lineHeight: 1.15,
-                  textShadow: "0 4px 20px rgba(0, 0, 0, 0.3)",
                   letterSpacing: "-0.02em",
                   margin: "0 auto 0.75rem",
                   display: "block",
                   animation: "fadeInUp 0.8s ease-out",
+                  animationDelay: "0.2s",
+                  animationFillMode: "both",
+                  color: "#1e293b",
                 }}
               >
-                Discover Your Perfect
+                Discover Your Perfect{" "}
                 <span
                   style={{
                     background:
-                      "linear-gradient(135deg, #FFD700 0%, #FFA500 100%)",
+                      "linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%)",
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",
                     backgroundClip: "text",
-                    marginLeft: "0.5rem",
                   }}
                 >
                   Hotel Stay
@@ -331,35 +550,77 @@ export default function Hotels() {
               <p
                 style={{
                   fontSize: "clamp(0.9rem, 2vw, 1.1rem)",
-                  opacity: 0.95,
                   maxWidth: "600px",
-                  margin: "0 auto 0",
-                  lineHeight: 1.5,
+                  margin: "0 auto",
+                  lineHeight: 1.6,
                   fontWeight: 500,
                   letterSpacing: "0.3px",
-                  animation: "fadeInUp 0.8s ease-out 0.2s both",
+                  animation: "fadeInUp 0.8s ease-out",
+                  animationDelay: "0.4s",
+                  animationFillMode: "both",
+                  color: "#475569",
                 }}
               >
                 Explore handpicked hotels with stunning views and unbeatable
                 prices
               </p>
+
+              {/* Trust Indicators */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  gap: "1.5rem",
+                  marginTop: "1.25rem",
+                  flexWrap: "wrap",
+                  animation: "fadeInUp 0.8s ease-out",
+                  animationDelay: "0.6s",
+                  animationFillMode: "both",
+                }}
+              >
+                {[
+                  { icon: "verified", label: "Verified Properties" },
+                  { icon: "support_agent", label: "24/7 Support" },
+                  { icon: "lock", label: "Secure Booking" },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.35rem",
+                      fontSize: "0.8rem",
+                      color: "#64748b",
+                      fontWeight: 500,
+                    }}
+                  >
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: "1rem", color: "#3b82f6" }}
+                    >
+                      {item.icon}
+                    </span>
+                    {item.label}
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Search Box - Inside Hero */}
             <div
               className="search-box"
               style={{
-                background: "rgba(255, 255, 255, 0.97)",
-                backdropFilter: "blur(20px)",
-                borderRadius: "16px",
-                padding: "0.5rem",
-                boxShadow: "0 10px 40px rgba(0, 0, 0, 0.2)",
-                maxWidth: "1000px",
-                width: "100%",
                 position: "relative",
-                zIndex: 20,
-                border: "1.5px solid rgba(255, 255, 255, 0.4)",
-                animation: "fadeInUp 0.8s ease-out 0.4s both",
+                zIndex: 2,
+                animation: "fadeInUp 0.8s ease-out",
+                animationDelay: "0.8s",
+                animationFillMode: "both",
+                backdropFilter: "blur(16px)",
+                WebkitBackdropFilter: "blur(16px)",
+                background: "rgba(255, 255, 255, 0.85)",
+                border: "1px solid rgba(59,130,246,0.1)",
+                boxShadow:
+                  "0 8px 32px rgba(59,130,246,0.08), 0 2px 8px rgba(0,0,0,0.04)",
               }}
             >
               <div
@@ -963,314 +1224,673 @@ export default function Hotels() {
             </div>
           </div>
 
-          {/* Hotels Carousel Strip */}
-          <div
-            style={{
-              width: "100%",
-              background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
-              borderRadius: "16px",
-              padding: "1.5rem",
-              boxShadow: "0 2px 12px rgba(0, 0, 0, 0.08)",
-              marginTop: "1rem",
-            }}
-          >
-            <h2
-              style={{
-                fontSize: "1.3rem",
-                fontWeight: 700,
-                marginBottom: "1.5rem",
-                color: "#1f2937",
-              }}
-            >
-              Featured Hotels
-            </h2>
-            <div
-              className="hotels-grid"
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "1.5rem",
-                paddingBottom: "0.5rem",
-              }}
-            >
-              {loading && (
-                <div
+          {/* Two Column Layout: Hotels + Filter Sidebar */}
+          <div className="hotels-layout">
+            {/* Left: Hotels Section */}
+            <div className="hotels-main">
+              <div
+                style={{
+                  width: "100%",
+                  background:
+                    "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
+                  borderRadius: "16px",
+                  padding: "1.5rem",
+                  boxShadow: "0 2px 12px rgba(0, 0, 0, 0.08)",
+                }}
+              >
+                <h2
                   style={{
-                    textAlign: "center",
-                    padding: "3rem",
-                    fontSize: "1rem",
-                    color: "#64748b",
+                    fontSize: "1.3rem",
+                    fontWeight: 700,
+                    marginBottom: "1.5rem",
+                    color: "#1f2937",
                   }}
                 >
-                  Loading hotels...
-                </div>
-              )}
-              {!loading && filteredHotels.length === 0 && (
+                  Featured Hotels
+                </h2>
                 <div
+                  className="hotels-grid"
                   style={{
-                    textAlign: "center",
-                    padding: "3rem",
-                    fontSize: "1rem",
-                    color: "#64748b",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "1.5rem",
+                    paddingBottom: "0.5rem",
                   }}
                 >
-                  {hotels.length === 0
-                    ? "No hotels available yet. Please add hotels from the admin panel."
-                    : "No hotels match the selected filters. Try adjusting your search criteria."}
-                </div>
-              )}
-              {!loading &&
-                filteredHotels.map((hotel) => (
-                  <a
-                    key={hotel._id || hotel.name}
-                    href={`/hotels/${
-                      hotel._id || encodeURIComponent(hotel.name)
-                    }`}
-                    className="hotel-card"
-                    style={{
-                      borderRadius: "1rem",
-                      overflow: "hidden",
-                      boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-                      transition: "transform 0.2s, box-shadow 0.2s",
-                      cursor: "pointer",
-                      textDecoration: "none",
-                      color: "inherit",
-                      display: "flex",
-                      width: "100%",
-                      minHeight: "200px",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = "translateY(-4px)";
-                      e.currentTarget.style.boxShadow =
-                        "0 10px 15px rgba(0, 0, 0, 0.15)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = "translateY(0)";
-                      e.currentTarget.style.boxShadow =
-                        "0 4px 6px rgba(0, 0, 0, 0.1)";
-                    }}
-                  >
-                    <div style={{ position: "relative", flex: "0 0 250px" }}>
-                      <img
-                        src={hotel.image}
-                        alt={hotel.name}
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover",
-                        }}
-                      />
-                      {hotel.popular && (
-                        <div
-                          style={{
-                            position: "absolute",
-                            top: "0.5rem",
-                            right: "0.5rem",
-                            backgroundColor: "#d97706",
-                            color: "white",
-                            padding: "0.25rem 0.75rem",
-                            borderRadius: "2rem",
-                            fontSize: "0.75rem",
-                            fontWeight: 600,
-                          }}
-                        >
-                          Popular
-                        </div>
-                      )}
-                    </div>
-
+                  {loading && (
                     <div
                       style={{
-                        padding: "1rem",
-                        flex: 1,
-                        display: "flex",
-                        flexDirection: "column",
+                        textAlign: "center",
+                        padding: "3rem",
+                        fontSize: "1rem",
+                        color: "#64748b",
                       }}
                     >
-                      <h3
+                      Loading hotels...
+                    </div>
+                  )}
+                  {!loading && filteredHotels.length === 0 && (
+                    <div
+                      style={{
+                        textAlign: "center",
+                        padding: "3rem",
+                        fontSize: "1rem",
+                        color: "#64748b",
+                      }}
+                    >
+                      {hotels.length === 0
+                        ? "No hotels available yet. Please add hotels from the admin panel."
+                        : "No hotels match the selected filters. Try adjusting your search criteria."}
+                    </div>
+                  )}
+                  {!loading &&
+                    filteredHotels.map((hotel) => (
+                      <a
+                        key={hotel._id || hotel.name}
+                        href={`/hotels/${
+                          hotel._id || encodeURIComponent(hotel.name)
+                        }`}
+                        className="hotel-card"
                         style={{
-                          fontSize: "1rem",
-                          fontWeight: 600,
-                          marginBottom: "0.25rem",
-                          color: "#1f2937",
+                          borderRadius: "1rem",
+                          overflow: "hidden",
+                          boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+                          transition: "transform 0.2s, box-shadow 0.2s",
+                          cursor: "pointer",
+                          textDecoration: "none",
+                          color: "inherit",
+                          display: "flex",
+                          width: "100%",
+                          minHeight: "200px",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = "translateY(-4px)";
+                          e.currentTarget.style.boxShadow =
+                            "0 10px 15px rgba(0, 0, 0, 0.15)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = "translateY(0)";
+                          e.currentTarget.style.boxShadow =
+                            "0 4px 6px rgba(0, 0, 0, 0.1)";
                         }}
                       >
-                        {hotel.name}
-                      </h3>
-                      <p
-                        style={{
-                          fontSize: "0.875rem",
-                          color: "#6b7280",
-                          marginBottom: "0.75rem",
-                        }}
-                      >
-                        {hotel.location}
-                      </p>
+                        <div
+                          style={{ position: "relative", flex: "0 0 250px" }}
+                        >
+                          <img
+                            src={hotel.image}
+                            alt={hotel.name}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                            }}
+                          />
+                          {hotel.popular && (
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: "0.5rem",
+                                right: "0.5rem",
+                                backgroundColor: "#d97706",
+                                color: "white",
+                                padding: "0.25rem 0.75rem",
+                                borderRadius: "2rem",
+                                fontSize: "0.75rem",
+                                fontWeight: 600,
+                              }}
+                            >
+                              Popular
+                            </div>
+                          )}
+                        </div>
 
-                      <div
+                        <div
+                          style={{
+                            padding: "1rem",
+                            flex: 1,
+                            display: "flex",
+                            flexDirection: "column",
+                          }}
+                        >
+                          <h3
+                            style={{
+                              fontSize: "1rem",
+                              fontWeight: 600,
+                              marginBottom: "0.25rem",
+                              color: "#1f2937",
+                            }}
+                          >
+                            {hotel.name}
+                          </h3>
+                          <p
+                            style={{
+                              fontSize: "0.875rem",
+                              color: "#6b7280",
+                              marginBottom: "0.75rem",
+                            }}
+                          >
+                            {hotel.location}
+                          </p>
+
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              marginBottom: "0.75rem",
+                            }}
+                          >
+                            <span
+                              style={{
+                                color: "#f59e0b",
+                                fontSize: "0.875rem",
+                                fontWeight: 600,
+                              }}
+                            >
+                              ★ {hotel.rating}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: "0.75rem",
+                                color: "#9ca3af",
+                              }}
+                            >
+                              ({hotel.reviews} reviews)
+                            </span>
+                          </div>
+
+                          <div
+                            style={{
+                              fontSize: "0.875rem",
+                              marginBottom: "1rem",
+                            }}
+                          >
+                            {hotel.amenities.slice(0, 3).map((amenity, idx) => (
+                              <span
+                                key={idx}
+                                style={{
+                                  display: "inline-block",
+                                  backgroundColor: "#e2e8f0",
+                                  padding: "0.25rem 0.5rem",
+                                  borderRadius: "0.25rem",
+                                  marginRight: "0.5rem",
+                                  marginBottom: "0.25rem",
+                                  fontSize: "0.7rem",
+                                }}
+                              >
+                                {amenity}
+                              </span>
+                            ))}
+                          </div>
+
+                          {/* Host Profile */}
+                          {hotel.hostName && (
+                            <div
+                              style={{
+                                background: "#f8fafc",
+                                padding: "0.75rem",
+                                borderRadius: "0.5rem",
+                                marginBottom: "0.75rem",
+                              }}
+                            >
+                              <p
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "#6b7280",
+                                  margin: "0 0 0.25rem",
+                                  fontWeight: 600,
+                                }}
+                              >
+                                Hosted by
+                              </p>
+                              <p
+                                style={{
+                                  fontSize: "0.9rem",
+                                  color: "#1f2937",
+                                  margin: "0",
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {hotel.hostName}
+                              </p>
+                              {hotel.hostEmail && (
+                                <p
+                                  style={{
+                                    fontSize: "0.75rem",
+                                    color: "#6b7280",
+                                    margin: "0.25rem 0 0",
+                                  }}
+                                >
+                                  📧 {hotel.hostEmail}
+                                </p>
+                              )}
+                              {hotel.hostPhone && (
+                                <p
+                                  style={{
+                                    fontSize: "0.75rem",
+                                    color: "#6b7280",
+                                    margin: "0.25rem 0 0",
+                                  }}
+                                >
+                                  📞 {hotel.hostPhone}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                            }}
+                          >
+                            <div>
+                              <span
+                                style={{
+                                  fontSize: "0.875rem",
+                                  color: "#6b7280",
+                                }}
+                              >
+                                From
+                              </span>
+                              <p
+                                style={{
+                                  fontSize: "1.5rem",
+                                  fontWeight: 700,
+                                  color: "#0a66c2",
+                                  margin: "0",
+                                }}
+                              >
+                                {formatInr(hotel.price)}
+                              </p>
+                            </div>
+                            <button
+                              style={{
+                                backgroundColor: "#0a66c2",
+                                color: "white",
+                                border: "none",
+                                padding: "0.5rem 1rem",
+                                borderRadius: "0.5rem",
+                                cursor: "pointer",
+                                fontSize: "0.875rem",
+                                fontWeight: 600,
+                                transition: "background-color 0.2s",
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor =
+                                  "#084ba8";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor =
+                                  "#0a66c2";
+                              }}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                window.location.href = `/hotels/${
+                                  hotel._id || encodeURIComponent(hotel.name)
+                                }`;
+                              }}
+                            >
+                              View Details
+                            </button>
+                          </div>
+                        </div>
+                      </a>
+                    ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Filter Sidebar */}
+            <div className="filter-sidebar">
+              <div
+                style={{
+                  background: "#ffffff",
+                  borderRadius: "16px",
+                  boxShadow: "0 2px 12px rgba(0, 0, 0, 0.08)",
+                  border: "1px solid #e2e8f0",
+                  padding: "1.25rem",
+                }}
+              >
+                {/* Sidebar Header */}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "1.25rem",
+                    paddingBottom: "0.75rem",
+                    borderBottom: "2px solid #e2e8f0",
+                  }}
+                >
+                  <h3
+                    style={{
+                      fontSize: "1rem",
+                      fontWeight: 700,
+                      color: "#1e293b",
+                      margin: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                    }}
+                  >
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: "1.1rem", color: "#3b82f6" }}
+                    >
+                      tune
+                    </span>
+                    Filters
+                  </h3>
+                  {hasSidebarFilters && (
+                    <button
+                      onClick={clearSidebarFilters}
+                      style={{
+                        fontSize: "0.8rem",
+                        color: "#dc2626",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        fontWeight: 600,
+                        padding: "0.25rem 0.5rem",
+                        borderRadius: "6px",
+                        transition: "background 0.2s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "#fef2f2";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "none";
+                      }}
+                    >
+                      Clear All
+                    </button>
+                  )}
+                </div>
+
+                {/* Suggested For You */}
+                <div
+                  style={{
+                    marginBottom: "1.25rem",
+                    paddingBottom: "1.25rem",
+                    borderBottom: "1px solid #f1f5f9",
+                  }}
+                >
+                  <h4
+                    style={{
+                      fontSize: "0.8rem",
+                      fontWeight: 700,
+                      color: "#1e293b",
+                      marginBottom: "0.75rem",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                    }}
+                  >
+                    Suggested For You
+                  </h4>
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.625rem",
+                      padding: "0.4rem 0.5rem",
+                      cursor: "pointer",
+                      fontSize: "0.85rem",
+                      color: "#374151",
+                      borderRadius: "8px",
+                      transition: "background 0.15s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#f8fafc";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={showPopularOnly}
+                      onChange={() => setShowPopularOnly(!showPopularOnly)}
+                      style={{
+                        width: "16px",
+                        height: "16px",
+                        accentColor: "#3b82f6",
+                        cursor: "pointer",
+                      }}
+                    />
+                    <span>🔥 Popular Hotels</span>
+                  </label>
+                </div>
+
+                {/* Price Per Night */}
+                <div
+                  style={{
+                    marginBottom: "1.25rem",
+                    paddingBottom: "1.25rem",
+                    borderBottom: "1px solid #f1f5f9",
+                  }}
+                >
+                  <h4
+                    style={{
+                      fontSize: "0.8rem",
+                      fontWeight: 700,
+                      color: "#1e293b",
+                      marginBottom: "0.75rem",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                    }}
+                  >
+                    Price Per Night
+                  </h4>
+                  {SIDEBAR_PRICE_RANGES.map((range) => (
+                    <label
+                      key={range.key}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.625rem",
+                        padding: "0.35rem 0.5rem",
+                        cursor: "pointer",
+                        fontSize: "0.85rem",
+                        color: "#374151",
+                        borderRadius: "8px",
+                        transition: "background 0.15s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "#f8fafc";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "transparent";
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedPriceRanges.includes(range.key)}
+                        onChange={() => togglePriceRange(range.key)}
+                        style={{
+                          width: "16px",
+                          height: "16px",
+                          accentColor: "#3b82f6",
+                          cursor: "pointer",
+                        }}
+                      />
+                      <span>{range.label}</span>
+                      <span
+                        style={{
+                          marginLeft: "auto",
+                          fontSize: "0.75rem",
+                          color: "#9ca3af",
+                        }}
+                      >
+                        ({priceRangeCounts[range.key] || 0})
+                      </span>
+                    </label>
+                  ))}
+                </div>
+
+                {/* Star Category */}
+                <div
+                  style={{
+                    marginBottom: "1.25rem",
+                    paddingBottom: "1.25rem",
+                    borderBottom: "1px solid #f1f5f9",
+                  }}
+                >
+                  <h4
+                    style={{
+                      fontSize: "0.8rem",
+                      fontWeight: 700,
+                      color: "#1e293b",
+                      marginBottom: "0.75rem",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                    }}
+                  >
+                    Star Category
+                  </h4>
+                  {STAR_OPTIONS.map((opt) => (
+                    <label
+                      key={opt.value}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.625rem",
+                        padding: "0.35rem 0.5rem",
+                        cursor: "pointer",
+                        fontSize: "0.85rem",
+                        color: "#374151",
+                        borderRadius: "8px",
+                        transition: "background 0.15s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "#f8fafc";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "transparent";
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedStars.includes(opt.value)}
+                        onChange={() => toggleStar(opt.value)}
+                        style={{
+                          width: "16px",
+                          height: "16px",
+                          accentColor: "#3b82f6",
+                          cursor: "pointer",
+                        }}
+                      />
+                      <span>
+                        {"⭐".repeat(Math.min(opt.value, 5))} {opt.label}
+                      </span>
+                      <span
+                        style={{
+                          marginLeft: "auto",
+                          fontSize: "0.75rem",
+                          color: "#9ca3af",
+                        }}
+                      >
+                        ({starCounts[opt.value] || 0})
+                      </span>
+                    </label>
+                  ))}
+                </div>
+
+                {/* Amenities */}
+                {allAmenities.length > 0 && (
+                  <div>
+                    <h4
+                      style={{
+                        fontSize: "0.8rem",
+                        fontWeight: 700,
+                        color: "#1e293b",
+                        marginBottom: "0.75rem",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.5px",
+                      }}
+                    >
+                      Amenities
+                    </h4>
+                    {(showAllAmenities
+                      ? allAmenities
+                      : allAmenities.slice(0, 5)
+                    ).map((amenity) => (
+                      <label
+                        key={amenity}
                         style={{
                           display: "flex",
                           alignItems: "center",
-                          gap: "0.5rem",
-                          marginBottom: "0.75rem",
+                          gap: "0.625rem",
+                          padding: "0.35rem 0.5rem",
+                          cursor: "pointer",
+                          fontSize: "0.85rem",
+                          color: "#374151",
+                          borderRadius: "8px",
+                          transition: "background 0.15s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "#f8fafc";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "transparent";
                         }}
                       >
-                        <span
+                        <input
+                          type="checkbox"
+                          checked={selectedAmenities.includes(amenity)}
+                          onChange={() => toggleAmenity(amenity)}
                           style={{
-                            color: "#f59e0b",
-                            fontSize: "0.875rem",
-                            fontWeight: 600,
+                            width: "16px",
+                            height: "16px",
+                            accentColor: "#3b82f6",
+                            cursor: "pointer",
                           }}
-                        >
-                          ★ {hotel.rating}
-                        </span>
+                        />
+                        <span>{amenity}</span>
                         <span
                           style={{
+                            marginLeft: "auto",
                             fontSize: "0.75rem",
                             color: "#9ca3af",
                           }}
                         >
-                          ({hotel.reviews} reviews)
+                          ({amenityCounts[amenity] || 0})
                         </span>
-                      </div>
-
-                      <div
+                      </label>
+                    ))}
+                    {allAmenities.length > 5 && (
+                      <button
+                        onClick={() => setShowAllAmenities(!showAllAmenities)}
                         style={{
-                          fontSize: "0.875rem",
-                          marginBottom: "1rem",
-                        }}
-                      >
-                        {hotel.amenities.slice(0, 3).map((amenity, idx) => (
-                          <span
-                            key={idx}
-                            style={{
-                              display: "inline-block",
-                              backgroundColor: "#e2e8f0",
-                              padding: "0.25rem 0.5rem",
-                              borderRadius: "0.25rem",
-                              marginRight: "0.5rem",
-                              marginBottom: "0.25rem",
-                              fontSize: "0.7rem",
-                            }}
-                          >
-                            {amenity}
-                          </span>
-                        ))}
-                      </div>
-
-                      {/* Host Profile */}
-                      {hotel.hostName && (
-                        <div
-                          style={{
-                            background: "#f8fafc",
-                            padding: "0.75rem",
-                            borderRadius: "0.5rem",
-                            marginBottom: "0.75rem",
-                          }}
-                        >
-                          <p
-                            style={{
-                              fontSize: "0.75rem",
-                              color: "#6b7280",
-                              margin: "0 0 0.25rem",
-                              fontWeight: 600,
-                            }}
-                          >
-                            Hosted by
-                          </p>
-                          <p
-                            style={{
-                              fontSize: "0.9rem",
-                              color: "#1f2937",
-                              margin: "0",
-                              fontWeight: 600,
-                            }}
-                          >
-                            {hotel.hostName}
-                          </p>
-                          {hotel.hostEmail && (
-                            <p
-                              style={{
-                                fontSize: "0.75rem",
-                                color: "#6b7280",
-                                margin: "0.25rem 0 0",
-                              }}
-                            >
-                              📧 {hotel.hostEmail}
-                            </p>
-                          )}
-                          {hotel.hostPhone && (
-                            <p
-                              style={{
-                                fontSize: "0.75rem",
-                                color: "#6b7280",
-                                margin: "0.25rem 0 0",
-                              }}
-                            >
-                              📞 {hotel.hostPhone}
-                            </p>
-                          )}
-                        </div>
-                      )}
-
-                      <div
-                        style={{
+                          fontSize: "0.8rem",
+                          color: "#3b82f6",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          fontWeight: 600,
+                          padding: "0.5rem 0",
                           display: "flex",
-                          justifyContent: "space-between",
                           alignItems: "center",
+                          gap: "0.25rem",
+                          marginTop: "0.25rem",
                         }}
                       >
-                        <div>
-                          <span
-                            style={{
-                              fontSize: "0.875rem",
-                              color: "#6b7280",
-                            }}
-                          >
-                            From
-                          </span>
-                          <p
-                            style={{
-                              fontSize: "1.5rem",
-                              fontWeight: 700,
-                              color: "#0a66c2",
-                              margin: "0",
-                            }}
-                          >
-                            {formatInr(hotel.price)}
-                          </p>
-                        </div>
-                        <button
-                          style={{
-                            backgroundColor: "#0a66c2",
-                            color: "white",
-                            border: "none",
-                            padding: "0.5rem 1rem",
-                            borderRadius: "0.5rem",
-                            cursor: "pointer",
-                            fontSize: "0.875rem",
-                            fontWeight: 600,
-                            transition: "background-color 0.2s",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = "#084ba8";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = "#0a66c2";
-                          }}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            window.location.href = `/hotels/${
-                              hotel._id || encodeURIComponent(hotel.name)
-                            }`;
-                          }}
+                        {showAllAmenities
+                          ? "Show Less"
+                          : `Show ${allAmenities.length - 5} more`}
+                        <span
+                          className="material-symbols-outlined"
+                          style={{ fontSize: "1rem" }}
                         >
-                          View Details
-                        </button>
-                      </div>
-                    </div>
-                  </a>
-                ))}
+                          {showAllAmenities ? "expand_less" : "expand_more"}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -1295,6 +1915,80 @@ export default function Hotels() {
           to {
             opacity: 1;
             transform: translateY(0);
+          }
+        }
+
+        @keyframes heroBlob1 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -30px) scale(1.05); }
+          66% { transform: translate(-20px, 20px) scale(0.95); }
+        }
+        @keyframes heroBlob2 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(-25px, 25px) scale(1.03); }
+          66% { transform: translate(15px, -15px) scale(0.97); }
+        }
+        @keyframes heroBlob3 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(20px, -20px) scale(1.05); }
+        }
+        @keyframes heroSparkle {
+          0%, 100% { opacity: 0.3; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.5); }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        
+        /* Hotels Two-Column Layout */
+        .hotels-layout {
+          display: flex;
+          gap: 1.5rem;
+          margin-top: 1rem;
+          align-items: flex-start;
+        }
+        
+        .hotels-main {
+          flex: 1 1 0%;
+          min-width: 0;
+        }
+        
+        .filter-sidebar {
+          width: 320px;
+          flex-shrink: 0;
+          position: sticky;
+          top: 5rem;
+          max-height: calc(100vh - 6rem);
+          overflow-y: auto;
+          scrollbar-width: thin;
+          scrollbar-color: #cbd5e1 transparent;
+        }
+        
+        .filter-sidebar::-webkit-scrollbar {
+          width: 4px;
+        }
+        
+        .filter-sidebar::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 4px;
+        }
+        
+        @media (max-width: 1100px) {
+          .filter-sidebar {
+            width: 280px;
+          }
+        }
+        
+        @media (max-width: 868px) {
+          .hotels-layout {
+            flex-direction: column !important;
+          }
+          .filter-sidebar {
+            display: none !important;
+          }
+          .hotels-main {
+            width: 100% !important;
           }
         }
         

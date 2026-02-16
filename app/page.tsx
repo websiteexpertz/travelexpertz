@@ -303,29 +303,97 @@ export default function Home() {
               overflow: "hidden",
             }}
           >
-            {/* Animated Background Overlay */}
+            {/* Modern Gradient Overlay */}
             <div
               style={{
                 position: "absolute",
                 inset: 0,
                 background:
-                  "linear-gradient(135deg, rgba(10, 102, 194, 0.1) 0%, rgba(0, 82, 163, 0.2) 100%)",
+                  "linear-gradient(135deg, rgba(239,246,255,0.92) 0%, rgba(219,234,254,0.88) 40%, rgba(191,219,254,0.85) 70%, rgba(147,197,253,0.82) 100%)",
                 zIndex: 0,
               }}
             />
 
-            {/* Floating Decorative Elements - Hidden on very small screens */}
+            {/* Animated mesh gradient blobs */}
+            <div
+              style={{
+                position: "absolute",
+                top: "-15%",
+                right: "-8%",
+                width: "clamp(300px, 50vw, 600px)",
+                height: "clamp(300px, 50vw, 600px)",
+                borderRadius: "50%",
+                background:
+                  "radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%)",
+                filter: "blur(60px)",
+                animation: "heroBlob1 10s ease-in-out infinite",
+                pointerEvents: "none",
+                zIndex: 0,
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                bottom: "-20%",
+                left: "-10%",
+                width: "clamp(250px, 40vw, 500px)",
+                height: "clamp(250px, 40vw, 500px)",
+                borderRadius: "50%",
+                background:
+                  "radial-gradient(circle, rgba(37,99,235,0.10) 0%, transparent 70%)",
+                filter: "blur(70px)",
+                animation: "heroBlob2 12s ease-in-out infinite",
+                pointerEvents: "none",
+                zIndex: 0,
+              }}
+            />
             <div
               className="hidden sm:block"
               style={{
                 position: "absolute",
-                top: "10%",
-                left: "5%",
-                width: "clamp(40px, 8vw, 80px)",
-                height: "clamp(40px, 8vw, 80px)",
+                top: "50%",
+                left: "50%",
+                width: "clamp(200px, 30vw, 400px)",
+                height: "clamp(200px, 30vw, 400px)",
                 borderRadius: "50%",
-                background: "rgba(255, 255, 255, 0.1)",
+                background:
+                  "radial-gradient(circle, rgba(96,165,250,0.08) 0%, transparent 70%)",
+                filter: "blur(50px)",
+                animation: "heroBlob3 14s ease-in-out infinite",
+                pointerEvents: "none",
+                zIndex: 0,
+              }}
+            />
+
+            {/* Subtle grid pattern */}
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                backgroundImage:
+                  "linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px)",
+                backgroundSize: "50px 50px",
+                pointerEvents: "none",
+                zIndex: 0,
+              }}
+            />
+
+            {/* Floating glass orbs */}
+            <div
+              className="hidden sm:block"
+              style={{
+                position: "absolute",
+                top: "12%",
+                left: "6%",
+                width: "clamp(50px, 8vw, 90px)",
+                height: "clamp(50px, 8vw, 90px)",
+                borderRadius: "50%",
+                background:
+                  "linear-gradient(135deg, rgba(255,255,255,0.6), rgba(219,234,254,0.3))",
+                boxShadow:
+                  "0 8px 32px rgba(59,130,246,0.1), inset 0 1px 0 rgba(255,255,255,0.8)",
                 backdropFilter: "blur(10px)",
+                border: "1px solid rgba(255,255,255,0.5)",
                 animation: "float 6s ease-in-out infinite",
                 zIndex: 1,
               }}
@@ -334,13 +402,17 @@ export default function Home() {
               className="hidden md:block"
               style={{
                 position: "absolute",
-                bottom: "15%",
-                right: "8%",
-                width: "clamp(30px, 6vw, 60px)",
-                height: "clamp(30px, 6vw, 60px)",
+                bottom: "18%",
+                right: "7%",
+                width: "clamp(35px, 6vw, 65px)",
+                height: "clamp(35px, 6vw, 65px)",
                 borderRadius: "50%",
-                background: "rgba(255, 255, 255, 0.08)",
+                background:
+                  "linear-gradient(135deg, rgba(255,255,255,0.5), rgba(191,219,254,0.3))",
+                boxShadow:
+                  "0 8px 32px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.7)",
                 backdropFilter: "blur(8px)",
+                border: "1px solid rgba(255,255,255,0.4)",
                 animation: "float 8s ease-in-out infinite reverse",
                 zIndex: 1,
               }}
@@ -349,36 +421,144 @@ export default function Home() {
               className="hidden lg:block"
               style={{
                 position: "absolute",
-                top: "40%",
-                right: "15%",
-                width: "40px",
-                height: "40px",
+                top: "35%",
+                right: "18%",
+                width: "45px",
+                height: "45px",
                 borderRadius: "50%",
-                background: "rgba(255, 255, 255, 0.06)",
+                background:
+                  "linear-gradient(135deg, rgba(255,255,255,0.4), rgba(147,197,253,0.2))",
+                boxShadow:
+                  "0 6px 24px rgba(59,130,246,0.06), inset 0 1px 0 rgba(255,255,255,0.6)",
                 backdropFilter: "blur(6px)",
-                animation: "float 5s ease-in-out infinite",
-                animationDelay: "1s",
+                border: "1px solid rgba(255,255,255,0.3)",
+                animation: "float 7s ease-in-out infinite",
+                animationDelay: "2s",
                 zIndex: 1,
               }}
             />
+            <div
+              className="hidden lg:block"
+              style={{
+                position: "absolute",
+                top: "22%",
+                right: "30%",
+                width: "30px",
+                height: "30px",
+                borderRadius: "50%",
+                background:
+                  "linear-gradient(135deg, rgba(96,165,250,0.3), rgba(59,130,246,0.15))",
+                boxShadow: "0 4px 16px rgba(59,130,246,0.1)",
+                animation: "float 9s ease-in-out infinite",
+                animationDelay: "3s",
+                zIndex: 1,
+              }}
+            />
+            <div
+              className="hidden xl:block"
+              style={{
+                position: "absolute",
+                bottom: "30%",
+                left: "15%",
+                width: "25px",
+                height: "25px",
+                borderRadius: "50%",
+                background:
+                  "linear-gradient(135deg, rgba(59,130,246,0.2), rgba(37,99,235,0.1))",
+                boxShadow: "0 4px 12px rgba(59,130,246,0.08)",
+                animation: "float 6s ease-in-out infinite reverse",
+                animationDelay: "1.5s",
+                zIndex: 1,
+              }}
+            />
+
+            {/* Floating sparkle particles */}
+            {[...Array(8)].map((_, i) => (
+              <div
+                key={`sparkle-${i}`}
+                className="hidden sm:block"
+                style={{
+                  position: "absolute",
+                  width: `${3 + (i % 3) * 2}px`,
+                  height: `${3 + (i % 3) * 2}px`,
+                  borderRadius: "50%",
+                  background: `rgba(59,130,246,${0.15 + (i % 4) * 0.08})`,
+                  boxShadow: `0 0 ${4 + i * 2}px rgba(59,130,246,${0.1 + (i % 3) * 0.05})`,
+                  top: `${10 + ((i * 37) % 70)}%`,
+                  left: `${5 + ((i * 41) % 85)}%`,
+                  animation: `heroSparkle ${5 + i * 1.5}s ease-in-out infinite`,
+                  animationDelay: `${i * 0.7}s`,
+                  pointerEvents: "none",
+                  zIndex: 1,
+                }}
+              />
+            ))}
 
             <div
               className="hero-content"
               style={{ position: "relative", zIndex: 2 }}
             >
-              <h1
+              {/* Badge pill */}
+              <div
                 style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.4rem",
+                  padding: "0.4rem 1rem",
+                  background: "rgba(255,255,255,0.7)",
+                  backdropFilter: "blur(12px)",
+                  WebkitBackdropFilter: "blur(12px)",
+                  border: "1px solid rgba(59,130,246,0.15)",
+                  borderRadius: "50px",
+                  marginBottom: "1.2rem",
+                  fontSize: "clamp(0.7rem, 2vw, 0.82rem)",
+                  color: "#1e40af",
+                  fontWeight: 600,
+                  boxShadow: "0 2px 12px rgba(59,130,246,0.08)",
                   animation: "fadeInUp 0.8s ease-out",
-                  animationDelay: "0.2s",
+                  animationDelay: "0.1s",
                   animationFillMode: "both",
                 }}
               >
-                Find and Book Your Perfect Stay
+                <span
+                  style={{
+                    width: "6px",
+                    height: "6px",
+                    borderRadius: "50%",
+                    background: "#3b82f6",
+                    display: "inline-block",
+                    boxShadow: "0 0 8px rgba(59,130,246,0.4)",
+                    animation: "pulse 2s ease infinite",
+                  }}
+                />
+                India&apos;s Trusted Travel Platform
+              </div>
+
+              <h1
+                style={{
+                  animation: "fadeInUp 0.8s ease-out",
+                  animationDelay: "0.25s",
+                  animationFillMode: "both",
+                }}
+              >
+                Find and Book Your
+                <br />
+                <span
+                  style={{
+                    background:
+                      "linear-gradient(135deg, #1d4ed8 0%, #3b82f6 50%, #2563eb 100%)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    backgroundClip: "text",
+                  }}
+                >
+                  Perfect Stay
+                </span>
               </h1>
               <p
                 style={{
                   animation: "fadeInUp 0.8s ease-out",
-                  animationDelay: "0.4s",
+                  animationDelay: "0.45s",
                   animationFillMode: "both",
                 }}
               >
@@ -393,7 +573,7 @@ export default function Home() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: "clamp(0.5rem, 2vw, 1.5rem)",
+                  gap: "clamp(0.5rem, 2vw, 1rem)",
                   marginTop: "clamp(0.75rem, 2vw, 1.5rem)",
                   flexWrap: "wrap",
                   animation: "fadeInUp 0.8s ease-out",
@@ -421,21 +601,37 @@ export default function Home() {
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: "clamp(0.25rem, 1vw, 0.4rem)",
+                      gap: "clamp(0.25rem, 1vw, 0.5rem)",
                       padding:
-                        "clamp(0.3rem, 1vw, 0.4rem) clamp(0.5rem, 1.5vw, 0.8rem)",
-                      background: "rgba(255, 255, 255, 0.2)",
-                      backdropFilter: "blur(10px)",
-                      borderRadius: "0.5rem",
-                      border: "1px solid rgba(255, 255, 255, 0.3)",
+                        "clamp(0.35rem, 1vw, 0.5rem) clamp(0.6rem, 1.5vw, 1rem)",
+                      background: "rgba(255,255,255,0.65)",
+                      backdropFilter: "blur(12px)",
+                      WebkitBackdropFilter: "blur(12px)",
+                      borderRadius: "0.75rem",
+                      border: "1px solid rgba(59,130,246,0.12)",
+                      boxShadow: "0 2px 8px rgba(59,130,246,0.06)",
+                      transition: "all 0.3s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                      e.currentTarget.style.boxShadow =
+                        "0 6px 20px rgba(59,130,246,0.12)";
+                      e.currentTarget.style.borderColor =
+                        "rgba(59,130,246,0.25)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow =
+                        "0 2px 8px rgba(59,130,246,0.06)";
+                      e.currentTarget.style.borderColor =
+                        "rgba(59,130,246,0.12)";
                     }}
                   >
                     <span
                       className="material-symbols-outlined"
                       style={{
-                        fontSize: "clamp(0.875rem, 2.5vw, 1rem)",
-                        color: "white",
-                        textShadow: "0 1px 2px rgba(0, 0, 0, 0.3)",
+                        fontSize: "clamp(0.875rem, 2.5vw, 1.1rem)",
+                        color: "#2563eb",
                       }}
                     >
                       {item.icon}
@@ -444,8 +640,7 @@ export default function Home() {
                       style={{
                         fontSize: "clamp(0.65rem, 2vw, 0.8rem)",
                         fontWeight: 600,
-                        color: "white",
-                        textShadow: "0 1px 2px rgba(0, 0, 0, 0.3)",
+                        color: "#1e3a8a",
                       }}
                     >
                       {item.fullText}
@@ -464,8 +659,12 @@ export default function Home() {
                 animation: "fadeInUp 0.8s ease-out",
                 animationDelay: "0.8s",
                 animationFillMode: "both",
-                backdropFilter: "blur(10px)",
-                background: "rgba(255, 255, 255, 0.95)",
+                backdropFilter: "blur(16px)",
+                WebkitBackdropFilter: "blur(16px)",
+                background: "rgba(255, 255, 255, 0.85)",
+                border: "1px solid rgba(59,130,246,0.1)",
+                boxShadow:
+                  "0 8px 32px rgba(59,130,246,0.08), 0 2px 8px rgba(0,0,0,0.04)",
               }}
             >
               <div className="search-box-content">
@@ -1870,13 +2069,16 @@ export default function Home() {
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(0, 0, 0, 0.7)",
+            background: "rgba(0, 0, 0, 0.5)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             zIndex: 9999,
             padding: "1rem",
             overflow: "auto",
+            animation: "modalBackdropIn 0.3s ease",
           }}
           onClick={() => {
             console.log("Backdrop clicked, closing modal");
@@ -1885,14 +2087,12 @@ export default function Home() {
         >
           <div
             style={{
-              background: "white",
-              borderRadius: "16px",
+              borderRadius: "1.25rem",
               maxWidth: "900px",
               width: "100%",
               maxHeight: "90vh",
               overflow: "auto",
               position: "relative",
-              padding: "2rem",
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -1903,35 +2103,39 @@ export default function Home() {
               }}
               style={{
                 position: "absolute",
-                top: "1rem",
-                right: "1rem",
-                background: "#ef4444",
-                border: "none",
+                top: "0.75rem",
+                right: "0.75rem",
+                background: "rgba(0, 0, 0, 0.5)",
+                backdropFilter: "blur(4px)",
+                border: "2px solid rgba(255, 255, 255, 0.2)",
                 borderRadius: "50%",
-                width: "48px",
-                height: "48px",
+                width: "40px",
+                height: "40px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 cursor: "pointer",
-                fontSize: "2rem",
+                fontSize: "1.25rem",
                 color: "white",
                 zIndex: 10000,
-                transition: "all 0.2s",
+                transition: "all 0.2s ease",
                 fontWeight: "bold",
+                lineHeight: 1,
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#dc2626";
-                e.currentTarget.style.transform = "scale(1.1)";
+                e.currentTarget.style.background = "rgba(239, 68, 68, 0.9)";
+                e.currentTarget.style.borderColor = "rgba(239, 68, 68, 0.5)";
+                e.currentTarget.style.transform = "scale(1.1) rotate(90deg)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#ef4444";
-                e.currentTarget.style.transform = "scale(1)";
+                e.currentTarget.style.background = "rgba(0, 0, 0, 0.5)";
+                e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.2)";
+                e.currentTarget.style.transform = "scale(1) rotate(0deg)";
               }}
             >
               ×
             </button>
-            <div style={{ marginTop: "3rem" }}>
+            <div>
               <ServiceBookingFormEnhanced
                 serviceType={selectedServiceForBooking as any}
                 onClose={() => {
@@ -1953,6 +2157,10 @@ export default function Home() {
           0% { opacity: 0; transform: translateY(-12px); max-height: 0; }
           60% { opacity: 1; }
           100% { opacity: 1; transform: translateY(0); max-height: 500px; }
+        }
+        @keyframes modalBackdropIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
         
         /* Mobile Responsive Styles */

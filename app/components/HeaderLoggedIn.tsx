@@ -31,7 +31,7 @@ const navItems: Array<{
   { key: "packages", label: "Packages", href: "/packages" },
   { key: "deals", label: "Deals", href: "/deals" },
   { key: "luxury", label: "Luxury", href: "/luxury" },
-  { key: "verified", label: "TE Verified Properties", href: "/verified" },
+  { key: "verified", label: "Travel Expertz Properties", href: "/verified" },
 ];
 
 export default function HeaderLoggedIn({

@@ -69,7 +69,10 @@ export default function AdminLayout({
   }
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#f5f5f5" }}>
+    <div
+      className="admin-panel"
+      style={{ display: "flex", minHeight: "100vh", background: "#f5f5f5" }}
+    >
       {/* New Modern Sidebar */}
       <AdminSidebar />
 
@@ -79,6 +82,9 @@ export default function AdminLayout({
           flex: 1,
           marginLeft: "280px",
           background: "#f9fafb",
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
         }}
       >
         {/* Top Header */}
@@ -227,7 +233,7 @@ export default function AdminLayout({
         </header>
 
         {/* Page Content */}
-        <div style={{ flex: 1 }}>{children}</div>
+        <div style={{ flex: 1, background: "#f9fafb" }}>{children}</div>
       </main>
 
       <style jsx>{`

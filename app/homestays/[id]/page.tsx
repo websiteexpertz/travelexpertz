@@ -76,7 +76,7 @@ export default function HomestayDetails() {
   const [fullscreenImageIndex, setFullscreenImageIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<
     "overview" | "rooms" | "amenities" | "reviews" | "location"
-  >("overview");
+  >("rooms");
 
   // Room filters
   const [roomFilters, setRoomFilters] = useState({
@@ -95,18 +95,25 @@ export default function HomestayDetails() {
   });
 
   const [showBookingForm, setShowBookingForm] = useState(false);
+  const [selectedRoomForBooking, setSelectedRoomForBooking] =
+    useState<Room | null>(null);
+  const [showRoomSelectionModal, setShowRoomSelectionModal] = useState(false);
 
   const [showHostProperties, setShowHostProperties] = useState(false);
   const [hostProperties, setHostProperties] = useState<any[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     const fetchHomestayDetails = async () => {
       if (!homestayId) return;
       setLoading(true);
       try {
-        const response = await fetch(`/api/homestays?id=${homestayId}`, {
-          cache: "no-store",
-        });
+        const response = await fetch(
+          `/api/homestays?id=${homestayId}&t=${Date.now()}`,
+          {
+            cache: "no-store",
+          },
+        );
         if (response.ok) {
           const data = await response.json();
           setHomestay(data);
@@ -120,9 +127,12 @@ export default function HomestayDetails() {
 
     const fetchReviews = async () => {
       try {
-        const response = await fetch(`/api/reviews?propertyId=${homestayId}`, {
-          cache: "no-store",
-        });
+        const response = await fetch(
+          `/api/reviews?propertyId=${homestayId}&t=${Date.now()}`,
+          {
+            cache: "no-store",
+          },
+        );
         if (response.ok) {
           const data = await response.json();
           setReviews(data);
@@ -134,7 +144,7 @@ export default function HomestayDetails() {
 
     fetchHomestayDetails();
     fetchReviews();
-  }, [homestayId]);
+  }, [homestayId, refreshKey]);
 
   useEffect(() => {
     if (showHostProperties && homestay?.hostName) {
@@ -163,6 +173,9 @@ export default function HomestayDetails() {
   const filteredRooms = homestay?.rooms
     ? homestay.rooms
         .filter((room) => {
+          // Hide rooms with 0 availability
+          if (room.availability <= 0) return false;
+
           const matchesPrice =
             roomFilters.priceRange === "all" ||
             (roomFilters.priceRange === "budget" && room.price < 15000) ||
@@ -457,44 +470,81 @@ export default function HomestayDetails() {
                 <div
                   style={{
                     textAlign: "right",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "1rem",
                   }}
                 >
-                  <div
+                  <button
+                    onClick={() => setRefreshKey((prev) => prev + 1)}
                     style={{
+                      padding: "0.5rem 1rem",
+                      background: "#f1f5f9",
+                      border: "1px solid #cbd5e1",
+                      borderRadius: "8px",
+                      cursor: "pointer",
                       display: "flex",
                       alignItems: "center",
                       gap: "0.5rem",
-                      marginBottom: "0.25rem",
+                      fontSize: "0.9rem",
+                      color: "#64748b",
+                      transition: "all 0.3s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#e2e8f0";
+                      e.currentTarget.style.borderColor = "#94a3b8";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "#f1f5f9";
+                      e.currentTarget.style.borderColor = "#cbd5e1";
                     }}
                   >
                     <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: "1.2rem" }}
+                    >
+                      refresh
+                    </span>
+                    Refresh
+                  </button>
+                  <div>
+                    <div
                       style={{
-                        backgroundColor: "#16a34a",
-                        color: "white",
-                        padding: "0.5rem 0.75rem",
-                        borderRadius: "8px",
-                        fontSize: "1.25rem",
-                        fontWeight: 700,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        marginBottom: "0.25rem",
                       }}
                     >
-                      {homestay.rating}
-                    </span>
-                    <div>
-                      <div
+                      <span
                         style={{
-                          color: "#f59e0b",
-                          fontSize: "1rem",
+                          backgroundColor: "#16a34a",
+                          color: "white",
+                          padding: "0.5rem 0.75rem",
+                          borderRadius: "8px",
+                          fontSize: "1.25rem",
+                          fontWeight: 700,
                         }}
                       >
-                        {"★".repeat(Math.floor(homestay.rating))}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "0.85rem",
-                          color: "#64748b",
-                        }}
-                      >
-                        {homestay.reviews} reviews
+                        {homestay.rating}
+                      </span>
+                      <div>
+                        <div
+                          style={{
+                            color: "#f59e0b",
+                            fontSize: "1rem",
+                          }}
+                        >
+                          {"★".repeat(Math.floor(homestay.rating))}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "0.85rem",
+                            color: "#64748b",
+                          }}
+                        >
+                          {homestay.reviews} reviews
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1275,38 +1325,53 @@ export default function HomestayDetails() {
                                 </div>
                                 <button
                                   onClick={() => {
-                                    setShowBookingForm(true);
-                                    window.scrollTo({
-                                      top: 0,
-                                      behavior: "smooth",
-                                    });
+                                    // Filter rooms with availability > 0
+                                    if (room.availability <= 0) {
+                                      alert("This room is no longer available");
+                                      return;
+                                    }
+                                    setSelectedRoomForBooking(room);
+                                    setShowRoomSelectionModal(true);
                                   }}
                                   style={{
                                     width: "100%",
                                     padding: "0.75rem 1.5rem",
                                     background:
-                                      "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
+                                      room.availability <= 0
+                                        ? "#cbd5e1"
+                                        : "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
                                     color: "white",
                                     border: "none",
                                     borderRadius: "8px",
                                     fontSize: "1rem",
                                     fontWeight: 700,
-                                    cursor: "pointer",
+                                    cursor:
+                                      room.availability <= 0
+                                        ? "not-allowed"
+                                        : "pointer",
                                     transition: "all 0.3s ease",
+                                    opacity: room.availability <= 0 ? 0.6 : 1,
                                   }}
+                                  disabled={room.availability <= 0}
                                   onMouseEnter={(e) => {
-                                    e.currentTarget.style.transform =
-                                      "translateY(-2px)";
-                                    e.currentTarget.style.boxShadow =
-                                      "0 8px 20px rgba(0, 102, 204, 0.3)";
+                                    if (room.availability > 0) {
+                                      e.currentTarget.style.transform =
+                                        "translateY(-2px)";
+                                      e.currentTarget.style.boxShadow =
+                                        "0 8px 20px rgba(0, 102, 204, 0.3)";
+                                    }
                                   }}
                                   onMouseLeave={(e) => {
-                                    e.currentTarget.style.transform =
-                                      "translateY(0)";
-                                    e.currentTarget.style.boxShadow = "none";
+                                    if (room.availability > 0) {
+                                      e.currentTarget.style.transform =
+                                        "translateY(0)";
+                                      e.currentTarget.style.boxShadow = "none";
+                                    }
                                   }}
                                 >
-                                  Select Room
+                                  {room.availability <= 0
+                                    ? "No Rooms Available"
+                                    : "Select Room"}
                                 </button>
                               </div>
                             </div>
@@ -1806,6 +1871,39 @@ export default function HomestayDetails() {
                       marginBottom: "1rem",
                     }}
                   >
+                    {selectedRoomForBooking && (
+                      <div
+                        style={{
+                          marginBottom: "1rem",
+                          paddingBottom: "1rem",
+                          borderBottom: "2px solid #cbd5e1",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.5rem",
+                            color: "#16a34a",
+                            fontWeight: 700,
+                            marginBottom: "0.5rem",
+                          }}
+                        >
+                          <span
+                            className="material-symbols-outlined"
+                            style={{ fontSize: "1.25rem" }}
+                          >
+                            check_circle
+                          </span>
+                          Selected Room: {selectedRoomForBooking.type}
+                        </div>
+                        <div style={{ fontSize: "0.9rem", color: "#64748b" }}>
+                          {selectedRoomForBooking.maxGuests} guests •{" "}
+                          {selectedRoomForBooking.bedType} •{" "}
+                          {selectedRoomForBooking.size}m²
+                        </div>
+                      </div>
+                    )}
                     <div
                       style={{
                         display: "flex",
@@ -1817,7 +1915,10 @@ export default function HomestayDetails() {
                         {calculateNights()} night(s)
                       </span>
                       <span style={{ fontWeight: 600 }}>
-                        {formatInr(homestay.rooms[0].price * calculateNights())}
+                        {formatInr(
+                          (selectedRoomForBooking?.price ||
+                            homestay.rooms[0].price) * calculateNights(),
+                        )}
                       </span>
                     </div>
                     <div
@@ -1830,7 +1931,10 @@ export default function HomestayDetails() {
                       <span style={{ color: "#64748b" }}>Taxes & Fees</span>
                       <span style={{ fontWeight: 600 }}>
                         {formatInr(
-                          homestay.rooms[0].price * calculateNights() * 0.12,
+                          (selectedRoomForBooking?.price ||
+                            homestay.rooms[0].price) *
+                            calculateNights() *
+                            0.12,
                         )}
                       </span>
                     </div>
@@ -1853,7 +1957,10 @@ export default function HomestayDetails() {
                         }}
                       >
                         {formatInr(
-                          homestay.rooms[0].price * calculateNights() * 1.12,
+                          (selectedRoomForBooking?.price ||
+                            homestay.rooms[0].price) *
+                            calculateNights() *
+                            1.12,
                         )}
                       </span>
                     </div>
@@ -1862,41 +1969,52 @@ export default function HomestayDetails() {
 
               <button
                 onClick={() => {
+                  if (!selectedRoomForBooking) {
+                    alert(
+                      "Please select a room first by clicking 'Select Room' on any room card",
+                    );
+                    return;
+                  }
                   if (!bookingDetails.checkIn || !bookingDetails.checkOut) {
                     alert("Please select check-in and check-out dates");
                     return;
                   }
-                  if (!homestay?.rooms[0]) {
-                    alert("Room information not available");
-                    return;
-                  }
-                  window.location.href = `/booking?homestayId=${homestayId}&roomId=${homestay.rooms[0].id}&checkin=${bookingDetails.checkIn}&checkout=${bookingDetails.checkOut}&guests=${bookingDetails.guests}`;
+                  window.location.href = `/booking?homestayId=${homestayId}&roomId=${selectedRoomForBooking.id}&checkin=${bookingDetails.checkIn}&checkout=${bookingDetails.checkOut}&guests=${bookingDetails.guests}`;
                 }}
                 style={{
                   width: "100%",
                   padding: "1rem",
-                  background:
-                    "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
+                  background: selectedRoomForBooking
+                    ? "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)"
+                    : "#cbd5e1",
                   color: "white",
                   border: "none",
                   borderRadius: "12px",
                   fontSize: "1.1rem",
                   fontWeight: 700,
-                  cursor: "pointer",
+                  cursor: selectedRoomForBooking ? "pointer" : "not-allowed",
                   transition: "all 0.3s ease",
                   marginBottom: "1rem",
+                  opacity: selectedRoomForBooking ? 1 : 0.6,
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                  e.currentTarget.style.boxShadow =
-                    "0 8px 24px rgba(0, 102, 204, 0.3)";
+                  if (selectedRoomForBooking) {
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.boxShadow =
+                      "0 8px 24px rgba(0, 102, 204, 0.3)";
+                  }
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "none";
+                  if (selectedRoomForBooking) {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "none";
+                  }
                 }}
+                disabled={!selectedRoomForBooking}
               >
-                Enquire Now
+                {selectedRoomForBooking
+                  ? `Enquire Now • ${selectedRoomForBooking.type}`
+                  : "Select a Room First"}
               </button>
 
               <div
@@ -2237,6 +2355,384 @@ export default function HomestayDetails() {
                 <p>Loading properties...</p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Room Selection Modal */}
+      {showRoomSelectionModal && selectedRoomForBooking && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: "1rem",
+          }}
+          onClick={() => setShowRoomSelectionModal(false)}
+        >
+          <div
+            style={{
+              background: "white",
+              borderRadius: "16px",
+              maxWidth: "600px",
+              width: "100%",
+              maxHeight: "90vh",
+              overflow: "auto",
+              boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                padding: "2rem",
+              }}
+            >
+              {/* Close button */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "1.5rem",
+                }}
+              >
+                <h2
+                  style={{
+                    fontSize: "1.5rem",
+                    fontWeight: 700,
+                    margin: 0,
+                  }}
+                >
+                  Select Room
+                </h2>
+                <button
+                  onClick={() => setShowRoomSelectionModal(false)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    fontSize: "1.5rem",
+                    cursor: "pointer",
+                    color: "#64748b",
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Room Details */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "1.5rem",
+                  marginBottom: "2rem",
+                }}
+              >
+                {/* Image */}
+                <div>
+                  {selectedRoomForBooking.images?.[0] ? (
+                    <img
+                      src={selectedRoomForBooking.images[0]}
+                      alt={selectedRoomForBooking.type}
+                      style={{
+                        width: "100%",
+                        height: "250px",
+                        objectFit: "cover",
+                        borderRadius: "12px",
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: "100%",
+                        height: "250px",
+                        background: "#f1f5f9",
+                        borderRadius: "12px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <span
+                        className="material-symbols-outlined"
+                        style={{ fontSize: "3rem", color: "#cbd5e1" }}
+                      >
+                        bed
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Room Info */}
+                <div>
+                  <h3
+                    style={{
+                      fontSize: "1.5rem",
+                      fontWeight: 700,
+                      marginBottom: "1rem",
+                      color: "#1f2937",
+                    }}
+                  >
+                    {selectedRoomForBooking.type}
+                  </h3>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gap: "0.75rem",
+                      marginBottom: "1.5rem",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        color: "#475569",
+                      }}
+                    >
+                      <span
+                        className="material-symbols-outlined"
+                        style={{ fontSize: "1.25rem" }}
+                      >
+                        group
+                      </span>
+                      <span>{selectedRoomForBooking.maxGuests} Guests</span>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        color: "#475569",
+                      }}
+                    >
+                      <span
+                        className="material-symbols-outlined"
+                        style={{ fontSize: "1.25rem" }}
+                      >
+                        bed
+                      </span>
+                      <span>{selectedRoomForBooking.bedType}</span>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        color: "#475569",
+                      }}
+                    >
+                      <span
+                        className="material-symbols-outlined"
+                        style={{ fontSize: "1.25rem" }}
+                      >
+                        straighten
+                      </span>
+                      <span>{selectedRoomForBooking.size} m²</span>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        color:
+                          selectedRoomForBooking.availability > 3
+                            ? "#16a34a"
+                            : "#dc2626",
+                        fontWeight: 600,
+                      }}
+                    >
+                      <span
+                        className="material-symbols-outlined"
+                        style={{ fontSize: "1.25rem" }}
+                      >
+                        {selectedRoomForBooking.availability > 3
+                          ? "check_circle"
+                          : "warning"}
+                      </span>
+                      <span>
+                        {selectedRoomForBooking.availability} rooms left
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Price */}
+                  <div
+                    style={{
+                      padding: "1rem",
+                      background: "#f0f9ff",
+                      borderRadius: "8px",
+                      borderLeft: "4px solid #0066cc",
+                    }}
+                  >
+                    <div style={{ color: "#64748b", fontSize: "0.875rem" }}>
+                      Price per night
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "1.75rem",
+                        fontWeight: 800,
+                        color: "#0066cc",
+                      }}
+                    >
+                      {formatInr(selectedRoomForBooking.price)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Amenities */}
+              {selectedRoomForBooking.amenities &&
+                selectedRoomForBooking.amenities.length > 0 && (
+                  <div
+                    style={{
+                      marginBottom: "2rem",
+                    }}
+                  >
+                    <h4
+                      style={{
+                        fontWeight: 700,
+                        marginBottom: "0.75rem",
+                        color: "#1f2937",
+                      }}
+                    >
+                      Room Amenities
+                    </h4>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: "0.5rem",
+                      }}
+                    >
+                      {selectedRoomForBooking.amenities.map(
+                        (amenity: string, idx: number) => (
+                          <span
+                            key={idx}
+                            style={{
+                              fontSize: "0.8rem",
+                              padding: "0.4rem 0.75rem",
+                              background: "#f0f9ff",
+                              color: "#0369a1",
+                              borderRadius: "6px",
+                              border: "1px solid #e0f2fe",
+                              fontWeight: 500,
+                            }}
+                          >
+                            {amenity}
+                          </span>
+                        ),
+                      )}
+                    </div>
+                  </div>
+                )}
+
+              {/* Cancellation Policy */}
+              <div
+                style={{
+                  padding: "1rem",
+                  background: "#f8fafc",
+                  borderRadius: "8px",
+                  marginBottom: "2rem",
+                  borderLeft: "4px solid #64748b",
+                }}
+              >
+                <h4
+                  style={{
+                    fontSize: "0.875rem",
+                    fontWeight: 700,
+                    color: "#64748b",
+                    marginBottom: "0.5rem",
+                  }}
+                >
+                  Cancellation Policy
+                </h4>
+                <p
+                  style={{
+                    margin: 0,
+                    color: "#475569",
+                    fontSize: "0.9rem",
+                    lineHeight: "1.5",
+                  }}
+                >
+                  {selectedRoomForBooking.cancellationPolicy ||
+                    "Free cancellation up to 48 hours before check-in. 50% refund for cancellations within 48 hours."}
+                </p>
+              </div>
+
+              {/* Buttons */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "1rem",
+                }}
+              >
+                <button
+                  onClick={() => setShowRoomSelectionModal(false)}
+                  style={{
+                    padding: "0.75rem 1.5rem",
+                    background: "#e2e8f0",
+                    color: "#1f2937",
+                    border: "none",
+                    borderRadius: "8px",
+                    fontSize: "1rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    transition: "all 0.3s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#cbd5e1";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "#e2e8f0";
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowRoomSelectionModal(false);
+                    setShowBookingForm(true);
+                    window.scrollTo({
+                      top: 0,
+                      behavior: "smooth",
+                    });
+                  }}
+                  style={{
+                    padding: "0.75rem 1.5rem",
+                    background:
+                      "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    fontSize: "1rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    transition: "all 0.3s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.boxShadow =
+                      "0 8px 20px rgba(0, 102, 204, 0.3)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                >
+                  Confirm & Proceed
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

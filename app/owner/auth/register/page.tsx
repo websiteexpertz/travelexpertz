@@ -21,6 +21,8 @@ export default function OwnerRegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const sendOTP = async () => {
     setError("");
@@ -115,12 +117,31 @@ export default function OwnerRegisterPage() {
       const data = await response.json();
 
       if (response.ok) {
-        setMessage("Account created successfully!");
+        // Store owner data and tokens
+        if (data.owner) {
+          localStorage.setItem(
+            "owner",
+            JSON.stringify({
+              ...data.owner,
+              role: "owner",
+            }),
+          );
+        }
 
-        // Redirect to owner login
+        // Store tokens for authentication
+        if (data.accessToken) {
+          localStorage.setItem("accessToken", data.accessToken);
+        }
+        if (data.refreshToken) {
+          localStorage.setItem("refreshToken", data.refreshToken);
+        }
+
+        setMessage("Account created successfully! Logging you in...");
+
+        // Auto-login after registration
         setTimeout(() => {
-          router.push("/owner/auth/login");
-        }, 1500);
+          router.push("/owner/dashboard");
+        }, 1000);
       } else {
         setError(data.error || "Registration failed");
       }
@@ -520,23 +541,46 @@ export default function OwnerRegisterPage() {
                   >
                     Password
                   </label>
-                  <input
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) =>
-                      handleInputChange("password", e.target.value)
-                    }
-                    placeholder="Create a strong password"
-                    required
-                    style={{
-                      width: "100%",
-                      padding: "0.625rem",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "8px",
-                      fontSize: "0.875rem",
-                      boxSizing: "border-box",
-                    }}
-                  />
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={formData.password}
+                      onChange={(e) =>
+                        handleInputChange("password", e.target.value)
+                      }
+                      placeholder="Create a strong password"
+                      required
+                      style={{
+                        width: "100%",
+                        padding: "0.625rem",
+                        paddingRight: "2.5rem",
+                        border: "1px solid #d1d5db",
+                        borderRadius: "8px",
+                        fontSize: "0.875rem",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={{
+                        position: "absolute",
+                        right: "0.5rem",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        fontSize: "1.1rem",
+                        color: "#6b7280",
+                        padding: "0.25rem",
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                    >
+                      {showPassword ? "🙈" : "👁️"}
+                    </button>
+                  </div>
                 </div>
 
                 <div style={{ marginBottom: "1.25rem" }}>
@@ -550,23 +594,48 @@ export default function OwnerRegisterPage() {
                   >
                     Confirm Password
                   </label>
-                  <input
-                    type="password"
-                    value={formData.confirmPassword}
-                    onChange={(e) =>
-                      handleInputChange("confirmPassword", e.target.value)
-                    }
-                    placeholder="Re-enter your password"
-                    required
-                    style={{
-                      width: "100%",
-                      padding: "0.625rem",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "8px",
-                      fontSize: "0.875rem",
-                      boxSizing: "border-box",
-                    }}
-                  />
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={formData.confirmPassword}
+                      onChange={(e) =>
+                        handleInputChange("confirmPassword", e.target.value)
+                      }
+                      placeholder="Re-enter your password"
+                      required
+                      style={{
+                        width: "100%",
+                        padding: "0.625rem",
+                        paddingRight: "2.5rem",
+                        border: "1px solid #d1d5db",
+                        borderRadius: "8px",
+                        fontSize: "0.875rem",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
+                      style={{
+                        position: "absolute",
+                        right: "0.5rem",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        fontSize: "1.1rem",
+                        color: "#6b7280",
+                        padding: "0.25rem",
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                    >
+                      {showConfirmPassword ? "🙈" : "👁️"}
+                    </button>
+                  </div>
                 </div>
 
                 <button

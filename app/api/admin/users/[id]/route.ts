@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { hashPassword } from "@/lib/utils/auth";
 import { ObjectId } from "mongodb";
 
 // Verify admin token from custom JWT format
@@ -78,18 +79,30 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, role, status } = body;
+    const { name, role, status, password, mobile } = body;
     const { id } = await params;
     const userId = id;
 
     const db = await getDb();
 
-    const updateData = {
+    const updateData: any = {
       ...(name && { name }),
       ...(role && { role }),
       ...(status && { status }),
+      ...(mobile !== undefined && { mobile }),
       updatedAt: new Date(),
     };
+
+    // Handle password update if provided
+    if (password && password.trim()) {
+      if (password.length < 8) {
+        return NextResponse.json(
+          { error: "Password must be at least 8 characters long" },
+          { status: 400 },
+        );
+      }
+      updateData.password = await hashPassword(password);
+    }
 
     // Try to update in users collection first
     let result = await db

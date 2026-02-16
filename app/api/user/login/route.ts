@@ -68,29 +68,31 @@ export async function POST(request: NextRequest) {
       isOwner: isOwner,
     });
 
-    // Check role matches (for users collection only)
-    if (!isOwner && user.role !== expectedRole) {
-      console.error("Login failed - Role mismatch:", {
-        userRole: user.role,
-        expectedRole,
-      });
-      return NextResponse.json(
-        { error: "Invalid email or password" },
-        { status: 401 }
-      );
+    // Check role matches
+    if (!isOwner) {
+      // For users collection, check if role matches expected role
+      // But allow owner role users to login via user login endpoint
+      if (user.role && user.role !== expectedRole && user.role !== "owner") {
+        console.error("Login failed - Role mismatch:", {
+          userRole: user.role,
+          expectedRole,
+        });
+        return NextResponse.json(
+          { error: "Invalid email or password" },
+          { status: 401 }
+        );
+      }
     }
 
     // Check if account is active
-    if (!isOwner && !user.isActive) {
+    // Handle multiple status field names: isActive (old), active (owners), status (admin-created)
+    const isActive = !isOwner 
+      ? (user.isActive !== false && user.status !== "inactive" && user.status !== "suspended")
+      : (user.active !== false && user.status !== "inactive" && user.status !== "suspended");
+    
+    if (!isActive) {
       return NextResponse.json(
         { error: "Account is deactivated. Please contact support." },
-        { status: 403 }
-      );
-    }
-
-    if (isOwner && !user.active) {
-      return NextResponse.json(
-        { error: "Owner account is deactivated. Please contact support." },
         { status: 403 }
       );
     }

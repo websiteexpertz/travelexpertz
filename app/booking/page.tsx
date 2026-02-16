@@ -39,6 +39,26 @@ function BookingPageContent() {
 
   const checkAuth = async () => {
     try {
+      // First check localStorage for quick auth detection
+      const userString = localStorage.getItem("user");
+      if (userString) {
+        try {
+          const user = JSON.parse(userString);
+          setUserProfile(user);
+          setIsAuthenticated(true);
+          setGuestDetails((prev) => ({
+            ...prev,
+            name: user.name || prev.name,
+            email: user.email || prev.email,
+            phone: user.mobile || prev.phone,
+          }));
+          return;
+        } catch (e) {
+          console.error("Failed to parse stored user:", e);
+        }
+      }
+
+      // Then verify with API
       const response = await fetch("/api/auth/user-profile", {
         credentials: "include",
       });

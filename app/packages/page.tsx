@@ -297,7 +297,7 @@ const packagesPageStyles = `
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, rgba(15, 23, 42, 0.5) 0%, rgba(15, 23, 42, 0.7) 100%);
+    background: linear-gradient(135deg, rgba(239,246,255,0.35) 0%, rgba(219,234,254,0.25) 50%, rgba(147,197,253,0.18) 100%);
     z-index: 1;
   }
   
@@ -312,14 +312,14 @@ const packagesPageStyles = `
   .packages-hero h1 {
     font-size: clamp(1.75rem, 5vw, 3rem);
     font-weight: 800;
-    color: white;
+    color: #0f172a;
     margin-bottom: 0.75rem;
-    text-shadow: 0 2px 20px rgba(0,0,0,0.3);
+    text-shadow: none;
   }
   
   .packages-hero p {
     font-size: clamp(0.9rem, 2vw, 1.1rem);
-    color: rgba(255,255,255,0.9);
+    color: #475569;
     margin-bottom: 1.5rem;
   }
 
@@ -990,6 +990,29 @@ const packagesPageStyles = `
       transform: translateY(0);
     }
   }
+
+  @keyframes heroBlob1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(30px, -30px) scale(1.05); }
+    66% { transform: translate(-20px, 20px) scale(0.95); }
+  }
+  @keyframes heroBlob2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(-25px, 25px) scale(1.03); }
+    66% { transform: translate(15px, -15px) scale(0.97); }
+  }
+  @keyframes heroBlob3 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(20px, -20px) scale(1.05); }
+  }
+  @keyframes heroSparkle {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.5); }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
 `;
 
 export default function Packages() {
@@ -1131,124 +1154,235 @@ export default function Packages() {
     <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-gray-50">
       <style>{packagesPageStyles}</style>
       <Header currentPage="packages" />
-      <main
-        className="flex flex-col items-center w-full flex-1"
-      >
+      <main className="flex flex-col items-center w-full flex-1">
         {/* Hero Section */}
-        <div className="w-full px-0 sm:px-2 lg:px-4">
+        <div
+          className="w-full"
+          style={{ background: "transparent", padding: "0 0.75rem" }}
+        >
           <div
             className="packages-hero"
             style={{
-              backgroundImage: "url('/hero-background.webp')",
+              backgroundImage: "url('/hero-banner.png')",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
               position: "relative",
-              height: "480px",
-              borderRadius: "24px",
               overflow: "hidden",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "2rem 1.5rem",
             }}
           >
-            {/* Background with Gradient Overlay */}
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                backgroundImage: "url('/hero-background.webp')",
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }}
-            />
+            {/* Modern Gradient Overlay */}
             <div
               style={{
                 position: "absolute",
                 inset: 0,
                 background:
-                  "linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.2) 50%, rgba(0, 0, 0, 0.5) 100%)",
+                  "linear-gradient(135deg, rgba(239,246,255,0.92) 0%, rgba(219,234,254,0.88) 40%, rgba(191,219,254,0.85) 70%, rgba(147,197,253,0.82) 100%)",
+                zIndex: 0,
               }}
             />
 
-            {/* Floating Decorative Elements */}
+            {/* Animated mesh gradient blobs */}
             <div
-              className="floating-element"
               style={{
                 position: "absolute",
-                top: "15%",
-                left: "8%",
-                width: "80px",
-                height: "80px",
+                top: "-15%",
+                right: "-8%",
+                width: "clamp(300px, 50vw, 600px)",
+                height: "clamp(300px, 50vw, 600px)",
                 borderRadius: "50%",
-                background: "rgba(255, 255, 255, 0.1)",
+                background:
+                  "radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%)",
+                filter: "blur(60px)",
+                animation: "heroBlob1 10s ease-in-out infinite",
+                pointerEvents: "none",
+                zIndex: 0,
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                bottom: "-20%",
+                left: "-10%",
+                width: "clamp(250px, 40vw, 500px)",
+                height: "clamp(250px, 40vw, 500px)",
+                borderRadius: "50%",
+                background:
+                  "radial-gradient(circle, rgba(37,99,235,0.10) 0%, transparent 70%)",
+                filter: "blur(70px)",
+                animation: "heroBlob2 12s ease-in-out infinite",
+                pointerEvents: "none",
+                zIndex: 0,
+              }}
+            />
+            <div
+              className="hidden sm:block"
+              style={{
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                width: "clamp(200px, 30vw, 400px)",
+                height: "clamp(200px, 30vw, 400px)",
+                borderRadius: "50%",
+                background:
+                  "radial-gradient(circle, rgba(96,165,250,0.08) 0%, transparent 70%)",
+                filter: "blur(50px)",
+                animation: "heroBlob3 14s ease-in-out infinite",
+                pointerEvents: "none",
+                zIndex: 0,
+              }}
+            />
+
+            {/* Subtle grid pattern */}
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                backgroundImage:
+                  "linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px)",
+                backgroundSize: "50px 50px",
+                pointerEvents: "none",
+                zIndex: 0,
+              }}
+            />
+
+            {/* Floating glass orbs */}
+            <div
+              className="hidden sm:block"
+              style={{
+                position: "absolute",
+                top: "12%",
+                left: "6%",
+                width: "clamp(50px, 8vw, 90px)",
+                height: "clamp(50px, 8vw, 90px)",
+                borderRadius: "50%",
+                background:
+                  "linear-gradient(135deg, rgba(255,255,255,0.6), rgba(219,234,254,0.3))",
+                boxShadow:
+                  "0 8px 32px rgba(59,130,246,0.1), inset 0 1px 0 rgba(255,255,255,0.8)",
                 backdropFilter: "blur(10px)",
+                border: "1px solid rgba(255,255,255,0.5)",
                 animation: "float 6s ease-in-out infinite",
+                zIndex: 1,
               }}
             />
             <div
-              className="floating-element"
+              className="hidden md:block"
               style={{
                 position: "absolute",
-                bottom: "20%",
-                right: "10%",
-                width: "120px",
-                height: "120px",
+                bottom: "18%",
+                right: "7%",
+                width: "clamp(35px, 6vw, 65px)",
+                height: "clamp(35px, 6vw, 65px)",
                 borderRadius: "50%",
-                background: "rgba(255, 255, 255, 0.08)",
-                backdropFilter: "blur(10px)",
+                background:
+                  "linear-gradient(135deg, rgba(255,255,255,0.5), rgba(191,219,254,0.3))",
+                boxShadow:
+                  "0 8px 32px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.7)",
+                backdropFilter: "blur(8px)",
+                border: "1px solid rgba(255,255,255,0.4)",
                 animation: "float 8s ease-in-out infinite reverse",
+                zIndex: 1,
               }}
             />
             <div
-              className="floating-element"
+              className="hidden lg:block"
               style={{
                 position: "absolute",
-                top: "60%",
-                left: "15%",
-                width: "50px",
-                height: "50px",
+                top: "35%",
+                right: "18%",
+                width: "45px",
+                height: "45px",
                 borderRadius: "50%",
-                background: "rgba(255, 255, 255, 0.12)",
-                backdropFilter: "blur(10px)",
-                animation: "float 5s ease-in-out infinite 1s",
+                background:
+                  "linear-gradient(135deg, rgba(255,255,255,0.4), rgba(147,197,253,0.2))",
+                boxShadow:
+                  "0 6px 24px rgba(59,130,246,0.06), inset 0 1px 0 rgba(255,255,255,0.6)",
+                backdropFilter: "blur(6px)",
+                border: "1px solid rgba(255,255,255,0.3)",
+                animation: "float 7s ease-in-out infinite",
+                animationDelay: "2s",
+                zIndex: 1,
               }}
             />
+
+            {/* Floating sparkle particles */}
+            {[...Array(6)].map((_, i) => (
+              <div
+                key={`package-sparkle-${i}`}
+                className="hidden sm:block"
+                style={{
+                  position: "absolute",
+                  width: `${3 + (i % 3) * 2}px`,
+                  height: `${3 + (i % 3) * 2}px`,
+                  borderRadius: "50%",
+                  background: `rgba(59,130,246,${0.15 + (i % 4) * 0.08})`,
+                  boxShadow: `0 0 ${4 + i * 2}px rgba(59,130,246,${0.1 + (i % 3) * 0.05})`,
+                  top: `${10 + ((i * 37) % 70)}%`,
+                  left: `${5 + ((i * 41) % 85)}%`,
+                  animation: `heroSparkle ${5 + i * 1.5}s ease-in-out infinite`,
+                  animationDelay: `${i * 0.7}s`,
+                  pointerEvents: "none",
+                  zIndex: 1,
+                }}
+              />
+            ))}
 
             {/* Hero Content */}
             <div
-              className="packages-hero-content"
-              style={{
-                position: "relative",
-                zIndex: 10,
-                textAlign: "center",
-                color: "white",
-                padding: "0 1.5rem",
-                maxWidth: "800px",
-                marginBottom: "2rem",
-              }}
+              className="hero-content"
+              style={{ position: "relative", zIndex: 2 }}
             >
+              {/* Badge pill */}
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.4rem",
+                  padding: "0.4rem 1rem",
+                  background: "rgba(255,255,255,0.7)",
+                  backdropFilter: "blur(12px)",
+                  WebkitBackdropFilter: "blur(12px)",
+                  border: "1px solid rgba(59,130,246,0.15)",
+                  borderRadius: "50px",
+                  marginBottom: "1.2rem",
+                  fontSize: "clamp(0.7rem, 2vw, 0.82rem)",
+                  color: "#1e40af",
+                  fontWeight: 600,
+                  boxShadow: "0 2px 12px rgba(59,130,246,0.08)",
+                  animation: "fadeInUp 0.8s ease-out",
+                  animationDelay: "0.1s",
+                  animationFillMode: "both",
+                }}
+              >
+                <span
+                  style={{
+                    width: "6px",
+                    height: "6px",
+                    borderRadius: "50%",
+                    background: "#3b82f6",
+                    display: "inline-block",
+                    boxShadow: "0 0 8px rgba(59,130,246,0.4)",
+                    animation: "pulse 2s ease infinite",
+                  }}
+                />
+                Curated Journeys for Every Traveler
+              </div>
+
               <h1
                 style={{
-                  fontSize: "clamp(1.75rem, 5vw, 3rem)",
-                  fontWeight: 800,
-                  marginBottom: "0.75rem",
-                  lineHeight: 1.15,
-                  textShadow: "0 4px 20px rgba(0, 0, 0, 0.3)",
-                  letterSpacing: "-0.02em",
-                  margin: "0 auto 0.75rem",
-                  display: "block",
                   animation: "fadeInUp 0.8s ease-out",
+                  animationDelay: "0.25s",
+                  animationFillMode: "both",
                 }}
               >
                 Explore Our
                 <span
                   style={{
                     background:
-                      "linear-gradient(135deg, #FFD700 0%, #FFA500 100%)",
+                      "linear-gradient(135deg, #1d4ed8 0%, #3b82f6 50%, #2563eb 100%)",
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",
                     backgroundClip: "text",
-                    marginLeft: "0.5rem",
                   }}
                 >
                   Travel Packages
@@ -1256,36 +1390,106 @@ export default function Packages() {
               </h1>
               <p
                 style={{
-                  fontSize: "clamp(0.9rem, 2vw, 1.1rem)",
-                  opacity: 0.95,
-                  maxWidth: "600px",
-                  margin: "0 auto 0",
-                  lineHeight: 1.5,
-                  fontWeight: 500,
-                  letterSpacing: "0.3px",
-                  animation: "fadeInUp 0.8s ease-out 0.2s both",
+                  animation: "fadeInUp 0.8s ease-out",
+                  animationDelay: "0.45s",
+                  animationFillMode: "both",
                 }}
               >
                 Discover handpicked adventures across India&apos;s most
-                beautiful destinations
+                beautiful destinations.
               </p>
+
+              {/* Trust Indicators */}
+              <div
+                className="trust-indicators"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "clamp(0.5rem, 2vw, 1rem)",
+                  marginTop: "clamp(0.75rem, 2vw, 1.5rem)",
+                  flexWrap: "wrap",
+                  animation: "fadeInUp 0.8s ease-out",
+                  animationDelay: "0.6s",
+                  animationFillMode: "both",
+                  padding: "0 0.5rem",
+                }}
+              >
+                {[
+                  { icon: "verified", fullText: "Verified Itineraries" },
+                  { icon: "support_agent", fullText: "24/7 Support" },
+                  { icon: "lock", fullText: "Secure Payments" },
+                ].map((item, index) => (
+                  <div
+                    key={index}
+                    className="trust-item"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "clamp(0.25rem, 1vw, 0.5rem)",
+                      padding:
+                        "clamp(0.35rem, 1vw, 0.5rem) clamp(0.6rem, 1.5vw, 1rem)",
+                      background: "rgba(255,255,255,0.65)",
+                      backdropFilter: "blur(12px)",
+                      WebkitBackdropFilter: "blur(12px)",
+                      borderRadius: "0.75rem",
+                      border: "1px solid rgba(59,130,246,0.12)",
+                      boxShadow: "0 2px 8px rgba(59,130,246,0.06)",
+                      transition: "all 0.3s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                      e.currentTarget.style.boxShadow =
+                        "0 6px 20px rgba(59,130,246,0.12)";
+                      e.currentTarget.style.borderColor =
+                        "rgba(59,130,246,0.25)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow =
+                        "0 2px 8px rgba(59,130,246,0.06)";
+                      e.currentTarget.style.borderColor =
+                        "rgba(59,130,246,0.12)";
+                    }}
+                  >
+                    <span
+                      className="material-symbols-outlined"
+                      style={{
+                        fontSize: "clamp(0.875rem, 2.5vw, 1.1rem)",
+                        color: "#2563eb",
+                      }}
+                    >
+                      {item.icon}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "clamp(0.65rem, 2vw, 0.8rem)",
+                        fontWeight: 600,
+                        color: "#1e3a8a",
+                      }}
+                    >
+                      {item.fullText}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Search Box - Inside Hero */}
             <div
               className="packages-search-box"
               style={{
-                background: "rgba(255, 255, 255, 0.97)",
-                backdropFilter: "blur(20px)",
-                borderRadius: "16px",
-                padding: "0.5rem",
-                boxShadow: "0 10px 40px rgba(0, 0, 0, 0.2)",
-                maxWidth: "1000px",
-                width: "100%",
                 position: "relative",
-                zIndex: 20,
-                border: "1.5px solid rgba(255, 255, 255, 0.4)",
-                animation: "fadeInUp 0.8s ease-out 0.4s both",
+                zIndex: 2,
+                animation: "fadeInUp 0.8s ease-out",
+                animationDelay: "0.8s",
+                animationFillMode: "both",
+                backdropFilter: "blur(16px)",
+                WebkitBackdropFilter: "blur(16px)",
+                background: "rgba(255, 255, 255, 0.85)",
+                border: "1px solid rgba(59,130,246,0.1)",
+                boxShadow:
+                  "0 8px 32px rgba(59,130,246,0.08), 0 2px 8px rgba(0,0,0,0.04)",
               }}
             >
               <div
@@ -1344,7 +1548,9 @@ export default function Packages() {
                   onClick={() => {
                     // Scroll to packages section
                     if (packagesRef.current) {
-                      packagesRef.current.scrollIntoView({ behavior: "smooth" });
+                      packagesRef.current.scrollIntoView({
+                        behavior: "smooth",
+                      });
                     }
                   }}
                   style={{

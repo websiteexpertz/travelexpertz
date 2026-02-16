@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { hashPassword } from "@/lib/utils/auth";
 import { ObjectId } from "mongodb";
 
 // Verify admin token from custom JWT format
@@ -163,11 +164,25 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { email, name, role, status } = body;
+    const { email, name, role, status, password, mobile } = body;
 
     if (!email) {
       return NextResponse.json(
         { error: "Email is required" },
+        { status: 400 },
+      );
+    }
+
+    if (!password) {
+      return NextResponse.json(
+        { error: "Password is required for new users" },
+        { status: 400 },
+      );
+    }
+
+    if (password.length < 8) {
+      return NextResponse.json(
+        { error: "Password must be at least 8 characters long" },
         { status: 400 },
       );
     }
@@ -183,11 +198,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Hash password
+    const hashedPassword = await hashPassword(password);
+
     const newUser = {
       email,
       name: name || "",
       role: role || "user",
       status: status || "active",
+      password: hashedPassword,
+      mobile: mobile || "",
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -197,6 +217,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       _id: result.insertedId,
       ...newUser,
+      password: undefined,
     });
   } catch (error) {
     console.error("Error creating user:", error);

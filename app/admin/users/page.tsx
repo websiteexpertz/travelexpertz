@@ -25,6 +25,8 @@ export default function UsersManagementPage() {
     name: "",
     role: "user",
     status: "active",
+    password: "",
+    mobile: "",
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -67,9 +69,18 @@ export default function UsersManagementPage() {
         name: user.name || "",
         role: user.role || "user",
         status: user.status || "active",
+        password: "",
+        mobile: "",
       });
     } else {
-      setFormData({ email: "", name: "", role: "user", status: "active" });
+      setFormData({
+        email: "",
+        name: "",
+        role: "user",
+        status: "active",
+        password: "",
+        mobile: "",
+      });
       setSelectedUser(null);
     }
     setError("");
@@ -93,6 +104,18 @@ export default function UsersManagementPage() {
     try {
       if (!formData.email) {
         setError("Email is required");
+        setSubmitLoading(false);
+        return;
+      }
+
+      if (modalMode === "create" && !formData.password) {
+        setError("Password is required for new users");
+        setSubmitLoading(false);
+        return;
+      }
+
+      if (formData.password && formData.password.length < 8) {
+        setError("Password must be at least 8 characters long");
         setSubmitLoading(false);
         return;
       }
@@ -675,7 +698,7 @@ export default function UsersManagementPage() {
                 </select>
               </div>
 
-              <div style={{ marginBottom: "1.5rem" }}>
+              <div style={{ marginBottom: "1rem" }}>
                 <label
                   style={{
                     display: "block",
@@ -703,6 +726,68 @@ export default function UsersManagementPage() {
                   <option value="inactive">Inactive</option>
                   <option value="suspended">Suspended</option>
                 </select>
+              </div>
+
+              <div style={{ marginBottom: "1rem" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "0.5rem",
+                    fontWeight: 600,
+                    color: "#374151",
+                  }}
+                >
+                  Password{" "}
+                  {modalMode === "edit" && "(Leave blank to keep current)"}
+                </label>
+                <input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  placeholder={
+                    modalMode === "create"
+                      ? "Create a strong password"
+                      : "Leave blank to keep current"
+                  }
+                  required={modalMode === "create"}
+                  style={{
+                    width: "100%",
+                    padding: "0.625rem",
+                    border: "1px solid #d1d5db",
+                    borderRadius: "8px",
+                    fontSize: "0.9rem",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: "1.5rem" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "0.5rem",
+                    fontWeight: 600,
+                    color: "#374151",
+                  }}
+                >
+                  Mobile Number
+                </label>
+                <input
+                  type="tel"
+                  name="mobile"
+                  value={formData.mobile}
+                  onChange={handleInputChange}
+                  placeholder="+91 XXXXX XXXXX"
+                  style={{
+                    width: "100%",
+                    padding: "0.625rem",
+                    border: "1px solid #d1d5db",
+                    borderRadius: "8px",
+                    fontSize: "0.9rem",
+                    boxSizing: "border-box",
+                  }}
+                />
               </div>
 
               <div

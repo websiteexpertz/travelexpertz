@@ -7,12 +7,14 @@ import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
+  const [accountType, setAccountType] = useState<"user" | "owner">("user");
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,7 +22,10 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await fetch("/api/user/login", {
+      const apiUrl =
+        accountType === "owner" ? "/api/owner/auth/login" : "/api/user/login";
+
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -34,16 +39,25 @@ export default function LoginPage() {
         localStorage.removeItem("user");
         localStorage.removeItem("ownerToken");
 
-        console.log("Login successful:", {
-          email: data.user.email,
-          role: data.user.role,
-        });
-
-        // Store user data in localStorage
-        localStorage.setItem("user", JSON.stringify(data.user));
-
-        // Redirect to home page
-        router.push("/");
+        if (accountType === "owner") {
+          // Store owner data
+          if (data.owner) {
+            const userObj = {
+              ...data.owner,
+              role: "owner",
+            };
+            localStorage.setItem("user", JSON.stringify(userObj));
+            localStorage.setItem("ownerToken", data.accessToken);
+          }
+          router.push("/owner/dashboard");
+        } else {
+          console.log("Login successful:", {
+            email: data.user.email,
+            role: data.user.role,
+          });
+          localStorage.setItem("user", JSON.stringify(data.user));
+          router.push("/");
+        }
       } else {
         setError(data.error || "Login failed");
       }
@@ -84,6 +98,78 @@ export default function LoginPage() {
               boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
             }}
           >
+            {/* Account Type Toggle */}
+            <div
+              style={{
+                display: "flex",
+                background: "#f1f5f9",
+                borderRadius: "50px",
+                padding: "4px",
+                marginBottom: "1.5rem",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setAccountType("user");
+                  setError("");
+                }}
+                style={{
+                  flex: 1,
+                  padding: "0.6rem 1rem",
+                  borderRadius: "50px",
+                  border: "none",
+                  fontSize: "0.85rem",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  transition: "all 0.3s ease",
+                  background:
+                    accountType === "user"
+                      ? "linear-gradient(135deg, #3b82f6, #2563eb)"
+                      : "transparent",
+                  color: accountType === "user" ? "white" : "#64748b",
+                  boxShadow:
+                    accountType === "user"
+                      ? "0 2px 8px rgba(59,130,246,0.3)"
+                      : "none",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                }}
+              >
+                Personal Account
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAccountType("owner");
+                  setError("");
+                }}
+                style={{
+                  flex: 1,
+                  padding: "0.6rem 1rem",
+                  borderRadius: "50px",
+                  border: "none",
+                  fontSize: "0.85rem",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  transition: "all 0.3s ease",
+                  background:
+                    accountType === "owner"
+                      ? "linear-gradient(135deg, #3b82f6, #2563eb)"
+                      : "transparent",
+                  color: accountType === "owner" ? "white" : "#64748b",
+                  boxShadow:
+                    accountType === "owner"
+                      ? "0 2px 8px rgba(59,130,246,0.3)"
+                      : "none",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                }}
+              >
+                Owner Account
+              </button>
+            </div>
+
             <h1
               style={{
                 margin: "0 0 0.5rem",
@@ -101,7 +187,9 @@ export default function LoginPage() {
                 textAlign: "center",
               }}
             >
-              Login to continue your journey
+              {accountType === "owner"
+                ? "Login to manage your properties"
+                : "Login to continue your journey"}
             </p>
 
             {/* Error Message */}
@@ -160,22 +248,45 @@ export default function LoginPage() {
                 >
                   Password
                 </label>
-                <input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) =>
-                    handleInputChange("password", e.target.value)
-                  }
-                  placeholder="Enter your password"
-                  required
-                  style={{
-                    width: "100%",
-                    padding: "0.625rem",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "8px",
-                    fontSize: "0.875rem",
-                  }}
-                />
+                <div style={{ position: "relative" }}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={(e) =>
+                      handleInputChange("password", e.target.value)
+                    }
+                    placeholder="Enter your password"
+                    required
+                    style={{
+                      width: "100%",
+                      padding: "0.625rem",
+                      paddingRight: "2.5rem",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "8px",
+                      fontSize: "0.875rem",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: "absolute",
+                      right: "0.5rem",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      fontSize: "1.1rem",
+                      color: "#6b7280",
+                      padding: "0.25rem",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    {showPassword ? "🙈" : "👁️"}
+                  </button>
+                </div>
               </div>
 
               <div style={{ marginBottom: "1.5rem", textAlign: "right" }}>
@@ -200,7 +311,9 @@ export default function LoginPage() {
                   background:
                     loading || !formData.email || !formData.password
                       ? "#9ca3af"
-                      : "#0066cc",
+                      : accountType === "owner"
+                        ? "#16a34a"
+                        : "#0066cc",
                   color: "white",
                   border: "none",
                   borderRadius: "8px",
@@ -212,7 +325,11 @@ export default function LoginPage() {
                       : "pointer",
                 }}
               >
-                {loading ? "Logging in..." : "Login"}
+                {loading
+                  ? "Logging in..."
+                  : accountType === "owner"
+                    ? "Login as Owner"
+                    : "Login"}
               </button>
             </form>
           </div>
@@ -236,28 +353,6 @@ export default function LoginPage() {
               }}
             >
               Sign Up
-            </Link>
-          </p>
-
-          {/* Owner Login Link */}
-          <p
-            style={{
-              marginTop: "1rem",
-              textAlign: "center",
-              color: "#6b7280",
-              fontSize: "0.875rem",
-            }}
-          >
-            Are you a property owner?{" "}
-            <Link
-              href="/owner/auth/login"
-              style={{
-                color: "#16a34a",
-                fontWeight: 600,
-                textDecoration: "none",
-              }}
-            >
-              Owner Login
             </Link>
           </p>
         </div>

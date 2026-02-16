@@ -7,6 +7,7 @@ import Link from "next/link";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const [accountType, setAccountType] = useState<"user" | "owner">("user");
   const [step, setStep] = useState(1); // 1: email, 2: OTP, 3: password
   const [formData, setFormData] = useState({
     email: "",
@@ -14,10 +15,15 @@ export default function RegisterPage() {
     password: "",
     confirmPassword: "",
     name: "",
+    businessName: "",
+    phone: "",
+    businessType: "hotel",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const sendOTP = async () => {
     setError("");
@@ -96,39 +102,60 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const response = await fetch("/api/auth/signup", {
+      const isOwner = accountType === "owner";
+      const apiUrl = isOwner ? "/api/owner/auth/register" : "/api/auth/signup";
+      const bodyData = isOwner
+        ? {
+            email: formData.email,
+            password: formData.password,
+            ownerName: formData.name,
+            businessName: formData.businessName,
+            phone: formData.phone,
+            businessType: formData.businessType,
+          }
+        : {
+            email: formData.email,
+            password: formData.password,
+            name: formData.name,
+            role: "user",
+          };
+
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-          name: formData.name,
-          role: "user",
-        }),
+        body: JSON.stringify(bodyData),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        // Store user data in localStorage
+        // Store user data and tokens
         if (data.user) {
           localStorage.setItem(
             "user",
             JSON.stringify({
               ...data.user,
-              role: "user",
+              role: isOwner ? "owner" : "user",
             }),
           );
         }
 
-        setMessage("Account created successfully!");
+        // Store tokens for authentication
+        if (data.accessToken) {
+          localStorage.setItem("accessToken", data.accessToken);
+        }
+        if (data.refreshToken) {
+          localStorage.setItem("refreshToken", data.refreshToken);
+        }
 
-        // Redirect to homepage
+        setMessage("Account created successfully! Logging you in...");
+
+        // Auto-login after registration
         setTimeout(() => {
-          router.push("/");
-        }, 1500);
+          router.push(isOwner ? "/owner/dashboard" : "/user/profile");
+        }, 1000);
       } else {
-        setError(data.error || "Signup failed");
+        setError(data.error || "Registration failed");
       }
     } catch (error) {
       setError("An error occurred. Please try again.");
@@ -169,7 +196,12 @@ export default function RegisterPage() {
                   style={{
                     flex: 1,
                     height: "4px",
-                    background: step >= num ? "#0066cc" : "#d1d5db",
+                    background:
+                      step >= num
+                        ? accountType === "owner"
+                          ? "#16a34a"
+                          : "#0066cc"
+                        : "#d1d5db",
                     margin: "0 4px",
                     borderRadius: "2px",
                   }}
@@ -196,6 +228,64 @@ export default function RegisterPage() {
               boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
             }}
           >
+            {/* Account Type Toggle */}
+            <div
+              style={{
+                display: "flex",
+                background: "#f3f4f6",
+                borderRadius: "50px",
+                padding: "4px",
+                marginBottom: "1.25rem",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setAccountType("user")}
+                style={{
+                  flex: 1,
+                  padding: "0.5rem 1rem",
+                  borderRadius: "50px",
+                  border: "none",
+                  fontSize: "0.8rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase" as const,
+                  cursor: "pointer",
+                  transition: "all 0.3s ease",
+                  background:
+                    accountType === "user"
+                      ? "linear-gradient(135deg, #0066cc, #0052a3)"
+                      : "transparent",
+                  color: accountType === "user" ? "white" : "#6b7280",
+                }}
+              >
+                Personal Account
+              </button>
+              <button
+                type="button"
+                onClick={() => setAccountType("owner")}
+                style={{
+                  flex: 1,
+                  padding: "0.5rem 1rem",
+                  borderRadius: "50px",
+                  border: "none",
+                  fontSize: "0.8rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase" as const,
+                  cursor: "pointer",
+                  transition: "all 0.3s ease",
+                  background:
+                    accountType === "owner"
+                      ? "linear-gradient(135deg, #16a34a, #15803d)"
+                      : "transparent",
+                  color: accountType === "owner" ? "white" : "#6b7280",
+                }}
+              >
+                Owner Account
+              </button>
+            </div>
+
             <h1
               style={{
                 margin: "0 0 0.5rem",
@@ -213,28 +303,9 @@ export default function RegisterPage() {
                 textAlign: "center",
               }}
             >
-              Join us for amazing travel experiences
-            </p>
-
-            <p
-              style={{
-                margin: "0 0 2rem",
-                color: "#6b7280",
-                textAlign: "center",
-                fontSize: "0.9rem",
-              }}
-            >
-              Registering as a property owner?{" "}
-              <Link
-                href="/owner/auth/register"
-                style={{
-                  color: "#16a34a",
-                  fontWeight: 600,
-                  textDecoration: "none",
-                }}
-              >
-                Register here
-              </Link>
+              {accountType === "owner"
+                ? "Register to list your properties"
+                : "Join us for amazing travel experiences"}
             </p>
 
             {/* Error Message */}
@@ -314,7 +385,11 @@ export default function RegisterPage() {
                     width: "100%",
                     padding: "0.625rem",
                     background:
-                      loading || !formData.email ? "#9ca3af" : "#0066cc",
+                      loading || !formData.email
+                        ? "#9ca3af"
+                        : accountType === "owner"
+                          ? "#16a34a"
+                          : "#0066cc",
                     color: "white",
                     border: "none",
                     borderRadius: "8px",
@@ -414,7 +489,9 @@ export default function RegisterPage() {
                     background:
                       loading || formData.otp.length !== 6
                         ? "#9ca3af"
-                        : "#0066cc",
+                        : accountType === "owner"
+                          ? "#16a34a"
+                          : "#0066cc",
                     color: "white",
                     border: "none",
                     borderRadius: "8px",
@@ -437,8 +514,8 @@ export default function RegisterPage() {
                     width: "100%",
                     padding: "0.625rem",
                     background: "white",
-                    color: "#0066cc",
-                    border: "1px solid #0066cc",
+                    color: accountType === "owner" ? "#16a34a" : "#0066cc",
+                    border: `1px solid ${accountType === "owner" ? "#16a34a" : "#0066cc"}`,
                     borderRadius: "8px",
                     fontSize: "0.8rem",
                     fontWeight: 600,
@@ -462,13 +539,17 @@ export default function RegisterPage() {
                       fontSize: "0.875rem",
                     }}
                   >
-                    Full Name
+                    {accountType === "owner" ? "Owner Name" : "Full Name"}
                   </label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => handleInputChange("name", e.target.value)}
-                    placeholder="Enter your name"
+                    placeholder={
+                      accountType === "owner"
+                        ? "Enter owner name"
+                        : "Enter your name"
+                    }
                     required
                     style={{
                       width: "100%",
@@ -479,6 +560,103 @@ export default function RegisterPage() {
                     }}
                   />
                 </div>
+
+                {/* Owner-specific fields */}
+                {accountType === "owner" && (
+                  <>
+                    <div style={{ marginBottom: "1.25rem" }}>
+                      <label
+                        style={{
+                          display: "block",
+                          marginBottom: "0.5rem",
+                          fontWeight: 600,
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Business Name
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.businessName}
+                        onChange={(e) =>
+                          handleInputChange("businessName", e.target.value)
+                        }
+                        placeholder="Enter your business name"
+                        required
+                        style={{
+                          width: "100%",
+                          padding: "0.625rem",
+                          border: "1px solid #d1d5db",
+                          borderRadius: "8px",
+                          fontSize: "0.875rem",
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ marginBottom: "1.25rem" }}>
+                      <label
+                        style={{
+                          display: "block",
+                          marginBottom: "0.5rem",
+                          fontWeight: 600,
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Phone Number
+                      </label>
+                      <input
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) =>
+                          handleInputChange("phone", e.target.value)
+                        }
+                        placeholder="Enter your phone number"
+                        required
+                        style={{
+                          width: "100%",
+                          padding: "0.625rem",
+                          border: "1px solid #d1d5db",
+                          borderRadius: "8px",
+                          fontSize: "0.875rem",
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ marginBottom: "1.25rem" }}>
+                      <label
+                        style={{
+                          display: "block",
+                          marginBottom: "0.5rem",
+                          fontWeight: 600,
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Business Type
+                      </label>
+                      <select
+                        value={formData.businessType}
+                        onChange={(e) =>
+                          handleInputChange("businessType", e.target.value)
+                        }
+                        style={{
+                          width: "100%",
+                          padding: "0.625rem",
+                          border: "1px solid #d1d5db",
+                          borderRadius: "8px",
+                          fontSize: "0.875rem",
+                          background: "white",
+                        }}
+                      >
+                        <option value="hotel">Hotel</option>
+                        <option value="homestay">Homestay</option>
+                        <option value="resort">Resort</option>
+                        <option value="villa">Villa</option>
+                        <option value="apartment">Apartment</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                  </>
+                )}
 
                 <div style={{ marginBottom: "1.25rem" }}>
                   <label
@@ -491,22 +669,45 @@ export default function RegisterPage() {
                   >
                     Password
                   </label>
-                  <input
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) =>
-                      handleInputChange("password", e.target.value)
-                    }
-                    placeholder="Create a strong password"
-                    required
-                    style={{
-                      width: "100%",
-                      padding: "0.625rem",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "8px",
-                      fontSize: "0.875rem",
-                    }}
-                  />
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={formData.password}
+                      onChange={(e) =>
+                        handleInputChange("password", e.target.value)
+                      }
+                      placeholder="Create a strong password"
+                      required
+                      style={{
+                        width: "100%",
+                        padding: "0.625rem",
+                        paddingRight: "2.5rem",
+                        border: "1px solid #d1d5db",
+                        borderRadius: "8px",
+                        fontSize: "0.875rem",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={{
+                        position: "absolute",
+                        right: "0.5rem",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        fontSize: "1.1rem",
+                        color: "#6b7280",
+                        padding: "0.25rem",
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                    >
+                      {showPassword ? "🙈" : "👁️"}
+                    </button>
+                  </div>
                   <p
                     style={{
                       margin: "0.5rem 0 0",
@@ -529,22 +730,47 @@ export default function RegisterPage() {
                   >
                     Confirm Password
                   </label>
-                  <input
-                    type="password"
-                    value={formData.confirmPassword}
-                    onChange={(e) =>
-                      handleInputChange("confirmPassword", e.target.value)
-                    }
-                    placeholder="Re-enter your password"
-                    required
-                    style={{
-                      width: "100%",
-                      padding: "0.625rem",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "8px",
-                      fontSize: "0.875rem",
-                    }}
-                  />
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={formData.confirmPassword}
+                      onChange={(e) =>
+                        handleInputChange("confirmPassword", e.target.value)
+                      }
+                      placeholder="Re-enter your password"
+                      required
+                      style={{
+                        width: "100%",
+                        padding: "0.625rem",
+                        paddingRight: "2.5rem",
+                        border: "1px solid #d1d5db",
+                        borderRadius: "8px",
+                        fontSize: "0.875rem",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
+                      style={{
+                        position: "absolute",
+                        right: "0.5rem",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        fontSize: "1.1rem",
+                        color: "#6b7280",
+                        padding: "0.25rem",
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                    >
+                      {showConfirmPassword ? "🙈" : "👁️"}
+                    </button>
+                  </div>
                 </div>
 
                 <button
@@ -553,7 +779,9 @@ export default function RegisterPage() {
                     loading ||
                     !formData.name ||
                     !formData.password ||
-                    !formData.confirmPassword
+                    !formData.confirmPassword ||
+                    (accountType === "owner" &&
+                      (!formData.businessName || !formData.phone))
                   }
                   style={{
                     width: "100%",
@@ -562,9 +790,13 @@ export default function RegisterPage() {
                       loading ||
                       !formData.name ||
                       !formData.password ||
-                      !formData.confirmPassword
+                      !formData.confirmPassword ||
+                      (accountType === "owner" &&
+                        (!formData.businessName || !formData.phone))
                         ? "#9ca3af"
-                        : "#0066cc",
+                        : accountType === "owner"
+                          ? "#16a34a"
+                          : "#0066cc",
                     color: "white",
                     border: "none",
                     borderRadius: "8px",
@@ -574,12 +806,18 @@ export default function RegisterPage() {
                       loading ||
                       !formData.name ||
                       !formData.password ||
-                      !formData.confirmPassword
+                      !formData.confirmPassword ||
+                      (accountType === "owner" &&
+                        (!formData.businessName || !formData.phone))
                         ? "not-allowed"
                         : "pointer",
                   }}
                 >
-                  {loading ? "Creating Account..." : "Create Account"}
+                  {loading
+                    ? "Creating Account..."
+                    : accountType === "owner"
+                      ? "Register as Owner"
+                      : "Create Account"}
                 </button>
               </div>
             )}
@@ -605,30 +843,6 @@ export default function RegisterPage() {
             >
               Login
             </a>
-          </p>
-
-          {/* Owner Register Link */}
-          <p
-            style={{
-              marginTop: "1.25rem",
-              paddingTop: "1.25rem",
-              textAlign: "center",
-              color: "#6b7280",
-              fontSize: "0.875rem",
-              borderTop: "1px solid #e5e7eb",
-            }}
-          >
-            Are you a property owner?{" "}
-            <Link
-              href="/owner/auth/register"
-              style={{
-                color: "#16a34a",
-                fontWeight: 600,
-                textDecoration: "none",
-              }}
-            >
-              Owner Register
-            </Link>
           </p>
         </div>
       </div>
