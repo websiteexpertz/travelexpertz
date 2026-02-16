@@ -65,6 +65,10 @@ const homestaySchema = new mongoose.Schema(
       enum: ["Entire Place", "Private Room", "Shared Room", "Villa", "Flat", "Apartment", "Cottage", "Bungalow", "Farmhouse", "Penthouse"],
       default: "Entire Place",
     },
+    ownerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "PropertyOwner",
+    },
     customFields: [
       {
         label: String,

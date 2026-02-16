@@ -34,14 +34,25 @@ export default function BookingNotifications() {
 
   const fetchNotifications = async () => {
     try {
+      const headers: Record<string, string> = {};
+
+      // Add token to Authorization header if available
+      const authToken = localStorage.getItem("ownerToken");
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`;
+      }
+
       const res = await fetch("/api/owner/notifications", {
         credentials: "include",
+        headers,
       });
 
       if (res.ok) {
         const data = await res.json();
         setNotifications(data.notifications);
         setUnreadCount(data.unreadCount);
+      } else if (res.status === 401) {
+        console.error("Unauthorized - redirecting to login");
       }
     } catch (error) {
       console.error("Error fetching notifications:", error);
@@ -52,9 +63,19 @@ export default function BookingNotifications() {
 
   const markAsRead = async (notificationId: string) => {
     try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      // Add token to Authorization header if available
+      const authToken = localStorage.getItem("ownerToken");
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`;
+      }
+
       const res = await fetch("/api/owner/notifications", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers,
         credentials: "include",
         body: JSON.stringify({ notificationId, isRead: true }),
       });
@@ -69,13 +90,19 @@ export default function BookingNotifications() {
 
   const deleteNotification = async (notificationId: string) => {
     try {
-      const res = await fetch(
-        `/api/owner/notifications?id=${notificationId}`,
-        {
-          method: "DELETE",
-          credentials: "include",
-        }
-      );
+      const headers: Record<string, string> = {};
+
+      // Add token to Authorization header if available
+      const authToken = localStorage.getItem("ownerToken");
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`;
+      }
+
+      const res = await fetch(`/api/owner/notifications?id=${notificationId}`, {
+        method: "DELETE",
+        headers,
+        credentials: "include",
+      });
 
       if (res.ok) {
         fetchNotifications();
@@ -151,20 +178,18 @@ export default function BookingNotifications() {
 
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
         {notifications.map((notification) => {
-          const checkinDate = new Date(notification.data.checkin).toLocaleDateString(
-            "en-US",
-            {
-              month: "short",
-              day: "numeric",
-            }
-          );
-          const checkoutDate = new Date(notification.data.checkout).toLocaleDateString(
-            "en-US",
-            {
-              month: "short",
-              day: "numeric",
-            }
-          );
+          const checkinDate = new Date(
+            notification.data.checkin,
+          ).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          });
+          const checkoutDate = new Date(
+            notification.data.checkout,
+          ).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          });
           const isExpanded = expandedId === notification._id;
 
           return (
@@ -220,7 +245,13 @@ export default function BookingNotifications() {
                       />
                     )}
                   </div>
-                  <p style={{ margin: "0.5rem 0 0 0", color: "#666", fontSize: "0.9rem" }}>
+                  <p
+                    style={{
+                      margin: "0.5rem 0 0 0",
+                      color: "#666",
+                      fontSize: "0.9rem",
+                    }}
+                  >
                     {notification.message}
                   </p>
                 </div>
@@ -232,12 +263,15 @@ export default function BookingNotifications() {
                     marginLeft: "1rem",
                   }}
                 >
-                  {new Date(notification.createdAt).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                  {new Date(notification.createdAt).toLocaleDateString(
+                    "en-US",
+                    {
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    },
+                  )}
                 </div>
               </div>
 
@@ -254,31 +288,73 @@ export default function BookingNotifications() {
                 }}
               >
                 <div>
-                  <div style={{ fontSize: "0.75rem", color: "#666", fontWeight: "600" }}>
+                  <div
+                    style={{
+                      fontSize: "0.75rem",
+                      color: "#666",
+                      fontWeight: "600",
+                    }}
+                  >
                     GUEST NAME
                   </div>
-                  <div style={{ fontSize: "0.95rem", fontWeight: "600", marginTop: "0.25rem" }}>
+                  <div
+                    style={{
+                      fontSize: "0.95rem",
+                      fontWeight: "600",
+                      marginTop: "0.25rem",
+                    }}
+                  >
                     {notification.data.guestName}
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: "0.75rem", color: "#666", fontWeight: "600" }}>
+                  <div
+                    style={{
+                      fontSize: "0.75rem",
+                      color: "#666",
+                      fontWeight: "600",
+                    }}
+                  >
                     PROPERTY
                   </div>
-                  <div style={{ fontSize: "0.95rem", fontWeight: "600", marginTop: "0.25rem" }}>
+                  <div
+                    style={{
+                      fontSize: "0.95rem",
+                      fontWeight: "600",
+                      marginTop: "0.25rem",
+                    }}
+                  >
                     {notification.data.propertyName}
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: "0.75rem", color: "#666", fontWeight: "600" }}>
+                  <div
+                    style={{
+                      fontSize: "0.75rem",
+                      color: "#666",
+                      fontWeight: "600",
+                    }}
+                  >
                     DATES
                   </div>
-                  <div style={{ fontSize: "0.95rem", fontWeight: "600", marginTop: "0.25rem" }}>
+                  <div
+                    style={{
+                      fontSize: "0.95rem",
+                      fontWeight: "600",
+                      marginTop: "0.25rem",
+                    }}
+                  >
                     {checkinDate} - {checkoutDate} ({notification.data.nights}N)
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: "0.75rem", color: "#666", fontWeight: "600" }}>
+                  <div
+                    style={{
+                      fontSize: "0.75rem",
+                      color: "#666",
+                      fontWeight: "600",
+                    }}
+                  >
                     TOTAL AMOUNT
                   </div>
                   <div
@@ -297,7 +373,14 @@ export default function BookingNotifications() {
               {/* Guest Message */}
               {notification.data.guestMessage && (
                 <div style={{ marginBottom: "1rem" }}>
-                  <div style={{ fontSize: "0.85rem", color: "#666", fontWeight: "600", marginBottom: "0.5rem" }}>
+                  <div
+                    style={{
+                      fontSize: "0.85rem",
+                      color: "#666",
+                      fontWeight: "600",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
                     GUEST MESSAGE
                   </div>
                   <div

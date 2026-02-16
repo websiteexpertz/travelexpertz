@@ -122,28 +122,53 @@ export default function OwnerAddProperty() {
   const formatInr = (value: number) =>
     inrFormatter.format(Math.max(0, Math.round(value)));
 
-  // Fetch owner details from localStorage and populate form
+  // Fetch owner details from localStorage and API, then populate form
   useEffect(() => {
-    let ownerData = localStorage.getItem("ownerData");
+    const loadOwnerData = async () => {
+      let ownerData = localStorage.getItem("ownerData");
 
-    // Fallback to "owner" key if "ownerData" is not available
-    if (!ownerData) {
-      ownerData = localStorage.getItem("owner");
-    }
-
-    if (ownerData) {
-      try {
-        const owner = JSON.parse(ownerData);
-        setFormData((prev) => ({
-          ...prev,
-          hostName: owner.ownerName || "",
-          hostEmail: owner.email || "",
-          hostPhone: owner.phone || "",
-        }));
-      } catch (error) {
-        console.error("Failed to parse owner data:", error);
+      // Fallback to "owner" key if "ownerData" is not available
+      if (!ownerData) {
+        ownerData = localStorage.getItem("owner");
       }
-    }
+
+      if (ownerData) {
+        try {
+          const owner = JSON.parse(ownerData);
+          setFormData((prev) => ({
+            ...prev,
+            hostName: owner.ownerName || "",
+            hostEmail: owner.email || "",
+            hostPhone: owner.phone || "",
+          }));
+          return;
+        } catch (error) {
+          console.error("Failed to parse owner data:", error);
+        }
+      }
+
+      // If localStorage didn't work, try API
+      try {
+        const token = localStorage.getItem("ownerToken");
+        const res = await fetch("/api/owner/profile", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          credentials: "include",
+        });
+        if (res.ok) {
+          const owner = await res.json();
+          setFormData((prev) => ({
+            ...prev,
+            hostName: owner.ownerName || "",
+            hostEmail: owner.email || "",
+            hostPhone: owner.phone || "",
+          }));
+        }
+      } catch (error) {
+        console.error("Failed to fetch owner profile:", error);
+      }
+    };
+
+    loadOwnerData();
   }, []);
 
   const handleInputChange = (

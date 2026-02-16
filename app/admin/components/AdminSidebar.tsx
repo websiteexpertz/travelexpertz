@@ -42,6 +42,7 @@ const menuItems: MenuItem[] = [
     label: "Hotel Destinations",
     href: "/admin/hotel-destinations",
   },
+  { icon: "article", label: "Blogs", href: "/admin/blogs" },
 ];
 
 export default function AdminSidebar() {

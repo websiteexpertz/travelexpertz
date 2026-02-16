@@ -21,6 +21,12 @@ interface Booking {
   _id: string;
   guestName: string;
   propertyName?: string;
+  propertyType?: string;
+  roomDetails?: string;
+  address?: string;
+  city?: string;
+  image?: string;
+  pricePerNight?: number;
   hotelId?: string;
   homestayId?: string;
   checkin: string;
@@ -184,7 +190,8 @@ export default function OwnerProfilePage() {
             fontWeight: activeTab === "profile" ? 700 : 600,
             color: activeTab === "profile" ? "#2563eb" : "#6b7280",
             cursor: "pointer",
-            borderBottom: activeTab === "profile" ? "3px solid #2563eb" : "none",
+            borderBottom:
+              activeTab === "profile" ? "3px solid #2563eb" : "none",
             marginBottom: "-2px",
             transition: "all 0.3s ease",
           }}
@@ -204,7 +211,8 @@ export default function OwnerProfilePage() {
             fontWeight: activeTab === "bookings" ? 700 : 600,
             color: activeTab === "bookings" ? "#2563eb" : "#6b7280",
             cursor: "pointer",
-            borderBottom: activeTab === "bookings" ? "3px solid #2563eb" : "none",
+            borderBottom:
+              activeTab === "bookings" ? "3px solid #2563eb" : "none",
             marginBottom: "-2px",
             transition: "all 0.3s ease",
           }}
@@ -362,7 +370,14 @@ export default function OwnerProfilePage() {
       {/* Bookings Tab */}
       {activeTab === "bookings" && (
         <div>
-          <h2 style={{ margin: 0, fontSize: "1.4rem", fontWeight: 700, marginBottom: "1rem" }}>
+          <h2
+            style={{
+              margin: 0,
+              fontSize: "1.4rem",
+              fontWeight: 700,
+              marginBottom: "1rem",
+            }}
+          >
             📅 My Bookings
           </h2>
 
@@ -381,7 +396,9 @@ export default function OwnerProfilePage() {
           )}
 
           {bookingsLoading ? (
-            <div style={{ textAlign: "center", padding: "2rem", color: "#6b7280" }}>
+            <div
+              style={{ textAlign: "center", padding: "2rem", color: "#6b7280" }}
+            >
               Loading bookings...
             </div>
           ) : bookings.length === 0 ? (
@@ -407,24 +424,88 @@ export default function OwnerProfilePage() {
                 }}
               >
                 <thead>
-                  <tr style={{ background: "#f9fafb", borderBottom: "2px solid #e5e7eb" }}>
-                    <th style={{ padding: "1rem", textAlign: "left", fontWeight: 700 }}>Guest Name</th>
-                    <th style={{ padding: "1rem", textAlign: "left", fontWeight: 700 }}>Property</th>
-                    <th style={{ padding: "1rem", textAlign: "left", fontWeight: 700 }}>Check-in</th>
-                    <th style={{ padding: "1rem", textAlign: "left", fontWeight: 700 }}>Check-out</th>
-                    <th style={{ padding: "1rem", textAlign: "left", fontWeight: 700 }}>Nights</th>
-                    <th style={{ padding: "1rem", textAlign: "left", fontWeight: 700 }}>Guests</th>
-                    <th style={{ padding: "1rem", textAlign: "left", fontWeight: 700 }}>Amount</th>
-                    <th style={{ padding: "1rem", textAlign: "left", fontWeight: 700 }}>Status</th>
+                  <tr
+                    style={{
+                      background: "#f9fafb",
+                      borderBottom: "2px solid #e5e7eb",
+                    }}
+                  >
+                    <th
+                      style={{
+                        padding: "1rem",
+                        textAlign: "left",
+                        fontWeight: 700,
+                      }}
+                    >
+                      Guest Name
+                    </th>
+                    <th
+                      style={{
+                        padding: "1rem",
+                        textAlign: "left",
+                        fontWeight: 700,
+                      }}
+                    >
+                      Property & Room Details
+                    </th>
+                    <th
+                      style={{
+                        padding: "1rem",
+                        textAlign: "left",
+                        fontWeight: 700,
+                      }}
+                    >
+                      Location
+                    </th>
+                    <th
+                      style={{
+                        padding: "1rem",
+                        textAlign: "left",
+                        fontWeight: 700,
+                      }}
+                    >
+                      Check-in / Check-out
+                    </th>
+                    <th
+                      style={{
+                        padding: "1rem",
+                        textAlign: "left",
+                        fontWeight: 700,
+                      }}
+                    >
+                      Guests / Nights
+                    </th>
+                    <th
+                      style={{
+                        padding: "1rem",
+                        textAlign: "left",
+                        fontWeight: 700,
+                      }}
+                    >
+                      Amount
+                    </th>
+                    <th
+                      style={{
+                        padding: "1rem",
+                        textAlign: "left",
+                        fontWeight: 700,
+                      }}
+                    >
+                      Status
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {bookings.map((booking, idx) => {
-                    const checkin = new Date(booking.checkin).toLocaleDateString("en-US", {
+                    const checkin = new Date(
+                      booking.checkin,
+                    ).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
                     });
-                    const checkout = new Date(booking.checkout).toLocaleDateString("en-US", {
+                    const checkout = new Date(
+                      booking.checkout,
+                    ).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
                     });
@@ -444,12 +525,66 @@ export default function OwnerProfilePage() {
                         }}
                       >
                         <td style={{ padding: "1rem" }}>{booking.guestName}</td>
-                        <td style={{ padding: "1rem" }}>{booking.propertyName || "Property"}</td>
-                        <td style={{ padding: "1rem" }}>{checkin}</td>
-                        <td style={{ padding: "1rem" }}>{checkout}</td>
-                        <td style={{ padding: "1rem", textAlign: "center" }}>{booking.nights}</td>
-                        <td style={{ padding: "1rem", textAlign: "center" }}>{booking.guests}</td>
-                        <td style={{ padding: "1rem", fontWeight: 700 }}>₹{booking.totalPrice.toFixed(2)}</td>
+                        <td style={{ padding: "1rem" }}>
+                          <div style={{ marginBottom: "0.3rem" }}>
+                            <strong>
+                              {booking.propertyName || "Property"}
+                            </strong>
+                            <span
+                              style={{
+                                marginLeft: "0.5rem",
+                                fontSize: "0.85rem",
+                                background: "#e0e7ff",
+                                color: "#4f46e5",
+                                padding: "0.2rem 0.5rem",
+                                borderRadius: "4px",
+                              }}
+                            >
+                              {booking.propertyType || ""}
+                            </span>
+                          </div>
+                          {booking.roomDetails && (
+                            <div
+                              style={{ fontSize: "0.85rem", color: "#6b7280" }}
+                            >
+                              🛏️ {booking.roomDetails}
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ padding: "1rem" }}>
+                          <div>{booking.city || "N/A"}</div>
+                          {booking.address && (
+                            <div
+                              style={{
+                                fontSize: "0.85rem",
+                                color: "#6b7280",
+                              }}
+                            >
+                              {booking.address}
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ padding: "1rem" }}>
+                          <div>{checkin}</div>
+                          <div style={{ color: "#6b7280" }}>to {checkout}</div>
+                        </td>
+                        <td style={{ padding: "1rem", textAlign: "center" }}>
+                          <div>{booking.guests} guests</div>
+                          <div style={{ color: "#6b7280" }}>
+                            {booking.nights} night
+                            {booking.nights > 1 ? "s" : ""}
+                          </div>
+                        </td>
+                        <td style={{ padding: "1rem", fontWeight: 700 }}>
+                          <div>₹{booking.totalPrice.toFixed(2)}</div>
+                          {booking.pricePerNight && (
+                            <div
+                              style={{ fontSize: "0.85rem", color: "#6b7280" }}
+                            >
+                              ₹{booking.pricePerNight}/night
+                            </div>
+                          )}
+                        </td>
                         <td style={{ padding: "1rem" }}>
                           <span
                             style={{

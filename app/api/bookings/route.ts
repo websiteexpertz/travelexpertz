@@ -149,14 +149,28 @@ export async function POST(request: Request) {
     }
 
     // Get owner ID from the property (homestay or hotel)
+    // Check in ownerproperties first (has ownerId), then homestays/hotels collections
     let ownerId = null;
     try {
+      const ownerPropertiesCollection = db.collection("ownerproperties");
       const homestaysCollection = db.collection("homestays");
       const hotelsCollection = db.collection("hotels");
-      const collection = isHotelBooking ? hotelsCollection : homestaysCollection;
-      const property = await collection.findOne({ _id: new ObjectId(propertyId) });
-      if (property && property.ownerId) {
-        ownerId = new ObjectId(property.ownerId);
+
+      // First check if this property is in ownerproperties (most reliable)
+      const ownerProperty = await ownerPropertiesCollection.findOne({
+        _id: new ObjectId(propertyId),
+      });
+      
+      if (ownerProperty && ownerProperty.ownerId) {
+        ownerId = new ObjectId(ownerProperty.ownerId);
+      } else {
+        // Otherwise check homestays/hotels collections
+        const collection = isHotelBooking ? hotelsCollection : homestaysCollection;
+        const property = await collection.findOne({ _id: new ObjectId(propertyId) });
+        
+        if (property && property.ownerId) {
+          ownerId = new ObjectId(property.ownerId);
+        }
       }
     } catch (err) {
       console.error("Error fetching property owner:", err);
@@ -212,42 +226,122 @@ export async function POST(request: Request) {
     }
 
     // Send owner notification for confirmed bookings
-    if (booking.bookingStatus === "confirmed") {
-      try {
-        const ownerpropertiesCollection = db.collection("ownerproperties");
-        const property = await ownerpropertiesCollection.findOne({
-          _id: new ObjectId(propertyId),
-        });
+    if (booking.bookingStatus === "confirmed" && booking.ownerId) {
+      if (booking.bookingStatus === "confirmed" && booking.ownerId) {
+        try {
+          console.log(
+            `[Notification] Creating notification for booking ${result.insertedId}, owner ${booking.ownerId}`
+          );
 
-        if (property && property.ownerId) {
-          // Fetch owner details
+          // Create notification in database using the ownerId we already have
+          const notificationsCollection = db.collection("owner_notifications");
+          const homestaysCollection = db.collection("homestays");
+          const hotelsCollection = db.collection("hotels");
+
+          // Get property name
+          let propertyName = "Property";
+          try {
+            const isHotel = !!booking.hotelId;
+            const collection = isHotel ? hotelsCollection : homestaysCollection;
+            const property = await collection.findOne({
+              _id: new ObjectId(propertyId),
+            });
+            if (property) {
+              propertyName = property.name || property.propertyName || "Property";
+            }
+          } catch (err) {
+            console.error("Error fetching property name for notification:", err);
+          }
+
+          const notificationResult = await notificationsCollection.insertOne({
+            ownerId: booking.ownerId,
+            bookingId: result.insertedId,
+            type: "booking",
+            title: "New Booking Received",
+            message: `${body.guestName} has booked ${propertyName}`,
+            data: {
+              guestName: body.guestName,
+              propertyName: propertyName,
+              checkin: body.checkin,
+              checkout: body.checkout,
+              nights: nights,
+              totalPrice: totalPrice,
+              guestMessage: body.guestMessage || "",
+            },
+            isRead: false,
+            createdAt: new Date(),
+          });
+
+          console.log(
+            `✅ Notification created: ${notificationResult.insertedId} for owner ${booking.ownerId}`
+          );
+        } catch (notificationErr) {
+          console.error(
+            `❌ Error creating notification for booking ${result.insertedId}:`,
+            notificationErr
+          );
+          // Log to console so admin can see the failure
+          console.error(`Notification creation failed but booking succeeded. Admin can run:`, {
+            endpoint: "/api/init/initialize-notifications",
+            bookingId: result.insertedId,
+            ownerId: booking.ownerId,
+          });
+        }
+      } else {
+        console.log(
+          `[Notification] Skipping notification - bookingStatus: ${booking.bookingStatus}, ownerId: ${booking.ownerId}`
+        );
+      }
+
+      try {
+        // Continue with email notification even if DB notification failed
+
+        // Send email to owner (optional)
+        try {
           const propertyownersCollection = db.collection("propertyowners");
           const owner = await propertyownersCollection.findOne({
-            _id: new ObjectId(property.ownerId),
+            _id: new ObjectId(booking.ownerId),
           });
 
           if (owner && owner.email) {
-            // Create notification in database
-            const notificationsCollection = db.collection("owner_notifications");
-            await notificationsCollection.insertOne({
-              ownerId: new ObjectId(property.ownerId),
-              bookingId: result.insertedId,
-              type: "booking",
-              title: "New Booking Received",
-              message: `${body.guestName} has booked ${property.propertyName || property.name}`,
-              data: {
-                guestName: body.guestName,
-                propertyName: property.propertyName || property.name,
-                checkin: body.checkin,
-                checkout: body.checkout,
-                nights: nights,
-                totalPrice: totalPrice,
-                guestMessage: body.guestMessage || "",
-              },
-              isRead: false,
-              createdAt: new Date(),
-            });
+            const { sendEmail } = await import("@/lib/services/email");
+            
+            // Fetch full property details for email
+            let propertyDetails = {
+              name: propertyName,
+              roomType: "Standard Room",
+              amenities: [] as string[],
+              city: "",
+              address: "",
+              image: "",
+            };
 
+            try {
+              const homestaysCollection = db.collection("homestays");
+              const hotelsCollection = db.collection("hotels");
+              const collection = isHotelBooking ? hotelsCollection : homestaysCollection;
+              const property = await collection.findOne({ _id: new ObjectId(propertyId) });
+              
+              if (property) {
+                propertyDetails.name = property.name || property.propertyName || property.hotelName || propertyName;
+                propertyDetails.city = property.city || property.destination || "";
+                propertyDetails.address = property.address || property.location || property.street || "";
+                propertyDetails.image = property.image || property.images?.[0] || property.thumbnail || "";
+                
+                if (isHotelBooking) {
+                  propertyDetails.roomType = property.roomType || property.room_type || "Standard Room";
+                  propertyDetails.amenities = (property.amenities || property.facilities || []).slice(0, 4);
+                } else {
+                  const bedrooms = property.bedrooms || property.beds || 0;
+                  const bathrooms = property.bathrooms || property.baths || 0;
+                  propertyDetails.roomType = `${bedrooms}BR • ${bathrooms}BA`;
+                  propertyDetails.amenities = property.amenities || property.facilities || [];
+                }
+              }
+            } catch (err) {
+              console.error("Error fetching detailed property info:", err);
+            }
+            
             // Send email to owner
             const checkinDate = new Date(body.checkin).toLocaleDateString("en-US", {
               weekday: "long",
@@ -262,42 +356,107 @@ export async function POST(request: Request) {
               day: "numeric",
             });
 
+            const amenitiesHtml = propertyDetails.amenities.length > 0
+              ? `<p><strong>Amenities:</strong> ${propertyDetails.amenities.join(", ")}</p>`
+              : "";
+
+            const imageHtml = propertyDetails.image
+              ? `<div style="margin: 20px 0; text-align: center;"><img src="${propertyDetails.image}" alt="${propertyDetails.name}" style="max-width: 100%; max-height: 250px; border-radius: 8px;"></div>`
+              : "";
+
             const emailHtml = `
-              <h2 style="color: #0066cc;">New Booking Notification</h2>
-              <p>Hello ${owner.ownerName || owner.name},</p>
-              <p>You have received a new booking for your property!</p>
-              
-              <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <h3 style="margin-top: 0;">Booking Details</h3>
-                <p><strong>Guest Name:</strong> ${body.guestName}</p>
-                <p><strong>Property:</strong> ${property.propertyName || property.name}</p>
-                <p><strong>Check-in:</strong> ${checkinDate}</p>
-                <p><strong>Check-out:</strong> ${checkoutDate}</p>
-                <p><strong>Number of Nights:</strong> ${nights}</p>
-                <p><strong>Number of Guests:</strong> ${body.guests}</p>
-                <p><strong>Total Amount:</strong> ₹${totalPrice.toFixed(2)}</p>
-                ${body.guestMessage ? `<p><strong>Guest Message:</strong> ${body.guestMessage}</p>` : ""}
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #2563eb; border-bottom: 3px solid #2563eb; padding-bottom: 10px;">✅ New Booking Received!</h2>
+                
+                <p>Hello <strong>${owner.ownerName || owner.name}</strong>,</p>
+                <p>Great news! You have received a new booking for your property. Here are the details:</p>
+                
+                ${imageHtml}
+                
+                <div style="background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2563eb;">
+                  <h3 style="margin-top: 0; color: #1f2937;">📍 Property Details</h3>
+                  <p style="margin: 8px 0;"><strong>Hotel Name:</strong> ${propertyDetails.name}</p>
+                  <p style="margin: 8px 0;"><strong>Room Type:</strong> ${propertyDetails.roomType}</p>
+                  ${propertyDetails.city ? `<p style="margin: 8px 0;"><strong>Location:</strong> ${propertyDetails.city}</p>` : ""}
+                  ${propertyDetails.address ? `<p style="margin: 8px 0;"><strong>Address:</strong> ${propertyDetails.address}</p>` : ""}
+                  ${amenitiesHtml}
+                </div>
+                
+                <div style="background: #f0f4ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6;">
+                  <h3 style="margin-top: 0; color: #1f2937;">👤 Guest Information</h3>
+                  <p style="margin: 8px 0;"><strong>Guest Name:</strong> ${body.guestName}</p>
+                  <p style="margin: 8px 0;"><strong>Number of Guests:</strong> ${body.guests} person${body.guests > 1 ? "s" : ""}</p>
+                  ${body.guestMessage ? `<p style="margin: 8px 0;"><strong>Guest Message:</strong> ${body.guestMessage}</p>` : ""}
+                </div>
+                
+                <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #059669;">
+                  <h3 style="margin-top: 0; color: #1f2937;">📅 Booking Schedule</h3>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div>
+                      <p style="margin: 0; color: #6b7280; font-size: 0.9rem;">Check-in</p>
+                      <p style="margin: 5px 0 0; font-size: 1.1rem; font-weight: bold; color: #1f2937;">${checkinDate}</p>
+                    </div>
+                    <div>
+                      <p style="margin: 0; color: #6b7280; font-size: 0.9rem;">Check-out</p>
+                      <p style="margin: 5px 0 0; font-size: 1.1rem; font-weight: bold; color: #1f2937;">${checkoutDate}</p>
+                    </div>
+                  </div>
+                  <p style="margin: 15px 0 0; color: #6b7280;"><strong>Number of Nights:</strong> ${nights} night${nights > 1 ? "s" : ""}</p>
+                </div>
+                
+                <div style="background: #eff6ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #0066cc;">
+                  <h3 style="margin-top: 0; color: #1f2937;">💰 Payment Details</h3>
+                  <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                      <td style="padding: 8px 0; color: #6b7280;">Base Price (${nights} night${nights > 1 ? "s" : ""})</td>
+                      <td style="padding: 8px 0; text-align: right; font-weight: bold;">₹${basePrice.toFixed(2)}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 8px 0; color: #6b7280;">Taxes (12% GST)</td>
+                      <td style="padding: 8px 0; text-align: right; font-weight: bold;">₹${taxes.toFixed(2)}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 8px 0; color: #6b7280;">Platform Fee (5%)</td>
+                      <td style="padding: 8px 0; text-align: right; font-weight: bold;">₹${platformFee.toFixed(2)}</td>
+                    </tr>
+                    <tr style="border-top: 2px solid #d1d5db;">
+                      <td style="padding: 12px 0; color: #1f2937; font-weight: bold; font-size: 1.1rem;">Total Amount</td>
+                      <td style="padding: 12px 0; text-align: right; font-weight: bold; font-size: 1.1rem; color: #0066cc;">₹${totalPrice.toFixed(2)}</td>
+                    </tr>
+                  </table>
+                  <p style="margin: 12px 0 0; font-size: 0.9rem; color: #6b7280;"><strong>Booking Reference:</strong> ${bookingReference}</p>
+                </div>
+                
+                <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
+                  <p style="margin: 0; color: #92400e;"><strong>⏳ Next Steps:</strong> Log in to your dashboard to confirm or manage this booking.</p>
+                </div>
+                
+                <div style="text-align: center; margin: 20px 0;">
+                  <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://travelexpertz.com"}/owner/bookings" style="display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">View Booking Details →</a>
+                </div>
+                
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+                <p style="color: #9ca3af; font-size: 0.85rem; text-align: center; margin: 0;">
+                  This is an automated notification from TravelExpertz. Please do not reply to this email.<br>
+                  For support, contact: support@travelexpertz.com
+                </p>
               </div>
-              
-              <p style="color: #666;">Please log in to your TravelExpertz dashboard to view complete details and manage this booking.</p>
-              
-              <p style="color: #0066cc;"><a href="${process.env.NEXT_PUBLIC_APP_URL || "https://travelexpertz.com"}/owner/dashboard" style="color: #0066cc; text-decoration: none; font-weight: bold;">View in Dashboard →</a></p>
-              
-              <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-              <p style="color: #999; font-size: 12px;">This is an automated notification from TravelExpertz. Please do not reply to this email.</p>
             `;
 
             await sendEmail({
               to: owner.email,
-              subject: `New Booking: ${body.guestName} - ${property.propertyName || property.name}`,
+              subject: `✅ New Booking: ${body.guestName} at ${propertyDetails.name}`,
               html: emailHtml,
             });
 
-            console.log(`✅ Owner notification sent to ${owner.email}`);
+            console.log(`✅ Email sent to owner ${owner.email}`);
           }
+        } catch (emailErr) {
+          console.error("Error sending owner email:", emailErr);
+          // Don't throw - notification was still created
         }
       } catch (error) {
-        console.error("Error sending owner notification:", error);
+        console.error("Error creating owner notification:", error);
         // Don't throw error - booking was still created successfully
       }
     }

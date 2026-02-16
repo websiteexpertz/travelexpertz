@@ -200,6 +200,11 @@ export default function HotelDetails() {
       const platformFee = basePrice * nights * 0.05;
       const totalPrice = basePrice * nights + taxes + platformFee;
 
+      if (!hotel) {
+        alert("Hotel information not loaded. Please refresh and try again.");
+        return;
+      }
+
       const response = await fetch("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -24,8 +24,10 @@ export default function OwnerDashboard() {
   useEffect(() => {
     // Check authentication
     const userData = localStorage.getItem("user");
+    const ownerToken = localStorage.getItem("ownerToken");
     console.log("=== DASHBOARD AUTH CHECK ===");
     console.log("localStorage.user:", userData);
+    console.log("localStorage.ownerToken:", ownerToken ? "Found" : "Not found");
 
     if (!userData) {
       console.error("No user data in localStorage - redirecting to login");
@@ -60,17 +62,29 @@ export default function OwnerDashboard() {
     }
 
     setUser(parsedUser);
-    fetchStats();
+    fetchStats(ownerToken);
   }, [router]);
 
-  const fetchStats = async () => {
+  const fetchStats = async (token?: string | null) => {
     try {
       console.log("Fetching stats from /api/owner/properties/stats");
       console.log("User role:", user?.role);
+      console.log("Token available:", token ? "Yes" : "No");
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      // Add token to Authorization header if available
+      const authToken = token || localStorage.getItem("ownerToken");
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`;
+      }
 
       const res = await fetch("/api/owner/properties/stats", {
         credentials: "include",
         method: "GET",
+        headers,
       });
 
       console.log("Stats response status:", res.status);

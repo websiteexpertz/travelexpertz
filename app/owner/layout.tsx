@@ -148,27 +148,39 @@ export default function OwnerLayout({
               icon: "➕",
             },
             {
+              href: "/owner/bookings",
+              label: "📅 See Bookings",
+              icon: "📅",
+            },
+            {
               href: "/owner/profile",
               label: "👤 Profile",
               icon: "👤",
             },
-          ].map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              style={{
-                display: "block",
-                padding: "0.75rem 1.5rem",
-                color: "#fff",
-                textDecoration: "none",
-                transition: "all 0.3s ease",
-                borderLeft: "4px solid transparent",
-                fontSize: "0.95rem",
-              }}
-            >
-              {item.label}
-            </Link>
-          ))}
+          ].map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                style={{
+                  display: "block",
+                  padding: "0.75rem 1.5rem",
+                  color: "#fff",
+                  textDecoration: "none",
+                  transition: "all 0.3s ease",
+                  borderLeft:
+                    "4px solid " + (isActive ? "#3b82f6" : "transparent"),
+                  background: isActive
+                    ? "rgba(255,255,255,0.1)"
+                    : "transparent",
+                  fontSize: "0.95rem",
+                }}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
         <div

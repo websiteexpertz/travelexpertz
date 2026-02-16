@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     const query = admin ? {} : { active: true };
     const events = await eventsCollection
       .find(query)
-      .sort({ startDate: -1 })
+      .sort({ startDate: 1 })
       .toArray();
 
     return NextResponse.json(events);
