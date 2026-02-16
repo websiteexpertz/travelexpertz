@@ -21,6 +21,16 @@ interface Event {
 }
 
 const indianStates = [
+  // Union Territories
+  "Andaman and Nicobar Islands",
+  "Chandigarh",
+  "Dadra and Nagar Haveli and Daman and Diu",
+  "Lakshadweep",
+  "Delhi",
+  "Puducherry",
+  "Ladakh",
+  "Jammu and Kashmir",
+  // States
   "Andhra Pradesh",
   "Arunachal Pradesh",
   "Assam",
@@ -103,7 +113,7 @@ export default function AdminEvents() {
           ? data.sort(
               (a, b) =>
                 new Date(b.startDate).getTime() -
-                new Date(a.startDate).getTime()
+                new Date(a.startDate).getTime(),
             )
           : [];
         setEvents(sortedEvents);
@@ -118,7 +128,7 @@ export default function AdminEvents() {
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    >,
   ) => {
     const { name, value, type } = e.target;
     let processedValue: any = value;
@@ -164,7 +174,9 @@ export default function AdminEvents() {
     }
   };
 
-  const handleGalleryImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleGalleryImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const files = e.target.files;
     if (!files) return;
 
@@ -202,7 +214,9 @@ export default function AdminEvents() {
   };
 
   const removeGalleryImage = (index: number) => {
-    const newGalleryImages = formData.galleryImages.filter((_, i) => i !== index);
+    const newGalleryImages = formData.galleryImages.filter(
+      (_, i) => i !== index,
+    );
     const newPreviews = galleryPreviews.filter((_, i) => i !== index);
     setFormData({
       ...formData,
@@ -228,9 +242,7 @@ export default function AdminEvents() {
     try {
       const url = editingId ? "/api/events" : "/api/events";
       const method = editingId ? "PATCH" : "POST";
-      const body = editingId
-        ? { ...formData, _id: editingId }
-        : formData;
+      const body = editingId ? { ...formData, _id: editingId } : formData;
 
       const response = await fetch(url, {
         method,
@@ -239,7 +251,11 @@ export default function AdminEvents() {
       });
 
       if (response.ok) {
-        alert(editingId ? "Event updated successfully" : "Event created successfully");
+        alert(
+          editingId
+            ? "Event updated successfully"
+            : "Event created successfully",
+        );
         setFormData({
           eventName: "",
           description: "",
@@ -317,10 +333,11 @@ export default function AdminEvents() {
     setShowForm(false);
   };
 
-  const filteredEvents = events.filter((event) =>
-    event.eventName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    event.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    event.state.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredEvents = events.filter(
+    (event) =>
+      event.eventName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.state.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   if (loading) {
@@ -366,7 +383,8 @@ export default function AdminEvents() {
             transition: "all 0.3s ease",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.boxShadow = "0 4px 12px rgba(102, 126, 234, 0.3)";
+            e.currentTarget.style.boxShadow =
+              "0 4px 12px rgba(102, 126, 234, 0.3)";
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.boxShadow = "none";
@@ -387,15 +405,38 @@ export default function AdminEvents() {
             border: "1px solid #e5e7eb",
           }}
         >
-          <h2 style={{ fontSize: "1.5rem", marginTop: 0, marginBottom: "1.5rem", color: "#1a1a2e" }}>
+          <h2
+            style={{
+              fontSize: "1.5rem",
+              marginTop: 0,
+              marginBottom: "1.5rem",
+              color: "#1a1a2e",
+            }}
+          >
             {editingId ? "Edit Event" : "Add New Event"}
           </h2>
 
-          <form onSubmit={handleSubmit} style={{ display: "grid", gap: "1.5rem" }}>
+          <form
+            onSubmit={handleSubmit}
+            style={{ display: "grid", gap: "1.5rem" }}
+          >
             {/* Row 1: Event Name and Organizer */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "1rem",
+              }}
+            >
               <div>
-                <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, color: "#374151" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "0.5rem",
+                    fontWeight: 600,
+                    color: "#374151",
+                  }}
+                >
                   Event Name *
                 </label>
                 <input
@@ -415,7 +456,14 @@ export default function AdminEvents() {
                 />
               </div>
               <div>
-                <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, color: "#374151" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "0.5rem",
+                    fontWeight: 600,
+                    color: "#374151",
+                  }}
+                >
                   Organizer
                 </label>
                 <input
@@ -437,9 +485,22 @@ export default function AdminEvents() {
             </div>
 
             {/* Row 2: Location, State, City */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr 1fr",
+                gap: "1rem",
+              }}
+            >
               <div>
-                <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, color: "#374151" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "0.5rem",
+                    fontWeight: 600,
+                    color: "#374151",
+                  }}
+                >
                   Location Name *
                 </label>
                 <input
@@ -459,7 +520,14 @@ export default function AdminEvents() {
                 />
               </div>
               <div>
-                <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, color: "#374151" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "0.5rem",
+                    fontWeight: 600,
+                    color: "#374151",
+                  }}
+                >
                   State *
                 </label>
                 <select
@@ -484,7 +552,14 @@ export default function AdminEvents() {
                 </select>
               </div>
               <div>
-                <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, color: "#374151" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "0.5rem",
+                    fontWeight: 600,
+                    color: "#374151",
+                  }}
+                >
                   City
                 </label>
                 <input
@@ -506,9 +581,22 @@ export default function AdminEvents() {
             </div>
 
             {/* Row 3: Category and Ticket Price */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "1rem",
+              }}
+            >
               <div>
-                <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, color: "#374151" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "0.5rem",
+                    fontWeight: 600,
+                    color: "#374151",
+                  }}
+                >
                   Category
                 </label>
                 <select
@@ -533,7 +621,14 @@ export default function AdminEvents() {
                 </select>
               </div>
               <div>
-                <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, color: "#374151" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "0.5rem",
+                    fontWeight: 600,
+                    color: "#374151",
+                  }}
+                >
                   Ticket Price (₹)
                 </label>
                 <input
@@ -555,9 +650,22 @@ export default function AdminEvents() {
             </div>
 
             {/* Row 4: Start and End Date */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "1rem",
+              }}
+            >
               <div>
-                <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, color: "#374151" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "0.5rem",
+                    fontWeight: 600,
+                    color: "#374151",
+                  }}
+                >
                   Start Date *
                 </label>
                 <input
@@ -576,7 +684,14 @@ export default function AdminEvents() {
                 />
               </div>
               <div>
-                <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, color: "#374151" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "0.5rem",
+                    fontWeight: 600,
+                    color: "#374151",
+                  }}
+                >
                   End Date
                 </label>
                 <input
@@ -598,7 +713,14 @@ export default function AdminEvents() {
 
             {/* Description */}
             <div>
-              <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, color: "#374151" }}>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "0.5rem",
+                  fontWeight: 600,
+                  color: "#374151",
+                }}
+              >
                 Description
               </label>
               <textarea
@@ -621,7 +743,14 @@ export default function AdminEvents() {
 
             {/* Registration Link */}
             <div>
-              <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, color: "#374151" }}>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "0.5rem",
+                  fontWeight: 600,
+                  color: "#374151",
+                }}
+              >
                 Registration Link
               </label>
               <input
@@ -643,7 +772,14 @@ export default function AdminEvents() {
 
             {/* Image Upload */}
             <div>
-              <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, color: "#374151" }}>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "0.5rem",
+                  fontWeight: 600,
+                  color: "#374151",
+                }}
+              >
                 Profile Image * (Main event image)
               </label>
               <input
@@ -674,7 +810,14 @@ export default function AdminEvents() {
 
             {/* Gallery Images Upload */}
             <div>
-              <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600, color: "#374151" }}>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "0.5rem",
+                  fontWeight: 600,
+                  color: "#374151",
+                }}
+              >
                 Gallery Images (Multiple images)
               </label>
               <input
@@ -690,7 +833,15 @@ export default function AdminEvents() {
                 }}
               />
               {galleryPreviews.length > 0 && (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "1rem", marginBottom: "1rem" }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns:
+                      "repeat(auto-fill, minmax(150px, 1fr))",
+                    gap: "1rem",
+                    marginBottom: "1rem",
+                  }}
+                >
                   {galleryPreviews.map((preview, index) => (
                     <div key={index} style={{ position: "relative" }}>
                       <img
@@ -735,7 +886,9 @@ export default function AdminEvents() {
             </div>
 
             {/* Active Toggle */}
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <div
+              style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}
+            >
               <input
                 type="checkbox"
                 name="active"
@@ -744,7 +897,10 @@ export default function AdminEvents() {
                 id="active-toggle"
                 style={{ cursor: "pointer" }}
               />
-              <label htmlFor="active-toggle" style={{ cursor: "pointer", marginBottom: 0 }}>
+              <label
+                htmlFor="active-toggle"
+                style={{ cursor: "pointer", marginBottom: 0 }}
+              >
                 Active
               </label>
             </div>
@@ -755,7 +911,8 @@ export default function AdminEvents() {
                 type="submit"
                 style={{
                   padding: "0.75rem 1.5rem",
-                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                  background:
+                    "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                   color: "white",
                   border: "none",
                   borderRadius: "8px",
@@ -765,7 +922,8 @@ export default function AdminEvents() {
                   transition: "all 0.3s ease",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = "0 4px 12px rgba(102, 126, 234, 0.3)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 12px rgba(102, 126, 234, 0.3)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.boxShadow = "none";
@@ -813,7 +971,9 @@ export default function AdminEvents() {
       </div>
 
       {/* Events List */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "1.5rem" }}>
+      <div
+        style={{ display: "grid", gridTemplateColumns: "1fr", gap: "1.5rem" }}
+      >
         {filteredEvents.length === 0 ? (
           <div
             style={{
@@ -865,23 +1025,64 @@ export default function AdminEvents() {
 
               {/* Content */}
               <div>
-                <h3 style={{ fontSize: "1.1rem", fontWeight: 700, margin: "0 0 0.5rem 0", color: "#1a1a2e" }}>
+                <h3
+                  style={{
+                    fontSize: "1.1rem",
+                    fontWeight: 700,
+                    margin: "0 0 0.5rem 0",
+                    color: "#1a1a2e",
+                  }}
+                >
                   {event.eventName}
                 </h3>
-                <p style={{ margin: "0.25rem 0", color: "#666", fontSize: "0.9rem" }}>
-                  <strong>Location:</strong> {event.location}, {event.city}, {event.state}
+                <p
+                  style={{
+                    margin: "0.25rem 0",
+                    color: "#666",
+                    fontSize: "0.9rem",
+                  }}
+                >
+                  <strong>Location:</strong> {event.location}, {event.city},{" "}
+                  {event.state}
                 </p>
-                <p style={{ margin: "0.25rem 0", color: "#666", fontSize: "0.9rem" }}>
-                  <strong>Dates:</strong> {new Date(event.startDate).toLocaleDateString()} -
-                  {event.endDate ? ` ${new Date(event.endDate).toLocaleDateString()}` : " Ongoing"}
+                <p
+                  style={{
+                    margin: "0.25rem 0",
+                    color: "#666",
+                    fontSize: "0.9rem",
+                  }}
+                >
+                  <strong>Dates:</strong>{" "}
+                  {new Date(event.startDate).toLocaleDateString()} -
+                  {event.endDate
+                    ? ` ${new Date(event.endDate).toLocaleDateString()}`
+                    : " Ongoing"}
                 </p>
-                <p style={{ margin: "0.25rem 0", color: "#666", fontSize: "0.9rem" }}>
+                <p
+                  style={{
+                    margin: "0.25rem 0",
+                    color: "#666",
+                    fontSize: "0.9rem",
+                  }}
+                >
                   <strong>Category:</strong> {event.category || "Not specified"}
                 </p>
-                <p style={{ margin: "0.25rem 0", color: "#666", fontSize: "0.9rem" }}>
+                <p
+                  style={{
+                    margin: "0.25rem 0",
+                    color: "#666",
+                    fontSize: "0.9rem",
+                  }}
+                >
                   <strong>Ticket Price:</strong> ₹{event.ticketPrice}
                 </p>
-                <p style={{ margin: "0.5rem 0 0 0", color: "#666", fontSize: "0.9rem" }}>
+                <p
+                  style={{
+                    margin: "0.5rem 0 0 0",
+                    color: "#666",
+                    fontSize: "0.9rem",
+                  }}
+                >
                   <strong>Status:</strong>{" "}
                   <span
                     style={{
@@ -899,7 +1100,13 @@ export default function AdminEvents() {
               </div>
 
               {/* Actions */}
-              <div style={{ display: "flex", gap: "0.75rem", flexDirection: "column" }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "0.75rem",
+                  flexDirection: "column",
+                }}
+              >
                 <button
                   onClick={() => handleEdit(event)}
                   style={{
