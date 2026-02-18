@@ -7,6 +7,8 @@ import Header from "../components/Header";
 import DatePicker from "../components/DatePicker";
 import { formatDateShort } from "@/lib/utils/dateFormat";
 
+export const dynamic = "force-dynamic";
+
 interface Hotel {
   _id?: string;
   name: string;
