@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import Header from "../components/Header";
@@ -73,14 +73,8 @@ const STAR_OPTIONS = [
   { label: "3 Star", value: 3, minRating: 2.5, maxRating: 3.5 },
 ];
 
-export default function Hotels() {
-  const [isMounted, setIsMounted] = useState(false);
+function HotelsContent() {
   const searchParams = useSearchParams();
-
-  // Ensure component only renders on client
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
   const getTodayDate = () => {
     const today = new Date();
     return today.toISOString().split("T")[0];
@@ -307,8 +301,6 @@ export default function Hotels() {
     selectedAmenities,
     showPopularOnly,
   ]);
-
-  if (!isMounted) return null;
 
   return (
     <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden">
@@ -2252,5 +2244,13 @@ export default function Hotels() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function Hotels() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: "100vh" }} />}>
+      <HotelsContent />
+    </Suspense>
   );
 }
