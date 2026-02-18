@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import Header from "../components/Header";
+import DatePicker from "../components/DatePicker";
+import { formatDateShort } from "@/lib/utils/dateFormat";
 
 interface Hotel {
   _id?: string;
@@ -71,6 +74,8 @@ const STAR_OPTIONS = [
 ];
 
 export default function Hotels() {
+  const searchParams = useSearchParams();
+
   // Get today's date and 2 days later
   const getTodayDate = () => {
     const today = new Date();
@@ -92,7 +97,19 @@ export default function Hotels() {
     priceRange: "all",
   });
 
+  // Initialize location filter from URL params
+  useEffect(() => {
+    const locationParam = searchParams.get("location");
+    if (locationParam) {
+      setFilters((prev) => ({
+        ...prev,
+        location: decodeURIComponent(locationParam),
+      }));
+    }
+  }, [searchParams]);
+
   const [hotels, setHotels] = useState<Hotel[]>([]);
+  const [homestays, setHomestays] = useState<Hotel[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<string>("featured");
@@ -124,63 +141,83 @@ export default function Hotels() {
   };
 
   useEffect(() => {
-    const fetchHotels = async () => {
+    const fetchProperties = async () => {
       setLoading(true);
       try {
-        const response = await fetch("/api/hotels", { cache: "no-store" });
-        if (response.ok) {
-          const data = await response.json();
+        const [hotelsResponse, homestaysResponse] = await Promise.all([
+          fetch("/api/hotels", { cache: "no-store" }),
+          fetch("/api/homestays", { cache: "no-store" }),
+        ]);
+
+        if (hotelsResponse.ok) {
+          const data = await hotelsResponse.json();
           const normalized = (Array.isArray(data) ? data : []).map((item) =>
             normalizeHotel(item),
           );
           setHotels(normalized);
         }
+
+        if (homestaysResponse.ok) {
+          const data = await homestaysResponse.json();
+          const normalized = (Array.isArray(data) ? data : []).map((item) =>
+            normalizeHotel({
+              ...item,
+              propertyType: item.propertyType || "Entire Place",
+            }),
+          );
+          setHomestays(normalized);
+        }
       } catch (error) {
-        console.error("Failed to fetch hotels:", error);
+        console.error("Failed to fetch properties:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchHotels();
+    fetchProperties();
   }, []);
+
+  const allProperties = useMemo(
+    () => [...hotels, ...homestays],
+    [hotels, homestays],
+  );
 
   const allAmenities = useMemo(() => {
     const set = new Set<string>();
-    hotels.forEach((h) => h.amenities.forEach((a) => set.add(a)));
+    allProperties.forEach((h) => h.amenities.forEach((a) => set.add(a)));
     return Array.from(set).sort();
-  }, [hotels]);
+  }, [allProperties]);
 
   const priceRangeCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     SIDEBAR_PRICE_RANGES.forEach((range) => {
-      counts[range.key] = hotels.filter(
+      counts[range.key] = allProperties.filter(
         (h) =>
           h.price >= range.min &&
           (range.max === Infinity ? true : h.price < range.max),
       ).length;
     });
     return counts;
-  }, [hotels]);
+  }, [allProperties]);
 
   const starCounts = useMemo<Record<number, number>>(
     () => ({
-      5: hotels.filter((h) => h.rating >= 4.5).length,
-      4: hotels.filter((h) => h.rating >= 3.5 && h.rating < 4.5).length,
-      3: hotels.filter((h) => h.rating >= 2.5 && h.rating < 3.5).length,
+      5: allProperties.filter((h) => h.rating >= 4.5).length,
+      4: allProperties.filter((h) => h.rating >= 3.5 && h.rating < 4.5).length,
+      3: allProperties.filter((h) => h.rating >= 2.5 && h.rating < 3.5).length,
     }),
-    [hotels],
+    [allProperties],
   );
 
   const amenityCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    hotels.forEach((h) =>
+    allProperties.forEach((h) =>
       h.amenities.forEach((a) => {
         counts[a] = (counts[a] || 0) + 1;
       }),
     );
     return counts;
-  }, [hotels]);
+  }, [allProperties]);
 
   const hasSidebarFilters =
     selectedStars.length > 0 ||
@@ -189,7 +226,7 @@ export default function Hotels() {
     showPopularOnly;
 
   const filteredHotels = useMemo(() => {
-    return hotels
+    return allProperties
       .filter((hotel) => {
         const matchesLocation = filters.location
           ? hotel.location
@@ -258,7 +295,7 @@ export default function Hotels() {
   }, [
     filters.location,
     filters.priceRange,
-    hotels,
+    allProperties,
     searchQuery,
     sortBy,
     selectedStars,
@@ -277,151 +314,32 @@ export default function Hotels() {
           className="w-full"
           style={{
             background: "transparent",
-            padding: "0 0.75rem",
+            padding: "0",
             marginTop: "0",
           }}
         >
           <div
             className="hero-section"
             style={{
-              backgroundImage: "url('/hero-banner.png')",
+              backgroundImage: "url('/hotel-hero.jpeg')",
               backgroundSize: "cover",
               backgroundPosition: "center",
               position: "relative",
               overflow: "hidden",
             }}
           >
-            {/* Light Gradient Overlay */}
+            {/* Subtle Dark Overlay for Text Readability */}
             <div
               style={{
                 position: "absolute",
                 inset: 0,
                 background:
-                  "linear-gradient(135deg, rgba(239,246,255,0.92) 0%, rgba(219,234,254,0.88) 40%, rgba(191,219,254,0.85) 70%, rgba(147,197,253,0.82) 100%)",
+                  "linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.05) 50%, rgba(0,0,0,0.08) 100%)",
                 zIndex: 1,
               }}
             />
 
-            {/* Animated Mesh Gradient Blobs */}
-            <div
-              style={{
-                position: "absolute",
-                top: "-10%",
-                left: "-10%",
-                width: "50%",
-                height: "60%",
-                background:
-                  "radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%)",
-                animation: "heroBlob1 8s ease-in-out infinite",
-                zIndex: 1,
-              }}
-            />
-            <div
-              style={{
-                position: "absolute",
-                bottom: "-15%",
-                right: "-5%",
-                width: "45%",
-                height: "55%",
-                background:
-                  "radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%)",
-                animation: "heroBlob2 10s ease-in-out infinite",
-                zIndex: 1,
-              }}
-            />
-            <div
-              style={{
-                position: "absolute",
-                top: "30%",
-                right: "20%",
-                width: "30%",
-                height: "40%",
-                background:
-                  "radial-gradient(circle, rgba(14,165,233,0.1) 0%, transparent 70%)",
-                animation: "heroBlob3 12s ease-in-out infinite",
-                zIndex: 1,
-              }}
-            />
-
-            {/* Subtle Grid Pattern */}
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                backgroundImage:
-                  "linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px)",
-                backgroundSize: "40px 40px",
-                zIndex: 1,
-              }}
-            />
-
-            {/* Floating Glass Orbs */}
-            <div className="hidden sm:block">
-              <div
-                style={{
-                  position: "absolute",
-                  top: "15%",
-                  left: "8%",
-                  width: "60px",
-                  height: "60px",
-                  borderRadius: "50%",
-                  background:
-                    "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(59,130,246,0.1))",
-                  boxShadow: "0 8px 32px rgba(59,130,246,0.1)",
-                  animation: "heroBlob1 6s ease-in-out infinite",
-                  zIndex: 1,
-                }}
-              />
-              <div
-                style={{
-                  position: "absolute",
-                  bottom: "20%",
-                  right: "10%",
-                  width: "80px",
-                  height: "80px",
-                  borderRadius: "50%",
-                  background:
-                    "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.7), rgba(99,102,241,0.1))",
-                  boxShadow: "0 8px 32px rgba(99,102,241,0.1)",
-                  animation: "heroBlob2 8s ease-in-out infinite",
-                  zIndex: 1,
-                }}
-              />
-              <div
-                style={{
-                  position: "absolute",
-                  top: "55%",
-                  left: "15%",
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "50%",
-                  background:
-                    "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), rgba(14,165,233,0.1))",
-                  boxShadow: "0 8px 32px rgba(14,165,233,0.1)",
-                  animation: "heroBlob3 5s ease-in-out infinite",
-                  zIndex: 1,
-                }}
-              />
-            </div>
-
-            {/* Floating Sparkle Particles */}
-            {[...Array(6)].map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  position: "absolute",
-                  width: `${3 + (i % 3) * 2}px`,
-                  height: `${3 + (i % 3) * 2}px`,
-                  borderRadius: "50%",
-                  background: "rgba(59,130,246,0.4)",
-                  top: `${15 + i * 12}%`,
-                  left: `${10 + i * 15}%`,
-                  animation: `heroSparkle ${2 + i * 0.5}s ease-in-out infinite`,
-                  animationDelay: `${i * 0.3}s`,
-                  zIndex: 1,
-                }}
-              />
-            ))}
+            {/* Removed Animated Blobs */}
 
             {/* Hero Content */}
             <div
@@ -436,8 +354,8 @@ export default function Hotels() {
                   gap: "0.5rem",
                   padding: "0.4rem 1rem",
                   borderRadius: "9999px",
-                  background: "rgba(59,130,246,0.08)",
-                  border: "1px solid rgba(59,130,246,0.15)",
+                  background: "rgba(255,255,255,0.2)",
+                  border: "1px solid rgba(255,255,255,0.4)",
                   marginBottom: "1.25rem",
                   animation: "fadeInUp 0.8s ease-out",
                 }}
@@ -447,7 +365,7 @@ export default function Hotels() {
                     width: "6px",
                     height: "6px",
                     borderRadius: "50%",
-                    background: "#3b82f6",
+                    background: "#ffffff",
                     animation: "pulse 2s ease-in-out infinite",
                   }}
                 />
@@ -455,114 +373,49 @@ export default function Hotels() {
                   style={{
                     fontSize: "0.8rem",
                     fontWeight: 600,
-                    color: "#3b82f6",
+                    color: "#ffffff",
                     letterSpacing: "0.02em",
                   }}
                 >
-                  Premium Hotel Collection
+                  🏨 Hotels & 🏠 Homestays
                 </span>
-              </div>
-
-              {/* Toggle Buttons */}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  gap: "0.5rem",
-                  marginBottom: "1.25rem",
-                  animation: "fadeInUp 0.8s ease-out",
-                  animationDelay: "0.1s",
-                  animationFillMode: "both",
-                }}
-              >
-                <button
-                  style={{
-                    padding: "0.5rem 1.25rem",
-                    borderRadius: "9999px",
-                    border: "none",
-                    background: "linear-gradient(135deg, #3b82f6, #2563eb)",
-                    color: "white",
-                    fontSize: "0.85rem",
-                    fontWeight: 600,
-                    cursor: "default",
-                    boxShadow: "0 2px 8px rgba(59,130,246,0.3)",
-                  }}
-                >
-                  🏨 Hotels
-                </button>
-                <button
-                  onClick={() => {
-                    window.location.href = "/homestays";
-                  }}
-                  style={{
-                    padding: "0.5rem 1.25rem",
-                    borderRadius: "9999px",
-                    border: "1px solid rgba(59,130,246,0.2)",
-                    background: "rgba(255,255,255,0.7)",
-                    color: "#3b82f6",
-                    fontSize: "0.85rem",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "all 0.3s ease",
-                    backdropFilter: "blur(8px)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(59,130,246,0.08)";
-                    e.currentTarget.style.borderColor = "rgba(59,130,246,0.3)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "rgba(255,255,255,0.7)";
-                    e.currentTarget.style.borderColor = "rgba(59,130,246,0.2)";
-                  }}
-                >
-                  🏠 Homestays
-                </button>
               </div>
 
               <h1
                 style={{
-                  fontSize: "clamp(1.75rem, 5vw, 3rem)",
-                  fontWeight: 800,
-                  marginBottom: "0.75rem",
-                  lineHeight: 1.15,
-                  letterSpacing: "-0.02em",
-                  margin: "0 auto 0.75rem",
+                  fontSize: "clamp(1.5rem, 6vw, 4rem)",
+                  fontWeight: 900,
+                  marginBottom: "0.5rem",
+                  lineHeight: 1.1,
+                  letterSpacing: "-0.03em",
+                  margin: "0 auto 0.5rem",
                   display: "block",
                   animation: "fadeInUp 0.8s ease-out",
                   animationDelay: "0.2s",
                   animationFillMode: "both",
-                  color: "#1e293b",
+                  color: "#ffffff",
+                  textShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
+                  padding: "0 0.25rem",
                 }}
               >
-                Discover Your Perfect{" "}
-                <span
-                  style={{
-                    background:
-                      "linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                    backgroundClip: "text",
-                  }}
-                >
-                  Hotel Stay
-                </span>
+                Your Perfect Stay, Just a Click Away.
               </h1>
               <p
                 style={{
-                  fontSize: "clamp(0.9rem, 2vw, 1.1rem)",
+                  fontSize: "clamp(0.8rem, 3vw, 1.25rem)",
                   maxWidth: "600px",
                   margin: "0 auto",
                   lineHeight: 1.6,
                   fontWeight: 500,
-                  letterSpacing: "0.3px",
+                  padding: "0 0.5rem",
                   animation: "fadeInUp 0.8s ease-out",
-                  animationDelay: "0.4s",
+                  animationDelay: "0.45s",
                   animationFillMode: "both",
-                  color: "#475569",
+                  color: "#ffffff",
+                  textShadow: "0 1px 4px rgba(0, 0, 0, 0.2)",
                 }}
               >
-                Explore handpicked hotels with stunning views and unbeatable
-                prices
+                Discover the perfect hotel for your journey
               </p>
 
               {/* Trust Indicators */}
@@ -590,13 +443,13 @@ export default function Hotels() {
                       alignItems: "center",
                       gap: "0.35rem",
                       fontSize: "0.8rem",
-                      color: "#64748b",
+                      color: "#ffffff",
                       fontWeight: 500,
                     }}
                   >
                     <span
                       className="material-symbols-outlined"
-                      style={{ fontSize: "1rem", color: "#3b82f6" }}
+                      style={{ fontSize: "1rem", color: "#ffffff" }}
                     >
                       {item.icon}
                     </span>
@@ -706,22 +559,12 @@ export default function Hotels() {
                   >
                     calendar_month
                   </span>
-                  <input
-                    type="date"
+                  <DatePicker
                     value={filters.checkIn}
-                    onChange={(e) =>
-                      setFilters({ ...filters, checkIn: e.target.value })
+                    onChange={(date) =>
+                      setFilters({ ...filters, checkIn: date })
                     }
-                    style={{
-                      border: "none",
-                      outline: "none",
-                      width: "100%",
-                      fontSize: "0.85rem",
-                      background: "transparent",
-                      fontWeight: 600,
-                      color: "#1f2937",
-                      cursor: "pointer",
-                    }}
+                    placeholder="Check-in"
                   />
                 </div>
 
@@ -758,22 +601,13 @@ export default function Hotels() {
                   >
                     calendar_month
                   </span>
-                  <input
-                    type="date"
+                  <DatePicker
                     value={filters.checkOut}
-                    onChange={(e) =>
-                      setFilters({ ...filters, checkOut: e.target.value })
+                    onChange={(date) =>
+                      setFilters({ ...filters, checkOut: date })
                     }
-                    style={{
-                      border: "none",
-                      outline: "none",
-                      width: "100%",
-                      fontSize: "0.85rem",
-                      background: "transparent",
-                      fontWeight: 600,
-                      color: "#1f2937",
-                      cursor: "pointer",
-                    }}
+                    placeholder="Check-out"
+                    minDate={filters.checkIn}
                   />
                 </div>
 
@@ -1294,6 +1128,7 @@ export default function Hotels() {
                         style={{
                           borderRadius: "1rem",
                           overflow: "hidden",
+                          background: "#ffffff",
                           boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
                           transition: "transform 0.2s, box-shadow 0.2s",
                           cursor: "pointer",
@@ -2385,19 +2220,19 @@ export default function Hotels() {
           }
         }
         
-        /* Dark Mode Support */
+        /* Force Light Mode for Hotel Cards */
         @media (prefers-color-scheme: dark) {
           .hotel-card {
-            background: #1e293b !important;
-            border-color: #334155 !important;
+            background: #ffffff !important;
+            border-color: rgba(0, 0, 0, 0.08) !important;
           }
           
           .hotel-card h3 {
-            color: #f1f5f9 !important;
+            color: #1f2937 !important;
           }
           
           .hotel-card p {
-            color: #94a3b8 !important;
+            color: #6b7280 !important;
           }
         }
         

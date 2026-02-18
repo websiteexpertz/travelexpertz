@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -12,6 +12,7 @@ type HeaderLoggedInProps = {
     | "homestays"
     | "deals"
     | "luxury"
+    | "events"
     | "verified"
     | "profile"
     | "bookings"
@@ -31,6 +32,7 @@ const navItems: Array<{
   { key: "packages", label: "Packages", href: "/packages" },
   { key: "deals", label: "Deals", href: "/deals" },
   { key: "luxury", label: "Luxury", href: "/luxury" },
+  { key: "events", label: "Events", href: "/events" },
   { key: "verified", label: "Travel Expertz Properties", href: "/verified" },
 ];
 
@@ -40,6 +42,16 @@ export default function HeaderLoggedIn({
 }: HeaderLoggedInProps) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("user");
@@ -49,6 +61,7 @@ export default function HeaderLoggedIn({
   return (
     <>
       <header
+        className={scrolled ? "header-scrolled" : ""}
         style={{
           position: "fixed",
           top: 0,
@@ -56,8 +69,9 @@ export default function HeaderLoggedIn({
           right: 0,
           width: "100%",
           zIndex: 1000,
-          backgroundColor: "white",
-          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+          backgroundColor: "transparent",
+          boxShadow: "none",
+          transition: "background-color 0.3s ease, box-shadow 0.3s ease",
         }}
       >
         <div
@@ -94,11 +108,11 @@ export default function HeaderLoggedIn({
                     key={item.key}
                     href={item.href}
                     aria-current={isActive ? "page" : undefined}
-                    className={isActive ? "text-primary" : undefined}
                     style={{
                       fontSize: "1.05rem",
                       fontWeight: "500",
                       padding: "0.5rem 0.25rem",
+                      color: scrolled ? undefined : "white",
                     }}
                   >
                     {item.label}
@@ -117,7 +131,7 @@ export default function HeaderLoggedIn({
                   alignItems: "center",
                   justifyContent: "center",
                   cursor: "pointer",
-                  color: "var(--primary)",
+                  color: scrolled ? "var(--primary)" : "white",
                   transition: "transform 0.2s ease, color 0.2s ease",
                   padding: "0.5rem",
                   borderRadius: "0.5rem",
@@ -125,8 +139,9 @@ export default function HeaderLoggedIn({
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = "scale(1.15)";
-                  e.currentTarget.style.backgroundColor =
-                    "rgba(0, 102, 204, 0.1)";
+                  e.currentTarget.style.backgroundColor = scrolled
+                    ? "rgba(0, 102, 204, 0.1)"
+                    : "rgba(255, 255, 255, 0.2)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = "scale(1)";
@@ -157,7 +172,7 @@ export default function HeaderLoggedIn({
                     alignItems: "center",
                     justifyContent: "center",
                     cursor: "pointer",
-                    color: "var(--primary)",
+                    color: scrolled ? "var(--primary)" : "white",
                     transition: "transform 0.2s ease, color 0.2s ease",
                     padding: "0.5rem",
                     borderRadius: "0.5rem",
@@ -165,8 +180,9 @@ export default function HeaderLoggedIn({
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = "scale(1.15)";
-                    e.currentTarget.style.backgroundColor =
-                      "rgba(0, 102, 204, 0.1)";
+                    e.currentTarget.style.backgroundColor = scrolled
+                      ? "rgba(0, 102, 204, 0.1)"
+                      : "rgba(255, 255, 255, 0.2)";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = "scale(1)";
@@ -194,24 +210,30 @@ export default function HeaderLoggedIn({
                       alignItems: "center",
                       gap: "0.5rem",
                       backgroundColor: "transparent",
-                      border: "2px solid var(--primary)",
+                      border: `2px solid ${scrolled ? "var(--primary)" : "white"}`,
                       borderRadius: "0.5rem",
                       padding: "0.6rem 0.85rem",
                       cursor: "pointer",
                       fontWeight: 600,
                       fontSize: "0.95rem",
-                      color: "var(--primary)",
+                      color: scrolled ? "var(--primary)" : "white",
                       transition: "all 0.2s ease",
                       whiteSpace: "nowrap",
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = "var(--primary)";
-                      e.currentTarget.style.color = "white";
+                      e.currentTarget.style.backgroundColor = scrolled
+                        ? "var(--primary)"
+                        : "white";
+                      e.currentTarget.style.color = scrolled
+                        ? "white"
+                        : "var(--primary)";
                     }}
                     onMouseLeave={(e) => {
                       if (!showProfileMenu) {
                         e.currentTarget.style.backgroundColor = "transparent";
-                        e.currentTarget.style.color = "var(--primary)";
+                        e.currentTarget.style.color = scrolled
+                          ? "var(--primary)"
+                          : "white";
                       }
                     }}
                   >
@@ -364,8 +386,12 @@ export default function HeaderLoggedIn({
               style={{
                 width: "44px",
                 height: "44px",
-                color: "var(--primary)",
-                backgroundColor: mobileMenuOpen ? "#f0f9ff" : "transparent",
+                color: scrolled ? "var(--primary)" : "white",
+                backgroundColor: mobileMenuOpen
+                  ? scrolled
+                    ? "#f0f9ff"
+                    : "rgba(255, 255, 255, 0.2)"
+                  : "transparent",
                 border: "none",
                 borderRadius: "12px",
                 cursor: "pointer",

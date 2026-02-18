@@ -95,9 +95,17 @@ const SIDEBAR_PRICE_RANGES = [
 ];
 
 const STAR_OPTIONS = [
-  { label: "5 Star", value: 5, minRating: 4.5, maxRating: 5.01 },
+  { label: "7 Star", value: 7, minRating: 4.8, maxRating: 5.01 },
+  { label: "5 Star", value: 5, minRating: 4.5, maxRating: 4.8 },
   { label: "4 Star", value: 4, minRating: 3.5, maxRating: 4.5 },
   { label: "3 Star", value: 3, minRating: 2.5, maxRating: 3.5 },
+];
+
+const RATING_OPTIONS = [
+  { label: "4.5+", value: 4.5 },
+  { label: "4.0+", value: 4.0 },
+  { label: "3.5+", value: 3.5 },
+  { label: "3.0+", value: 3.0 },
 ];
 
 // Top attractions data - can be fetched from API
@@ -201,6 +209,10 @@ function HotelSearchContent() {
   const [selectedStars, setSelectedStars] = useState<number[]>([]);
   const [selectedPriceRanges, setSelectedPriceRanges] = useState<string[]>([]);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
+  const [selectedRatings, setSelectedRatings] = useState<number[]>([]);
+  const [selectedPropertyTypes, setSelectedPropertyTypes] = useState<
+    ("hotel" | "homestay")[]
+  >([]);
   const [showPopularOnly, setShowPopularOnly] = useState(false);
   const [showAllAmenities, setShowAllAmenities] = useState(false);
 
@@ -218,15 +230,24 @@ function HotelSearchContent() {
         ? prev.filter((a) => a !== amenity)
         : [...prev, amenity],
     );
+  const togglePropertyType = (type: "hotel" | "homestay") =>
+    setSelectedPropertyTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
+    );
+  const toggleRating = (rating: number) =>
+    setSelectedRatings((prev) =>
+      prev.includes(rating)
+        ? prev.filter((r) => r !== rating)
+        : [...prev, rating],
+    );
   const clearSidebarFilters = () => {
     setSelectedStars([]);
     setSelectedPriceRanges([]);
     setSelectedAmenities([]);
+    setSelectedRatings([]);
+    setSelectedPropertyTypes([]);
     setShowPopularOnly(false);
   };
-  const [isSearchBarSticky, setIsSearchBarSticky] = useState(false);
-  const [scrollDirection, setScrollDirection] = useState<"up" | "down">("down");
-  const [lastScrollY, setLastScrollY] = useState(0);
   const initialType =
     (searchParams.get("type") as "hotels" | "homestays") || "hotels";
   const [propertyType, setPropertyType] = useState<"hotels" | "homestays">(
@@ -287,35 +308,8 @@ function HotelSearchContent() {
     fetchHotelsAndHomestays();
   }, []);
 
-  // Handle scroll event for sticky header
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-
-      // Detect scroll direction
-      if (currentScrollY > lastScrollY) {
-        // Scrolling down
-        setScrollDirection("down");
-      } else {
-        // Scrolling up
-        setScrollDirection("up");
-      }
-
-      // Make search bar sticky after scrolling 150px down
-      // But only if scrolling down
-      if (currentScrollY > 150 && scrollDirection === "down") {
-        setIsSearchBarSticky(true);
-      } else if (currentScrollY < 100) {
-        // Return to normal when near top
-        setIsSearchBarSticky(false);
-      }
-
-      setLastScrollY(currentScrollY);
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [lastScrollY, scrollDirection]);
+  // Handle scroll event for other functionality if needed
+  // Currently not using scroll detection
 
   const allAmenities = useMemo(() => {
     const set = new Set<string>();
@@ -337,7 +331,8 @@ function HotelSearchContent() {
 
   const starCounts = useMemo<Record<number, number>>(
     () => ({
-      5: hotels.filter((h) => h.rating >= 4.5).length,
+      7: hotels.filter((h) => h.rating >= 4.8).length,
+      5: hotels.filter((h) => h.rating >= 4.5 && h.rating < 4.8).length,
       4: hotels.filter((h) => h.rating >= 3.5 && h.rating < 4.5).length,
       3: hotels.filter((h) => h.rating >= 2.5 && h.rating < 3.5).length,
     }),
@@ -358,6 +353,8 @@ function HotelSearchContent() {
     selectedStars.length > 0 ||
     selectedPriceRanges.length > 0 ||
     selectedAmenities.length > 0 ||
+    selectedRatings.length > 0 ||
+    selectedPropertyTypes.length > 0 ||
     showPopularOnly;
 
   // Filter hotels based on search criteria
@@ -366,11 +363,14 @@ function HotelSearchContent() {
       .filter((hotel) => {
         const itemType =
           (hotel as any).type || (hotel as any).propertyType || "hotel";
-        const normalizedType = String(itemType).toLowerCase();
+        const normalizedType = String(itemType).toLowerCase() as
+          | "hotel"
+          | "homestay";
+
+        // Property type filter - if selectedPropertyTypes is empty, show all; otherwise filter
         const propertyTypeMatch =
-          propertyType === "hotels"
-            ? normalizedType !== "homestay"
-            : normalizedType === "homestay";
+          selectedPropertyTypes.length === 0 ||
+          selectedPropertyTypes.includes(normalizedType);
 
         const matchesLocation = filters.location
           ? hotel.location
@@ -422,6 +422,11 @@ function HotelSearchContent() {
         const matchesAmenities =
           selectedAmenities.length === 0 ||
           selectedAmenities.every((a) => hotel.amenities.includes(a));
+        
+        const matchesRatingsFilter =
+          selectedRatings.length === 0 ||
+          hotel.rating >= Math.max(...selectedRatings);
+        
         const matchesPopular = !showPopularOnly || hotel.popular;
 
         return (
@@ -432,6 +437,7 @@ function HotelSearchContent() {
           matchesSidebarPrice &&
           matchesStars &&
           matchesAmenities &&
+          matchesRatingsFilter &&
           matchesPopular
         );
       })
@@ -445,10 +451,11 @@ function HotelSearchContent() {
     filters,
     hotels,
     sortBy,
-    propertyType,
     selectedStars,
     selectedPriceRanges,
     selectedAmenities,
+    selectedRatings,
+    selectedPropertyTypes,
     showPopularOnly,
   ]);
 
@@ -543,438 +550,30 @@ function HotelSearchContent() {
     <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-white">
       <div
         style={{
-          opacity: isSearchBarSticky ? 0 : 1,
-          visibility: isSearchBarSticky ? "hidden" : "visible",
-          transform: isSearchBarSticky ? "translateY(-100%)" : "translateY(0)",
-          transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
-          transformOrigin: "top",
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          width: "100%",
+          background: "white",
+          zIndex: 100,
+          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)",
         }}
       >
-        <Header currentPage="hotels" />
+        <Header currentPage="hotels" forceBlackText={true} />
       </div>
 
       <main
         className="flex flex-col items-center w-full justify-center"
-        style={{ minHeight: "100vh" }}
+        style={{ minHeight: "100vh", marginTop: "80px", color: "#000000" }}
       >
-        {/* Search Bar at Top - Secondary Header */}
-        <div
-          id="searchBarSection"
-          style={{
-            width: "100vw",
-            marginLeft: "calc(-50vw + 50%)",
-            background: "white",
-            padding: isSearchBarSticky ? "0.75rem 1.5rem" : "1.25rem 1.5rem",
-            marginBottom: "2rem",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            position: "sticky",
-            top: 0,
-            zIndex: 50,
-            boxShadow: isSearchBarSticky
-              ? "0 4px 20px rgba(0, 0, 0, 0.1)"
-              : "0 1px 4px rgba(0, 0, 0, 0.06)",
-            transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-          }}
-        >
-          <div
-            style={{
-              maxWidth: "1400px",
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.75rem",
-              background: "#f8fafc",
-              borderRadius: "16px",
-              padding: "0.5rem",
-              border: "1.5px solid #e2e8f0",
-              transition: "all 0.3s ease",
-            }}
-          >
-            {/* Destination */}
-            <div style={{ flex: 1.5, minWidth: 0, position: "relative" }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  padding: "0.6rem 1rem",
-                  borderRadius: "12px",
-                  transition: "all 0.3s ease",
-                  cursor: "text",
-                }}
-              >
-                <span
-                  className="material-symbols-outlined"
-                  style={{
-                    color: "#0066cc",
-                    fontSize: "1.25rem",
-                    flexShrink: 0,
-                  }}
-                >
-                  location_on
-                </span>
-                <input
-                  type="text"
-                  placeholder="Where to?"
-                  value={filters.location}
-                  onChange={(e) =>
-                    setFilters({ ...filters, location: e.target.value })
-                  }
-                  style={{
-                    border: "none",
-                    outline: "none",
-                    width: "100%",
-                    fontSize: "0.9rem",
-                    background: "transparent",
-                    fontWeight: 600,
-                    color: "#1f2937",
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Divider */}
-            <div
-              style={{
-                width: "1px",
-                height: "28px",
-                background: "#d1d5db",
-                flexShrink: 0,
-              }}
-            />
-
-            {/* Check-in */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  padding: "0.6rem 0.75rem",
-                  borderRadius: "12px",
-                  transition: "all 0.3s ease",
-                }}
-              >
-                <span
-                  className="material-symbols-outlined"
-                  style={{
-                    color: "#0066cc",
-                    fontSize: "1.25rem",
-                    flexShrink: 0,
-                  }}
-                >
-                  calendar_month
-                </span>
-                <input
-                  type="date"
-                  value={filters.checkIn}
-                  onChange={(e) =>
-                    setFilters({ ...filters, checkIn: e.target.value })
-                  }
-                  style={{
-                    border: "none",
-                    outline: "none",
-                    width: "100%",
-                    fontSize: "0.85rem",
-                    background: "transparent",
-                    fontWeight: 600,
-                    color: "#1f2937",
-                    cursor: "pointer",
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Divider */}
-            <div
-              style={{
-                width: "1px",
-                height: "28px",
-                background: "#d1d5db",
-                flexShrink: 0,
-              }}
-            />
-
-            {/* Check-out */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  padding: "0.6rem 0.75rem",
-                  borderRadius: "12px",
-                  transition: "all 0.3s ease",
-                }}
-              >
-                <span
-                  className="material-symbols-outlined"
-                  style={{
-                    color: "#0066cc",
-                    fontSize: "1.25rem",
-                    flexShrink: 0,
-                  }}
-                >
-                  calendar_month
-                </span>
-                <input
-                  type="date"
-                  value={filters.checkOut}
-                  onChange={(e) =>
-                    setFilters({ ...filters, checkOut: e.target.value })
-                  }
-                  style={{
-                    border: "none",
-                    outline: "none",
-                    width: "100%",
-                    fontSize: "0.85rem",
-                    background: "transparent",
-                    fontWeight: 600,
-                    color: "#1f2937",
-                    cursor: "pointer",
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Divider */}
-            <div
-              style={{
-                width: "1px",
-                height: "28px",
-                background: "#d1d5db",
-                flexShrink: 0,
-              }}
-            />
-
-            {/* Guests */}
-            <div style={{ flex: 0.8, minWidth: 0 }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  padding: "0.6rem 0.75rem",
-                  borderRadius: "12px",
-                  transition: "all 0.3s ease",
-                }}
-              >
-                <span
-                  className="material-symbols-outlined"
-                  style={{
-                    color: "#0066cc",
-                    fontSize: "1.25rem",
-                    flexShrink: 0,
-                  }}
-                >
-                  group
-                </span>
-                <select
-                  value={filters.guests}
-                  onChange={(e) =>
-                    setFilters({ ...filters, guests: e.target.value })
-                  }
-                  style={{
-                    border: "none",
-                    outline: "none",
-                    width: "100%",
-                    fontSize: "0.85rem",
-                    background: "transparent",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    color: "#1f2937",
-                  }}
-                >
-                  <option value="1">1 Guest</option>
-                  <option value="2">2 Guests</option>
-                  <option value="3">3 Guests</option>
-                  <option value="4">4+ Guests</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Divider */}
-            <div
-              style={{
-                width: "1px",
-                height: "28px",
-                background: "#d1d5db",
-                flexShrink: 0,
-              }}
-            />
-
-            {/* Rooms */}
-            <div style={{ flex: 0.7, minWidth: 0 }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  padding: "0.6rem 0.75rem",
-                  borderRadius: "12px",
-                  transition: "all 0.3s ease",
-                }}
-              >
-                <span
-                  className="material-symbols-outlined"
-                  style={{
-                    color: "#0066cc",
-                    fontSize: "1.25rem",
-                    flexShrink: 0,
-                  }}
-                >
-                  bed
-                </span>
-                <select
-                  value={filters.rooms}
-                  onChange={(e) =>
-                    setFilters({ ...filters, rooms: e.target.value })
-                  }
-                  style={{
-                    border: "none",
-                    outline: "none",
-                    width: "100%",
-                    fontSize: "0.85rem",
-                    background: "transparent",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    color: "#1f2937",
-                  }}
-                >
-                  <option value="1">1 Room</option>
-                  <option value="2">2 Rooms</option>
-                  <option value="3">3 Rooms</option>
-                  <option value="4">4+ Rooms</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Divider */}
-            <div
-              style={{
-                width: "1px",
-                height: "28px",
-                background: "#d1d5db",
-                flexShrink: 0,
-              }}
-            />
-
-            {/* Property Type Toggle */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                padding: "0.6rem 0.75rem",
-                flexShrink: 0,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "0.75rem",
-                  fontWeight: 700,
-                  color: propertyType === "hotels" ? "#0066cc" : "#ea580c",
-                  whiteSpace: "nowrap",
-                  transition: "color 0.3s ease",
-                }}
-              >
-                {propertyType === "hotels" ? "Hotels" : "Homestays"}
-              </span>
-              <button
-                onClick={() =>
-                  setPropertyType(
-                    propertyType === "hotels" ? "homestays" : "hotels",
-                  )
-                }
-                style={{
-                  width: "48px",
-                  height: "26px",
-                  borderRadius: "13px",
-                  border: "none",
-                  background:
-                    propertyType === "hotels"
-                      ? "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)"
-                      : "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
-                  cursor: "pointer",
-                  position: "relative",
-                  transition: "all 0.3s ease",
-                  flexShrink: 0,
-                }}
-              >
-                <div
-                  style={{
-                    width: "22px",
-                    height: "22px",
-                    borderRadius: "11px",
-                    background: "white",
-                    position: "absolute",
-                    top: "2px",
-                    left: propertyType === "hotels" ? "2px" : "24px",
-                    transition: "left 0.3s ease",
-                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.2)",
-                  }}
-                />
-              </button>
-            </div>
-
-            {/* Search Button */}
-            <button
-              style={{
-                padding: "0.7rem 1.75rem",
-                background: "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
-                color: "white",
-                border: "none",
-                borderRadius: "12px",
-                fontSize: "0.9rem",
-                fontWeight: 700,
-                cursor: "pointer",
-                transition: "all 0.3s ease",
-                boxShadow: "0 2px 8px rgba(0, 102, 204, 0.3)",
-                flexShrink: 0,
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                whiteSpace: "nowrap",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "scale(1.03)";
-                e.currentTarget.style.boxShadow =
-                  "0 4px 16px rgba(0, 102, 204, 0.4)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "scale(1)";
-                e.currentTarget.style.boxShadow =
-                  "0 2px 8px rgba(0, 102, 204, 0.3)";
-              }}
-            >
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: "1.1rem" }}
-              >
-                search
-              </span>
-              Search
-            </button>
-          </div>
-        </div>
-
         {/* Top Attractions Section OR Featured Destinations */}
         {attractions.length > 0 ? (
           <div
             style={{
               width: "100%",
-              maxWidth: "1400px",
               padding: "0 1.5rem",
               marginBottom: "2rem",
-              opacity: isSearchBarSticky ? 0.7 : 1,
-              transform: isSearchBarSticky
-                ? "translateY(-20px) scale(0.98)"
-                : "translateY(0) scale(1)",
-              transition:
-                "opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
-              pointerEvents: "auto",
             }}
           >
             <div
@@ -1162,15 +761,8 @@ function HotelSearchContent() {
           <div
             style={{
               width: "100%",
-              maxWidth: "1400px",
               padding: "0 1.5rem",
               marginBottom: "2rem",
-              opacity: isSearchBarSticky ? 0.7 : 1,
-              transform: isSearchBarSticky
-                ? "translateY(-20px) scale(0.98)"
-                : "translateY(0) scale(1)",
-              transition:
-                "opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
             }}
           >
             <div
@@ -1517,7 +1109,6 @@ function HotelSearchContent() {
           className="search-main-layout"
           style={{
             width: "100%",
-            maxWidth: "1400px",
             padding: "4rem 1.5rem",
             marginBottom: "2rem",
             display: "grid",
@@ -1973,6 +1564,92 @@ function HotelSearchContent() {
                 )}
               </div>
 
+              {/* Property Type */}
+              <div
+                style={{
+                  marginBottom: "1.25rem",
+                  paddingBottom: "1.25rem",
+                  borderBottom: "1px solid #f1f5f9",
+                }}
+              >
+                <h4
+                  style={{
+                    fontSize: "0.8rem",
+                    fontWeight: 700,
+                    color: "#1e293b",
+                    marginBottom: "0.75rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}
+                >
+                  Property Type
+                </h4>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.625rem",
+                    padding: "0.35rem 0.5rem",
+                    cursor: "pointer",
+                    fontSize: "0.85rem",
+                    color: "#374151",
+                    borderRadius: "8px",
+                    transition: "background 0.15s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#f8fafc";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedPropertyTypes.includes("hotel")}
+                    onChange={() => togglePropertyType("hotel")}
+                    style={{
+                      width: "16px",
+                      height: "16px",
+                      accentColor: "#3b82f6",
+                      cursor: "pointer",
+                    }}
+                  />
+                  <span>🏨 Hotels</span>
+                </label>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.625rem",
+                    padding: "0.35rem 0.5rem",
+                    cursor: "pointer",
+                    fontSize: "0.85rem",
+                    color: "#374151",
+                    borderRadius: "8px",
+                    transition: "background 0.15s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#f8fafc";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedPropertyTypes.includes("homestay")}
+                    onChange={() => togglePropertyType("homestay")}
+                    style={{
+                      width: "16px",
+                      height: "16px",
+                      accentColor: "#3b82f6",
+                      cursor: "pointer",
+                    }}
+                  />
+                  <span>🏠 Homestays</span>
+                </label>
+              </div>
+
               {/* Suggested For You */}
               <div
                 style={{
@@ -2157,6 +1834,63 @@ function HotelSearchContent() {
                     >
                       ({starCounts[opt.value] || 0})
                     </span>
+                  </label>
+                ))}
+              </div>
+
+              {/* Rating */}
+              <div
+                style={{
+                  marginBottom: "1.25rem",
+                  paddingBottom: "1.25rem",
+                  borderBottom: "1px solid #f1f5f9",
+                }}
+              >
+                <h4
+                  style={{
+                    fontSize: "0.8rem",
+                    fontWeight: 700,
+                    color: "#1e293b",
+                    marginBottom: "0.75rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}
+                >
+                  Rating
+                </h4>
+                {RATING_OPTIONS.map((opt) => (
+                  <label
+                    key={opt.value}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.625rem",
+                      padding: "0.35rem 0.5rem",
+                      cursor: "pointer",
+                      fontSize: "0.85rem",
+                      color: "#374151",
+                      borderRadius: "8px",
+                      transition: "background 0.15s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#f8fafc";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedRatings.includes(opt.value)}
+                      onChange={() => toggleRating(opt.value)}
+                      style={{
+                        width: "16px",
+                        height: "16px",
+                        accentColor: "#3b82f6",
+                        cursor: "pointer",
+                      }}
+                    />
+                    <span>★ {opt.label}</span>
                   </label>
                 ))}
               </div>

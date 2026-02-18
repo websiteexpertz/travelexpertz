@@ -3,9 +3,12 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import Header from "./components/Header";
 import ReviewForm from "./components/ReviewForm";
 import ImageModal from "./components/ImageModal";
+import DatePicker from "./components/DatePicker";
+import { formatDateShort } from "@/lib/utils/dateFormat";
 
 // Dynamic import for ServiceBookingFormEnhanced
 const ServiceBookingFormEnhanced = dynamic(
@@ -82,6 +85,8 @@ interface Event {
 // All data will be fetched from database via API endpoints
 
 export default function Home() {
+  const router = useRouter();
+
   // Services State
   const [services, setServices] = useState<Service[]>([]);
   const [servicesLoading, setServicesLoading] = useState(true);
@@ -109,6 +114,24 @@ export default function Home() {
   // Events State
   const [events, setEvents] = useState<Event[]>([]);
   const [eventsLoading, setEventsLoading] = useState(true);
+  const [eventCarouselIndex, setEventCarouselIndex] = useState(0);
+  const [eventCardsPerView, setEventCardsPerView] = useState(4);
+  const [isEventCarouselHovered, setIsEventCarouselHovered] = useState(false);
+
+  // Hero Section State
+  const [heroImageIndex, setHeroImageIndex] = useState(0);
+  const heroImages = [
+    { image: "/hero1.jpeg", tagline: "Crafting Journeys, Creating Memories." },
+    { image: "/hero2.jpeg", tagline: "Travel Smart. Travel Expertz." },
+    {
+      image: "/hero3.jpeg",
+      tagline: "Beyond Destinations, We Design Experiences.",
+    },
+    {
+      image: "/hero4.jpeg",
+      tagline: "Seamless Travel, Unforgettable Experiences.",
+    },
+  ];
 
   // Service Booking Modal State
   const [selectedServiceForBooking, setSelectedServiceForBooking] = useState<
@@ -135,6 +158,19 @@ export default function Home() {
     rooms: "1",
     priceRange: "all",
   });
+
+  // Handler for search
+  const handleSearch = () => {
+    const params = new URLSearchParams({
+      location: filters.location || "",
+      checkIn: filters.checkIn || "",
+      checkOut: filters.checkOut || "",
+      guests: filters.guests || "2",
+      rooms: filters.rooms || "1",
+      priceRange: filters.priceRange || "all",
+    });
+    router.push(`/hotels/search?${params.toString()}`);
+  };
 
   // Map service title to booking form type
   const mapServiceToBookingType = (serviceTitle: string): string | null => {
@@ -262,6 +298,52 @@ export default function Home() {
     fetchEvents();
   }, []);
 
+  useEffect(() => {
+    const updateCardsPerView = () => {
+      if (window.innerWidth < 640) {
+        setEventCardsPerView(1);
+      } else if (window.innerWidth < 1024) {
+        setEventCardsPerView(2);
+      } else {
+        setEventCardsPerView(4);
+      }
+    };
+
+    updateCardsPerView();
+    window.addEventListener("resize", updateCardsPerView);
+    return () => window.removeEventListener("resize", updateCardsPerView);
+  }, []);
+
+  useEffect(() => {
+    const maxIndex = Math.max(0, events.length - eventCardsPerView);
+    setEventCarouselIndex((prev) => Math.min(prev, maxIndex));
+  }, [events.length, eventCardsPerView]);
+
+  useEffect(() => {
+    if (
+      eventsLoading ||
+      events.length <= eventCardsPerView ||
+      isEventCarouselHovered
+    )
+      return;
+
+    const maxIndex = Math.max(0, events.length - eventCardsPerView);
+    const interval = setInterval(() => {
+      setEventCarouselIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
+    }, 2800);
+
+    return () => clearInterval(interval);
+  }, [eventsLoading, events.length, eventCardsPerView, isEventCarouselHovered]);
+
+  // Hero Image Rotation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setHeroImageIndex((prev) => (prev + 1) % heroImages.length);
+    }, 5000); // Change image every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [heroImages.length]);
+
   // Debug: Monitor service booking modal state
   useEffect(() => {
     console.log(
@@ -291,212 +373,22 @@ export default function Home() {
         {/* ========== HERO SECTION ========== */}
         <div
           className="w-full"
-          style={{ background: "transparent", padding: "0 0.75rem" }}
+          style={{ background: "transparent", padding: 0 }}
         >
           <div
             className="hero-section"
             style={{
-              backgroundImage: "url('/hero-banner.png')",
+              backgroundImage: `url('${heroImages[heroImageIndex].image}')`,
               backgroundSize: "cover",
               backgroundPosition: "center",
               position: "relative",
               overflow: "hidden",
+              transition: "background-image 0.8s ease-in-out",
             }}
           >
-            {/* Modern Gradient Overlay */}
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                background:
-                  "linear-gradient(135deg, rgba(239,246,255,0.92) 0%, rgba(219,234,254,0.88) 40%, rgba(191,219,254,0.85) 70%, rgba(147,197,253,0.82) 100%)",
-                zIndex: 0,
-              }}
-            />
-
-            {/* Animated mesh gradient blobs */}
-            <div
-              style={{
-                position: "absolute",
-                top: "-15%",
-                right: "-8%",
-                width: "clamp(300px, 50vw, 600px)",
-                height: "clamp(300px, 50vw, 600px)",
-                borderRadius: "50%",
-                background:
-                  "radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%)",
-                filter: "blur(60px)",
-                animation: "heroBlob1 10s ease-in-out infinite",
-                pointerEvents: "none",
-                zIndex: 0,
-              }}
-            />
-            <div
-              style={{
-                position: "absolute",
-                bottom: "-20%",
-                left: "-10%",
-                width: "clamp(250px, 40vw, 500px)",
-                height: "clamp(250px, 40vw, 500px)",
-                borderRadius: "50%",
-                background:
-                  "radial-gradient(circle, rgba(37,99,235,0.10) 0%, transparent 70%)",
-                filter: "blur(70px)",
-                animation: "heroBlob2 12s ease-in-out infinite",
-                pointerEvents: "none",
-                zIndex: 0,
-              }}
-            />
-            <div
-              className="hidden sm:block"
-              style={{
-                position: "absolute",
-                top: "50%",
-                left: "50%",
-                width: "clamp(200px, 30vw, 400px)",
-                height: "clamp(200px, 30vw, 400px)",
-                borderRadius: "50%",
-                background:
-                  "radial-gradient(circle, rgba(96,165,250,0.08) 0%, transparent 70%)",
-                filter: "blur(50px)",
-                animation: "heroBlob3 14s ease-in-out infinite",
-                pointerEvents: "none",
-                zIndex: 0,
-              }}
-            />
-
-            {/* Subtle grid pattern */}
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                backgroundImage:
-                  "linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px)",
-                backgroundSize: "50px 50px",
-                pointerEvents: "none",
-                zIndex: 0,
-              }}
-            />
-
-            {/* Floating glass orbs */}
-            <div
-              className="hidden sm:block"
-              style={{
-                position: "absolute",
-                top: "12%",
-                left: "6%",
-                width: "clamp(50px, 8vw, 90px)",
-                height: "clamp(50px, 8vw, 90px)",
-                borderRadius: "50%",
-                background:
-                  "linear-gradient(135deg, rgba(255,255,255,0.6), rgba(219,234,254,0.3))",
-                boxShadow:
-                  "0 8px 32px rgba(59,130,246,0.1), inset 0 1px 0 rgba(255,255,255,0.8)",
-                backdropFilter: "blur(10px)",
-                border: "1px solid rgba(255,255,255,0.5)",
-                animation: "float 6s ease-in-out infinite",
-                zIndex: 1,
-              }}
-            />
-            <div
-              className="hidden md:block"
-              style={{
-                position: "absolute",
-                bottom: "18%",
-                right: "7%",
-                width: "clamp(35px, 6vw, 65px)",
-                height: "clamp(35px, 6vw, 65px)",
-                borderRadius: "50%",
-                background:
-                  "linear-gradient(135deg, rgba(255,255,255,0.5), rgba(191,219,254,0.3))",
-                boxShadow:
-                  "0 8px 32px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.7)",
-                backdropFilter: "blur(8px)",
-                border: "1px solid rgba(255,255,255,0.4)",
-                animation: "float 8s ease-in-out infinite reverse",
-                zIndex: 1,
-              }}
-            />
-            <div
-              className="hidden lg:block"
-              style={{
-                position: "absolute",
-                top: "35%",
-                right: "18%",
-                width: "45px",
-                height: "45px",
-                borderRadius: "50%",
-                background:
-                  "linear-gradient(135deg, rgba(255,255,255,0.4), rgba(147,197,253,0.2))",
-                boxShadow:
-                  "0 6px 24px rgba(59,130,246,0.06), inset 0 1px 0 rgba(255,255,255,0.6)",
-                backdropFilter: "blur(6px)",
-                border: "1px solid rgba(255,255,255,0.3)",
-                animation: "float 7s ease-in-out infinite",
-                animationDelay: "2s",
-                zIndex: 1,
-              }}
-            />
-            <div
-              className="hidden lg:block"
-              style={{
-                position: "absolute",
-                top: "22%",
-                right: "30%",
-                width: "30px",
-                height: "30px",
-                borderRadius: "50%",
-                background:
-                  "linear-gradient(135deg, rgba(96,165,250,0.3), rgba(59,130,246,0.15))",
-                boxShadow: "0 4px 16px rgba(59,130,246,0.1)",
-                animation: "float 9s ease-in-out infinite",
-                animationDelay: "3s",
-                zIndex: 1,
-              }}
-            />
-            <div
-              className="hidden xl:block"
-              style={{
-                position: "absolute",
-                bottom: "30%",
-                left: "15%",
-                width: "25px",
-                height: "25px",
-                borderRadius: "50%",
-                background:
-                  "linear-gradient(135deg, rgba(59,130,246,0.2), rgba(37,99,235,0.1))",
-                boxShadow: "0 4px 12px rgba(59,130,246,0.08)",
-                animation: "float 6s ease-in-out infinite reverse",
-                animationDelay: "1.5s",
-                zIndex: 1,
-              }}
-            />
-
-            {/* Floating sparkle particles */}
-            {[...Array(8)].map((_, i) => (
-              <div
-                key={`sparkle-${i}`}
-                className="hidden sm:block"
-                style={{
-                  position: "absolute",
-                  width: `${3 + (i % 3) * 2}px`,
-                  height: `${3 + (i % 3) * 2}px`,
-                  borderRadius: "50%",
-                  background: `rgba(59,130,246,${0.15 + (i % 4) * 0.08})`,
-                  boxShadow: `0 0 ${4 + i * 2}px rgba(59,130,246,${0.1 + (i % 3) * 0.05})`,
-                  top: `${10 + ((i * 37) % 70)}%`,
-                  left: `${5 + ((i * 41) % 85)}%`,
-                  animation: `heroSparkle ${5 + i * 1.5}s ease-in-out infinite`,
-                  animationDelay: `${i * 0.7}s`,
-                  pointerEvents: "none",
-                  zIndex: 1,
-                }}
-              />
-            ))}
-
             <div
               className="hero-content"
-              style={{ position: "relative", zIndex: 2 }}
+              style={{ position: "relative", zIndex: 10 }}
             >
               {/* Badge pill */}
               <div
@@ -539,32 +431,15 @@ export default function Home() {
                   animation: "fadeInUp 0.8s ease-out",
                   animationDelay: "0.25s",
                   animationFillMode: "both",
+                  fontSize: "clamp(2rem, 5vw, 3.5rem)",
+                  color: "#ffffff",
+                  textShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
+                  fontWeight: 700,
+                  lineHeight: 1.2,
                 }}
               >
-                Find and Book Your
-                <br />
-                <span
-                  style={{
-                    background:
-                      "linear-gradient(135deg, #1d4ed8 0%, #3b82f6 50%, #2563eb 100%)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                    backgroundClip: "text",
-                  }}
-                >
-                  Perfect Stay
-                </span>
+                {heroImages[heroImageIndex].tagline}
               </h1>
-              <p
-                style={{
-                  animation: "fadeInUp 0.8s ease-out",
-                  animationDelay: "0.45s",
-                  animationFillMode: "both",
-                }}
-              >
-                Discover the best hotels, homestays, and luxury accommodations
-                around the world.
-              </p>
 
               {/* Trust Indicators */}
               <div
@@ -661,10 +536,9 @@ export default function Home() {
                 animationFillMode: "both",
                 backdropFilter: "blur(16px)",
                 WebkitBackdropFilter: "blur(16px)",
-                background: "rgba(255, 255, 255, 0.85)",
-                border: "1px solid rgba(59,130,246,0.1)",
-                boxShadow:
-                  "0 8px 32px rgba(59,130,246,0.08), 0 2px 8px rgba(0,0,0,0.04)",
+                background: "transparent",
+                border: "none",
+                boxShadow: "none",
               }}
             >
               <div className="search-box-content">
@@ -677,6 +551,11 @@ export default function Home() {
                     onChange={(e) =>
                       setFilters({ ...filters, location: e.target.value })
                     }
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleSearch();
+                      }
+                    }}
                     style={{
                       border: "none",
                       outline: "none",
@@ -696,51 +575,26 @@ export default function Home() {
                   <span className="material-symbols-outlined">
                     calendar_month
                   </span>
-                  <input
-                    type="date"
+                  <DatePicker
                     value={filters.checkIn}
-                    onChange={(e) =>
-                      setFilters({ ...filters, checkIn: e.target.value })
+                    onChange={(date) =>
+                      setFilters({ ...filters, checkIn: date })
                     }
-                    style={{
-                      border: "none",
-                      outline: "none",
-                      background: "transparent",
-                      flex: 1,
-                      fontSize: "0.9rem",
-                    }}
+                    placeholder="Check-in"
                   />
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ marginLeft: "auto" }}
-                  >
-                    arrow_drop_down
-                  </span>
                 </div>
                 <div className="search-item">
                   <span className="material-symbols-outlined">
                     calendar_month
                   </span>
-                  <input
-                    type="date"
+                  <DatePicker
                     value={filters.checkOut}
-                    onChange={(e) =>
-                      setFilters({ ...filters, checkOut: e.target.value })
+                    onChange={(date) =>
+                      setFilters({ ...filters, checkOut: date })
                     }
-                    style={{
-                      border: "none",
-                      outline: "none",
-                      background: "transparent",
-                      flex: 1,
-                      fontSize: "0.9rem",
-                    }}
+                    placeholder="Check-out"
+                    minDate={filters.checkIn}
                   />
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ marginLeft: "auto" }}
-                  >
-                    arrow_drop_down
-                  </span>
                 </div>
                 <div className="search-item">
                   <span className="material-symbols-outlined">group</span>
@@ -801,17 +655,7 @@ export default function Home() {
                 </div>
                 <button
                   className="search-btn"
-                  onClick={() => {
-                    const params = new URLSearchParams({
-                      location: filters.location || "",
-                      checkIn: filters.checkIn || "",
-                      checkOut: filters.checkOut || "",
-                      guests: filters.guests || "2",
-                      rooms: filters.rooms || "1",
-                      priceRange: filters.priceRange || "all",
-                    });
-                    window.location.href = `/hotels/search?${params.toString()}`;
-                  }}
+                  onClick={handleSearch}
                   style={{
                     background:
                       "linear-gradient(135deg, var(--primary) 0%, #0052a3 100%)",
@@ -841,7 +685,7 @@ export default function Home() {
           <section
             className="services-section"
             style={{
-              padding: "clamp(2rem, 5vw, 4rem) clamp(0.5rem, 2vw, 1rem)",
+              padding: "clamp(1rem, 2.5vw, 2rem) clamp(0.5rem, 2vw, 1rem)",
               background: "transparent",
               position: "relative",
               overflow: "hidden",
@@ -918,6 +762,11 @@ export default function Home() {
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
+                      const title = service.title?.toLowerCase() || "";
+                      if (title.includes("tour") || title.includes("package")) {
+                        window.location.href = "/packages";
+                        return;
+                      }
                       console.log("Service clicked:", service.title);
                       const bookingType = mapServiceToBookingType(
                         service.title,
@@ -1047,7 +896,7 @@ export default function Home() {
           <section
             className="upcoming-events-section"
             style={{
-              padding: "clamp(2rem, 5vw, 4rem) clamp(0.5rem, 2vw, 1.5rem)",
+              padding: "clamp(1rem, 2.5vw, 2rem) clamp(0.5rem, 2vw, 1.5rem)",
               background: "#fff",
               position: "relative",
               overflow: "hidden",
@@ -1126,16 +975,62 @@ export default function Home() {
                 </p>
               </div>
 
-              {/* Events Grid - Small Cards Like Services */}
+              {/* Events Grid */}
               {eventsLoading ? (
                 <div
                   style={{
-                    textAlign: "center",
-                    padding: "2rem",
-                    color: "#999",
+                    display: "grid",
+                    gridTemplateColumns:
+                      "repeat(auto-fill, minmax(260px, 1fr))",
+                    gap: "1.25rem",
                   }}
                 >
-                  Loading events...
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        background: "#fff",
+                        borderRadius: "16px",
+                        overflow: "hidden",
+                        border: "1px solid rgba(0,0,0,0.06)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: "190px",
+                          background:
+                            "linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%)",
+                          backgroundSize: "200% 100%",
+                          animation: "shimmer 1.5s infinite",
+                        }}
+                      />
+                      <div style={{ padding: "1rem" }}>
+                        <div
+                          style={{
+                            height: "18px",
+                            width: "75%",
+                            background:
+                              "linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%)",
+                            backgroundSize: "200% 100%",
+                            borderRadius: "6px",
+                            marginBottom: "0.6rem",
+                            animation: "shimmer 1.5s infinite",
+                          }}
+                        />
+                        <div
+                          style={{
+                            height: "14px",
+                            width: "55%",
+                            background:
+                              "linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%)",
+                            backgroundSize: "200% 100%",
+                            borderRadius: "6px",
+                            animation: "shimmer 1.5s infinite",
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : events.length === 0 ? (
                 <div
@@ -1146,7 +1041,6 @@ export default function Home() {
                       "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
                     borderRadius: "16px",
                     color: "#999",
-                    gridColumn: "1 / -1",
                   }}
                 >
                   <p style={{ fontSize: "1.1rem", marginBottom: "0.5rem" }}>
@@ -1157,186 +1051,430 @@ export default function Home() {
                   </p>
                 </div>
               ) : (
-                <div
-                  className="events-grid"
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(4, 1fr)",
-                    gap: "clamp(0.5rem, 2vw, 1rem)",
-                  }}
-                >
-                  {events.map((event, index) => (
-                    <a
-                      key={event._id || event.id || index}
-                      href={`/events/${event._id}`}
-                      className="event-card"
+                <>
+                  <div
+                    className="events-carousel-viewport"
+                    onMouseEnter={() => setIsEventCarouselHovered(true)}
+                    onMouseLeave={() => setIsEventCarouselHovered(false)}
+                    style={{
+                      overflow: "hidden",
+                      margin: "0 -0.625rem",
+                    }}
+                  >
+                    <div
+                      className="events-carousel-track"
                       style={{
-                        cursor: "pointer",
-                        borderRadius: "clamp(10px, 2vw, 16px)",
-                        overflow: "hidden",
-                        background: "#fff",
-                        border: "1px solid rgba(0, 0, 0, 0.08)",
-                        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
-                        transition: "all 0.3s ease",
-                        position: "relative",
-                        textDecoration: "none",
                         display: "flex",
-                        flexDirection: "column",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = "translateY(-6px)";
-                        e.currentTarget.style.boxShadow =
-                          "0 12px 24px rgba(0, 102, 204, 0.15)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = "translateY(0)";
-                        e.currentTarget.style.boxShadow =
-                          "0 2px 8px rgba(0, 0, 0, 0.06)";
+                        transition: "transform 0.7s ease",
+                        transform: `translateX(-${(eventCarouselIndex * 100) / eventCardsPerView}%)`,
+                        willChange: "transform",
                       }}
                     >
-                      {/* Image */}
-                      <div
-                        className="event-image-wrapper"
-                        style={{
-                          width: "100%",
-                          aspectRatio: "4/3",
-                          overflow: "hidden",
-                          background:
-                            "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)",
-                          position: "relative",
-                        }}
-                      >
-                        <img
-                          src={event.profileImage}
-                          alt={event.eventName}
-                          loading="lazy"
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                            transition: "transform 0.3s ease",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = "scale(1.05)";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = "scale(1)";
-                          }}
-                        />
-                        {/* Category Badge */}
-                        {event.category && (
+                      {events.map((event, index) => {
+                        const categoryIcons: Record<string, string> = {
+                          Festival: "🎪",
+                          Cultural: "🎭",
+                          Adventure: "🏔️",
+                          Music: "🎵",
+                          Food: "🍽️",
+                          Sports: "⚽",
+                          Wellness: "🧘",
+                          Other: "✨",
+                        };
+                        const startD = new Date(event.startDate);
+                        const day = startD.getDate().toString();
+                        const month = startD
+                          .toLocaleDateString("en-IN", { month: "short" })
+                          .toUpperCase();
+                        const now = new Date();
+                        const diffDays = Math.ceil(
+                          (startD.getTime() - now.getTime()) /
+                            (1000 * 60 * 60 * 24),
+                        );
+                        const countdown =
+                          diffDays < 0
+                            ? "Ongoing"
+                            : diffDays === 0
+                              ? "Today!"
+                              : diffDays === 1
+                                ? "Tomorrow"
+                                : `In ${diffDays} days`;
+                        const isToday = countdown === "Today!";
+                        const isOngoing = countdown === "Ongoing";
+                        const desc = (event.description || "").replace(
+                          /<[^>]*>/g,
+                          "",
+                        );
+                        const shortDesc =
+                          desc.length > 100 ? desc.slice(0, 100) + "..." : desc;
+
+                        return (
                           <div
+                            key={event._id || event.id || index}
                             style={{
-                              position: "absolute",
-                              top: "0.5rem",
-                              right: "0.5rem",
-                              background:
-                                "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                              color: "white",
-                              padding: "0.35rem 0.75rem",
-                              borderRadius: "16px",
-                              fontSize: "0.7rem",
-                              fontWeight: 600,
+                              flex: `0 0 ${100 / eventCardsPerView}%`,
+                              padding: "0 0.625rem",
+                              boxSizing: "border-box",
                             }}
                           >
-                            {event.category}
-                          </div>
-                        )}
-                      </div>
+                            <a
+                              href={`/events/${event._id}`}
+                              className="event-card"
+                              style={{
+                                cursor: "pointer",
+                                borderRadius: "16px",
+                                overflow: "hidden",
+                                background: "#fff",
+                                border: "1px solid rgba(0, 0, 0, 0.06)",
+                                boxShadow: "0 1px 4px rgba(0, 0, 0, 0.06)",
+                                transition:
+                                  "all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+                                textDecoration: "none",
+                                display: "flex",
+                                flexDirection: "column",
+                                height: "100%",
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.transform =
+                                  "translateY(-6px)";
+                                e.currentTarget.style.boxShadow =
+                                  "0 16px 40px rgba(0, 0, 0, 0.12)";
+                                e.currentTarget.style.borderColor =
+                                  "rgba(10,102,194,0.15)";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.transform =
+                                  "translateY(0)";
+                                e.currentTarget.style.boxShadow =
+                                  "0 1px 4px rgba(0, 0, 0, 0.06)";
+                                e.currentTarget.style.borderColor =
+                                  "rgba(0,0,0,0.06)";
+                              }}
+                            >
+                              {/* Image */}
+                              <div
+                                style={{
+                                  position: "relative",
+                                  height: "190px",
+                                  overflow: "hidden",
+                                }}
+                              >
+                                <img
+                                  src={event.profileImage}
+                                  alt={event.eventName}
+                                  loading="lazy"
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                    transition: "transform 0.5s ease",
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.transform =
+                                      "scale(1.05)";
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.transform =
+                                      "scale(1)";
+                                  }}
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src =
+                                      "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600";
+                                  }}
+                                />
 
-                      {/* Content */}
-                      <div
-                        className="event-content"
+                                {/* Date Badge - Top Left */}
+                                <div
+                                  style={{
+                                    position: "absolute",
+                                    top: "10px",
+                                    left: "10px",
+                                    background: "white",
+                                    borderRadius: "12px",
+                                    padding: "0.35rem 0.55rem",
+                                    textAlign: "center",
+                                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                                    minWidth: "46px",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      fontSize: "1.2rem",
+                                      fontWeight: 800,
+                                      color: "#0a66c2",
+                                      lineHeight: 1,
+                                    }}
+                                  >
+                                    {day}
+                                  </div>
+                                  <div
+                                    style={{
+                                      fontSize: "0.6rem",
+                                      fontWeight: 700,
+                                      color: "#6b7280",
+                                      textTransform: "uppercase",
+                                      letterSpacing: "0.05em",
+                                    }}
+                                  >
+                                    {month}
+                                  </div>
+                                </div>
+
+                                {/* Countdown Badge - Top Right */}
+                                <div
+                                  style={{
+                                    position: "absolute",
+                                    top: "10px",
+                                    right: "10px",
+                                    background: isToday
+                                      ? "linear-gradient(135deg, #ef4444, #dc2626)"
+                                      : isOngoing
+                                        ? "linear-gradient(135deg, #10b981, #059669)"
+                                        : "linear-gradient(135deg, #0a66c2, #004c99)",
+                                    color: "white",
+                                    borderRadius: "999px",
+                                    padding: "0.25rem 0.7rem",
+                                    fontSize: "0.68rem",
+                                    fontWeight: 700,
+                                    boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+                                  }}
+                                >
+                                  {countdown}
+                                </div>
+
+                                {/* Category Badge - Bottom Left */}
+                                {event.category && (
+                                  <div
+                                    style={{
+                                      position: "absolute",
+                                      bottom: "10px",
+                                      left: "10px",
+                                      background: "rgba(0,0,0,0.65)",
+                                      backdropFilter: "blur(8px)",
+                                      color: "white",
+                                      borderRadius: "8px",
+                                      padding: "0.2rem 0.6rem",
+                                      fontSize: "0.7rem",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    {categoryIcons[event.category] || "✨"}{" "}
+                                    {event.category}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Content */}
+                              <div
+                                style={{
+                                  padding: "1rem 1rem 0.7rem",
+                                  flex: 1,
+                                  display: "flex",
+                                  flexDirection: "column",
+                                }}
+                              >
+                                <h3
+                                  style={{
+                                    fontSize: "1rem",
+                                    fontWeight: 700,
+                                    color: "#1a1a2e",
+                                    marginBottom: "0.4rem",
+                                    lineHeight: 1.3,
+                                    display: "-webkit-box",
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: "vertical",
+                                    overflow: "hidden",
+                                    margin: "0 0 0.4rem 0",
+                                  }}
+                                >
+                                  {event.eventName}
+                                </h3>
+
+                                <p
+                                  style={{
+                                    fontSize: "0.8rem",
+                                    color: "#6b7280",
+                                    lineHeight: 1.5,
+                                    margin: "0 0 0.6rem 0",
+                                    display: "-webkit-box",
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: "vertical",
+                                    overflow: "hidden",
+                                  }}
+                                >
+                                  {shortDesc}
+                                </p>
+
+                                {/* Details */}
+                                <div
+                                  style={{
+                                    marginTop: "auto",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "0.3rem",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: "0.35rem",
+                                      fontSize: "0.78rem",
+                                      color: "#6b7280",
+                                    }}
+                                  >
+                                    <span
+                                      className="material-symbols-outlined"
+                                      style={{
+                                        fontSize: "0.9rem",
+                                        color: "#0a66c2",
+                                      }}
+                                    >
+                                      location_on
+                                    </span>
+                                    {event.city && event.state
+                                      ? `${event.city}, ${event.state}`
+                                      : event.location || event.state}
+                                  </div>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: "0.35rem",
+                                      fontSize: "0.78rem",
+                                      color: "#6b7280",
+                                    }}
+                                  >
+                                    <span
+                                      className="material-symbols-outlined"
+                                      style={{
+                                        fontSize: "0.9rem",
+                                        color: "#0a66c2",
+                                      }}
+                                    >
+                                      calendar_today
+                                    </span>
+                                    {new Date(
+                                      event.startDate,
+                                    ).toLocaleDateString("en-IN", {
+                                      year: "numeric",
+                                      month: "short",
+                                      day: "numeric",
+                                    })}
+                                    {event.endDate &&
+                                      ` — ${new Date(event.endDate).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" })}`}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Footer */}
+                              <div
+                                style={{
+                                  padding: "0.65rem 1rem",
+                                  borderTop: "1px solid #f3f4f6",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    fontSize: "0.78rem",
+                                    color: "#6b7280",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.25rem",
+                                  }}
+                                >
+                                  <span
+                                    className="material-symbols-outlined"
+                                    style={{ fontSize: "0.85rem" }}
+                                  >
+                                    person
+                                  </span>
+                                  {event.organizer || "TravelExpertz"}
+                                </div>
+                                <div
+                                  style={{
+                                    fontSize: "0.9rem",
+                                    fontWeight: 700,
+                                    color:
+                                      event.ticketPrice > 0
+                                        ? "#0a66c2"
+                                        : "#10b981",
+                                  }}
+                                >
+                                  {event.ticketPrice > 0
+                                    ? `₹${event.ticketPrice.toLocaleString("en-IN")}`
+                                    : "Free"}
+                                </div>
+                              </div>
+                            </a>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Show More Button */}
+                  {events.length > 0 && (
+                    <div style={{ textAlign: "center", marginTop: "2.5rem" }}>
+                      <a
+                        href="/events"
                         style={{
-                          padding: "clamp(0.625rem, 2vw, 1rem)",
-                          flex: 1,
-                          display: "flex",
-                          flexDirection: "column",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                          padding: "0.85rem 2.2rem",
+                          borderRadius: "12px",
+                          background:
+                            "linear-gradient(135deg, #0a66c2 0%, #004c99 100%)",
+                          color: "white",
+                          fontSize: "0.95rem",
+                          fontWeight: 700,
+                          textDecoration: "none",
+                          transition: "all 0.3s ease",
+                          boxShadow: "0 4px 15px rgba(10, 102, 194, 0.3)",
+                          fontFamily: "inherit",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = "translateY(-2px)";
+                          e.currentTarget.style.boxShadow =
+                            "0 8px 25px rgba(10, 102, 194, 0.4)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = "translateY(0)";
+                          e.currentTarget.style.boxShadow =
+                            "0 4px 15px rgba(10, 102, 194, 0.3)";
                         }}
                       >
-                        <h3
-                          className="event-title"
-                          style={{
-                            fontSize: "clamp(0.8rem, 2.5vw, 1rem)",
-                            fontWeight: 700,
-                            color: "#1a1a2e",
-                            marginBottom: "clamp(0.25rem, 1vw, 0.375rem)",
-                            lineHeight: 1.3,
-                            margin: "0 0 0.5rem 0",
-                          }}
+                        Show More Events
+                        <span
+                          className="material-symbols-outlined"
+                          style={{ fontSize: "1.1rem" }}
                         >
-                          {event.eventName}
-                        </h3>
-
-                        {/* Location */}
-                        <p
-                          style={{
-                            fontSize: "clamp(0.65rem, 2vw, 0.8rem)",
-                            color: "#666",
-                            lineHeight: 1.3,
-                            margin: "0 0 0.5rem 0",
-                            display: "-webkit-box",
-                            WebkitLineClamp: 1,
-                            WebkitBoxOrient: "vertical",
-                            overflow: "hidden",
-                          }}
-                        >
-                          📍 {event.city}, {event.state}
-                        </p>
-
-                        {/* Dates */}
-                        <p
-                          style={{
-                            fontSize: "clamp(0.65rem, 2vw, 0.8rem)",
-                            color: "#666",
-                            lineHeight: 1.3,
-                            margin: "0 0 0.5rem 0",
-                            display: "-webkit-box",
-                            WebkitLineClamp: 1,
-                            WebkitBoxOrient: "vertical",
-                            overflow: "hidden",
-                          }}
-                        >
-                          📅{" "}
-                          {new Date(event.startDate).toLocaleDateString(
-                            "en-IN",
-                            {
-                              month: "short",
-                              day: "numeric",
-                            },
-                          )}
-                        </p>
-
-                        {/* Price */}
-                        <div
-                          style={{ marginTop: "auto", paddingTop: "0.5rem" }}
-                        >
-                          <p
-                            style={{
-                              margin: "0",
-                              fontSize: "clamp(0.8rem, 2.5vw, 1rem)",
-                              fontWeight: 700,
-                              color: "#667eea",
-                            }}
-                          >
-                            {event.ticketPrice === 0
-                              ? "Free"
-                              : `₹${event.ticketPrice}`}
-                          </p>
-                        </div>
-                      </div>
-                    </a>
-                  ))}
-                </div>
+                          arrow_forward
+                        </span>
+                      </a>
+                    </div>
+                  )}
+                </>
               )}
             </div>
+
+            <style>{`
+              @keyframes shimmer {
+                0% { background-position: 200% 0; }
+                100% { background-position: -200% 0; }
+              }
+            `}</style>
           </section>
 
           {/* ========== WHY US SECTION ========== */}
           <section
             className="why-us-section"
             style={{
-              padding: "clamp(2rem, 5vw, 4rem) clamp(0.5rem, 2vw, 1.5rem)",
+              padding: "clamp(1rem, 2.5vw, 2rem) clamp(0.5rem, 2vw, 1.5rem)",
               background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
               position: "relative",
               overflow: "hidden",
@@ -1508,7 +1646,7 @@ export default function Home() {
           <section
             className="testimonials-section"
             style={{
-              padding: "clamp(2rem, 5vw, 6rem) clamp(0.75rem, 2vw, 1.5rem)",
+              padding: "clamp(1rem, 2.5vw, 3rem) clamp(0.75rem, 2vw, 1.5rem)",
               background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
               position: "relative",
               overflow: "hidden",
@@ -2189,8 +2327,8 @@ export default function Home() {
         
         @media (max-width: 480px) {
           section {
-            padding-top: 3rem !important;
-            padding-bottom: 3rem !important;
+            padding-top: 1.5rem !important;
+            padding-bottom: 1.5rem !important;
           }
           
           h2 {

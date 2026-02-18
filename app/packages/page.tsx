@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Header from "../components/Header";
 import React from "react";
+import { formatDateShort } from "@/lib/utils/dateFormat";
 
 interface Package {
   _id?: string;
@@ -281,7 +282,7 @@ const packagesPageStyles = `
   .packages-hero {
     position: relative;
     height: 100vh;
-    min-height: 600px;
+    min-height: 100vh;
     background-size: cover;
     background-position: center;
     overflow: hidden;
@@ -289,15 +290,17 @@ const packagesPageStyles = `
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 2rem 1rem;
-    margin: 0;
+    padding: 0;
+    margin: 0 !important;
+    width: 100%;
+    border-radius: 0;
   }
   
   .packages-hero::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, rgba(239,246,255,0.35) 0%, rgba(219,234,254,0.25) 50%, rgba(147,197,253,0.18) 100%);
+    background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.05) 50%, rgba(0,0,0,0.08) 100%);
     z-index: 1;
   }
   
@@ -735,8 +738,8 @@ const packagesPageStyles = `
   
   @media (min-width: 640px) {
     .packages-hero {
-      margin: 0.75rem;
-      border-radius: 1.25rem;
+      margin: 0;
+      border-radius: 0;
     }
     
     .packages-search-content {
@@ -772,8 +775,9 @@ const packagesPageStyles = `
   
   @media (min-width: 1024px) {
     .packages-hero {
-      margin: 1rem;
+      margin: 0;
       padding: 3rem 2rem;
+      border-radius: 0;
     }
     
     .carousel-card {
@@ -1154,178 +1158,38 @@ export default function Packages() {
     <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-gray-50">
       <style>{packagesPageStyles}</style>
       <Header currentPage="packages" />
-      <main className="flex flex-col items-center w-full flex-1">
+      <main
+        className="flex flex-col items-center w-full flex-1"
+        style={{ padding: 0, margin: 0 }}
+      >
         {/* Hero Section */}
         <div
           className="w-full"
-          style={{ background: "transparent", padding: "0 0.75rem" }}
+          style={{ background: "transparent", padding: 0, margin: 0 }}
         >
           <div
             className="packages-hero"
             style={{
-              backgroundImage: "url('/hero-banner.png')",
+              backgroundImage: "url('/packages-hero.jpeg')",
               backgroundSize: "cover",
               backgroundPosition: "center",
               position: "relative",
               overflow: "hidden",
             }}
           >
-            {/* Modern Gradient Overlay */}
+            {/* Subtle Dark Overlay for Text Readability */}
             <div
               style={{
                 position: "absolute",
                 inset: 0,
                 background:
-                  "linear-gradient(135deg, rgba(239,246,255,0.92) 0%, rgba(219,234,254,0.88) 40%, rgba(191,219,254,0.85) 70%, rgba(147,197,253,0.82) 100%)",
+                  "linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.05) 50%, rgba(0,0,0,0.08) 100%)",
                 zIndex: 0,
               }}
             />
 
             {/* Animated mesh gradient blobs */}
-            <div
-              style={{
-                position: "absolute",
-                top: "-15%",
-                right: "-8%",
-                width: "clamp(300px, 50vw, 600px)",
-                height: "clamp(300px, 50vw, 600px)",
-                borderRadius: "50%",
-                background:
-                  "radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%)",
-                filter: "blur(60px)",
-                animation: "heroBlob1 10s ease-in-out infinite",
-                pointerEvents: "none",
-                zIndex: 0,
-              }}
-            />
-            <div
-              style={{
-                position: "absolute",
-                bottom: "-20%",
-                left: "-10%",
-                width: "clamp(250px, 40vw, 500px)",
-                height: "clamp(250px, 40vw, 500px)",
-                borderRadius: "50%",
-                background:
-                  "radial-gradient(circle, rgba(37,99,235,0.10) 0%, transparent 70%)",
-                filter: "blur(70px)",
-                animation: "heroBlob2 12s ease-in-out infinite",
-                pointerEvents: "none",
-                zIndex: 0,
-              }}
-            />
-            <div
-              className="hidden sm:block"
-              style={{
-                position: "absolute",
-                top: "50%",
-                left: "50%",
-                width: "clamp(200px, 30vw, 400px)",
-                height: "clamp(200px, 30vw, 400px)",
-                borderRadius: "50%",
-                background:
-                  "radial-gradient(circle, rgba(96,165,250,0.08) 0%, transparent 70%)",
-                filter: "blur(50px)",
-                animation: "heroBlob3 14s ease-in-out infinite",
-                pointerEvents: "none",
-                zIndex: 0,
-              }}
-            />
-
-            {/* Subtle grid pattern */}
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                backgroundImage:
-                  "linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px)",
-                backgroundSize: "50px 50px",
-                pointerEvents: "none",
-                zIndex: 0,
-              }}
-            />
-
-            {/* Floating glass orbs */}
-            <div
-              className="hidden sm:block"
-              style={{
-                position: "absolute",
-                top: "12%",
-                left: "6%",
-                width: "clamp(50px, 8vw, 90px)",
-                height: "clamp(50px, 8vw, 90px)",
-                borderRadius: "50%",
-                background:
-                  "linear-gradient(135deg, rgba(255,255,255,0.6), rgba(219,234,254,0.3))",
-                boxShadow:
-                  "0 8px 32px rgba(59,130,246,0.1), inset 0 1px 0 rgba(255,255,255,0.8)",
-                backdropFilter: "blur(10px)",
-                border: "1px solid rgba(255,255,255,0.5)",
-                animation: "float 6s ease-in-out infinite",
-                zIndex: 1,
-              }}
-            />
-            <div
-              className="hidden md:block"
-              style={{
-                position: "absolute",
-                bottom: "18%",
-                right: "7%",
-                width: "clamp(35px, 6vw, 65px)",
-                height: "clamp(35px, 6vw, 65px)",
-                borderRadius: "50%",
-                background:
-                  "linear-gradient(135deg, rgba(255,255,255,0.5), rgba(191,219,254,0.3))",
-                boxShadow:
-                  "0 8px 32px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.7)",
-                backdropFilter: "blur(8px)",
-                border: "1px solid rgba(255,255,255,0.4)",
-                animation: "float 8s ease-in-out infinite reverse",
-                zIndex: 1,
-              }}
-            />
-            <div
-              className="hidden lg:block"
-              style={{
-                position: "absolute",
-                top: "35%",
-                right: "18%",
-                width: "45px",
-                height: "45px",
-                borderRadius: "50%",
-                background:
-                  "linear-gradient(135deg, rgba(255,255,255,0.4), rgba(147,197,253,0.2))",
-                boxShadow:
-                  "0 6px 24px rgba(59,130,246,0.06), inset 0 1px 0 rgba(255,255,255,0.6)",
-                backdropFilter: "blur(6px)",
-                border: "1px solid rgba(255,255,255,0.3)",
-                animation: "float 7s ease-in-out infinite",
-                animationDelay: "2s",
-                zIndex: 1,
-              }}
-            />
-
-            {/* Floating sparkle particles */}
-            {[...Array(6)].map((_, i) => (
-              <div
-                key={`package-sparkle-${i}`}
-                className="hidden sm:block"
-                style={{
-                  position: "absolute",
-                  width: `${3 + (i % 3) * 2}px`,
-                  height: `${3 + (i % 3) * 2}px`,
-                  borderRadius: "50%",
-                  background: `rgba(59,130,246,${0.15 + (i % 4) * 0.08})`,
-                  boxShadow: `0 0 ${4 + i * 2}px rgba(59,130,246,${0.1 + (i % 3) * 0.05})`,
-                  top: `${10 + ((i * 37) % 70)}%`,
-                  left: `${5 + ((i * 41) % 85)}%`,
-                  animation: `heroSparkle ${5 + i * 1.5}s ease-in-out infinite`,
-                  animationDelay: `${i * 0.7}s`,
-                  pointerEvents: "none",
-                  zIndex: 1,
-                }}
-              />
-            ))}
+            {/* Removed for clean image visibility */}
 
             {/* Hero Content */}
             <div
@@ -1342,13 +1206,13 @@ export default function Packages() {
                   background: "rgba(255,255,255,0.7)",
                   backdropFilter: "blur(12px)",
                   WebkitBackdropFilter: "blur(12px)",
-                  border: "1px solid rgba(59,130,246,0.15)",
+                  border: "1px solid rgba(255,255,255,0.3)",
                   borderRadius: "50px",
                   marginBottom: "1.2rem",
                   fontSize: "clamp(0.7rem, 2vw, 0.82rem)",
                   color: "#1e40af",
                   fontWeight: 600,
-                  boxShadow: "0 2px 12px rgba(59,130,246,0.08)",
+                  boxShadow: "0 2px 12px rgba(0,0,0,0.1)",
                   animation: "fadeInUp 0.8s ease-out",
                   animationDelay: "0.1s",
                   animationFillMode: "both",
@@ -1370,33 +1234,37 @@ export default function Packages() {
 
               <h1
                 style={{
+                  fontSize: "clamp(1.5rem, 6vw, 4rem)",
+                  fontWeight: 900,
+                  marginBottom: "0.5rem",
+                  lineHeight: 1.1,
+                  letterSpacing: "-0.03em",
+                  padding: "0 0.25rem",
                   animation: "fadeInUp 0.8s ease-out",
                   animationDelay: "0.25s",
                   animationFillMode: "both",
+                  color: "#ffffff",
+                  textShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
                 }}
               >
-                Explore Our
-                <span
-                  style={{
-                    background:
-                      "linear-gradient(135deg, #1d4ed8 0%, #3b82f6 50%, #2563eb 100%)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                    backgroundClip: "text",
-                  }}
-                >
-                  Travel Packages
-                </span>
+                From Planning to Paradise — We&apos;ve Got You.
               </h1>
               <p
                 style={{
+                  fontSize: "clamp(0.8rem, 3vw, 1.25rem)",
+                  color: "#ffffff",
+                  lineHeight: 1.6,
+                  fontWeight: 500,
+                  maxWidth: "600px",
+                  margin: "0 auto",
+                  padding: "0 0.5rem",
                   animation: "fadeInUp 0.8s ease-out",
                   animationDelay: "0.45s",
                   animationFillMode: "both",
+                  textShadow: "0 1px 4px rgba(0, 0, 0, 0.2)",
                 }}
               >
-                Discover handpicked adventures across India&apos;s most
-                beautiful destinations.
+                Curated travel experiences tailored just for you.
               </p>
 
               {/* Trust Indicators */}
@@ -1490,6 +1358,10 @@ export default function Packages() {
                 border: "1px solid rgba(59,130,246,0.1)",
                 boxShadow:
                   "0 8px 32px rgba(59,130,246,0.08), 0 2px 8px rgba(0,0,0,0.04)",
+                width: "100%",
+                maxWidth: "900px",
+                margin: "0 auto",
+                padding: "1.5rem",
               }}
             >
               <div

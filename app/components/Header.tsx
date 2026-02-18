@@ -13,6 +13,7 @@ type HeaderProps = {
     | "homestays"
     | "deals"
     | "luxury"
+    | "events"
     | "verified"
     | "login"
     | "signup"
@@ -20,6 +21,7 @@ type HeaderProps = {
     | "bookings"
     | "wishlist"
     | "transactions";
+  forceBlackText?: boolean;
 };
 
 interface Package {
@@ -47,6 +49,7 @@ const navItems: Array<{
   { key: "packages", label: "Packages", href: "/packages" },
   { key: "deals", label: "Deals", href: "/deals" },
   { key: "luxury", label: "Luxury", href: "/luxury" },
+  { key: "events", label: "Events", href: "/events" },
   { key: "verified", label: "Travel Expertz Properties", href: "/verified" },
 ];
 
@@ -59,13 +62,14 @@ const authItems: Array<{
   { key: "signup", label: "Sign Up", href: "/auth/register" },
 ];
 
-export default function Header({ currentPage }: HeaderProps) {
+export default function Header({ currentPage, forceBlackText }: HeaderProps) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState("User");
   const [mounted, setMounted] = useState(false);
   const [packages, setPackages] = useState<Package[]>([]);
   const [packagesLoading, setPackagesLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   // Fetch packages from packages_list collection
   const fetchPackages = async () => {
@@ -97,6 +101,14 @@ export default function Header({ currentPage }: HeaderProps) {
     }
     // Fetch packages on mount
     fetchPackages();
+
+    // Scroll listener for header background
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   if (!mounted) {
@@ -111,14 +123,15 @@ export default function Header({ currentPage }: HeaderProps) {
     return (
       <>
         <HeaderLoggedIn currentPage={validCurrentPage} userName={userName} />
-        <div style={{ paddingTop: "4rem" }} />
       </>
     );
   }
 
   return (
     <>
-      <header style={{ position: "relative" }}>
+      <header
+        className={`${scrolled ? "header-scrolled" : ""} ${forceBlackText && !scrolled ? "header-black-text" : ""}`}
+      >
         <div className="max-w-7xl mx-auto" style={{ position: "relative" }}>
           <div className="flex items-center">
             <Link
@@ -146,11 +159,16 @@ export default function Header({ currentPage }: HeaderProps) {
                     key={item.key}
                     href={item.href}
                     aria-current={isActive ? "page" : undefined}
-                    className={isActive ? "text-primary" : undefined}
                     style={{
                       fontSize: "1.05rem",
                       fontWeight: "500",
                       padding: "0.5rem 0.25rem",
+                      color:
+                        forceBlackText && !scrolled
+                          ? "#000000"
+                          : scrolled
+                            ? undefined
+                            : "white",
                     }}
                   >
                     {item.label}
@@ -168,8 +186,13 @@ export default function Header({ currentPage }: HeaderProps) {
                   minWidth: "130px",
                   height: "3rem",
                   backgroundColor: "transparent",
-                  color: "var(--primary)",
-                  border: "2px solid var(--primary)",
+                  color:
+                    forceBlackText && !scrolled
+                      ? "#000000"
+                      : scrolled
+                        ? "var(--primary)"
+                        : "white",
+                  border: `2px solid ${forceBlackText && !scrolled ? "#000000" : scrolled ? "var(--primary)" : "white"}`,
                   borderRadius: "0.5rem",
                   fontWeight: 600,
                   fontSize: "1rem",
@@ -179,12 +202,26 @@ export default function Header({ currentPage }: HeaderProps) {
                   marginRight: "1rem",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = "var(--primary)";
-                  e.currentTarget.style.color = "white";
+                  if (forceBlackText && !scrolled) {
+                    e.currentTarget.style.backgroundColor = "#000000";
+                    e.currentTarget.style.color = "white";
+                  } else {
+                    e.currentTarget.style.backgroundColor = scrolled
+                      ? "var(--primary)"
+                      : "white";
+                    e.currentTarget.style.color = scrolled
+                      ? "white"
+                      : "var(--primary)";
+                  }
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor = "transparent";
-                  e.currentTarget.style.color = "var(--primary)";
+                  e.currentTarget.style.color =
+                    forceBlackText && !scrolled
+                      ? "#000000"
+                      : scrolled
+                        ? "var(--primary)"
+                        : "white";
                 }}
               >
                 Login
@@ -195,28 +232,73 @@ export default function Header({ currentPage }: HeaderProps) {
                 style={{
                   minWidth: "130px",
                   height: "3rem",
-                  backgroundColor: "var(--primary)",
+                  backgroundColor:
+                    forceBlackText && !scrolled
+                      ? "#000000"
+                      : scrolled
+                        ? "var(--primary)"
+                        : "rgba(255, 255, 255, 0.2)",
                   color: "white",
-                  border: "2px solid var(--primary)",
+                  border: `2px solid ${forceBlackText && !scrolled ? "#000000" : scrolled ? "var(--primary)" : "white"}`,
                   borderRadius: "0.5rem",
                   fontWeight: 600,
                   fontSize: "1rem",
                   cursor: "pointer",
                   transition: "all 0.2s ease",
                   padding: "0.5rem 1.5rem",
-                  boxShadow: "0 2px 8px rgba(0, 102, 204, 0.3)",
+                  boxShadow:
+                    forceBlackText && !scrolled
+                      ? "0 2px 8px rgba(0, 0, 0, 0.3)"
+                      : scrolled
+                        ? "0 2px 8px rgba(0, 102, 204, 0.3)"
+                        : "0 2px 8px rgba(255, 255, 255, 0.2)",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = "var(--primary-dark)";
-                  e.currentTarget.style.borderColor = "var(--primary-dark)";
+                  e.currentTarget.style.backgroundColor =
+                    forceBlackText && !scrolled
+                      ? "#333333"
+                      : scrolled
+                        ? "var(--primary-dark)"
+                        : "white";
+                  e.currentTarget.style.color =
+                    forceBlackText && !scrolled
+                      ? "white"
+                      : scrolled
+                        ? "white"
+                        : "var(--primary)";
+                  e.currentTarget.style.borderColor =
+                    forceBlackText && !scrolled
+                      ? "#333333"
+                      : scrolled
+                        ? "var(--primary-dark)"
+                        : "white";
                   e.currentTarget.style.boxShadow =
-                    "0 4px 12px rgba(0, 102, 204, 0.4)";
+                    forceBlackText && !scrolled
+                      ? "0 4px 12px rgba(0, 0, 0, 0.4)"
+                      : scrolled
+                        ? "0 4px 12px rgba(0, 102, 204, 0.4)"
+                        : "0 4px 12px rgba(255, 255, 255, 0.3)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "var(--primary)";
-                  e.currentTarget.style.borderColor = "var(--primary)";
+                  e.currentTarget.style.backgroundColor =
+                    forceBlackText && !scrolled
+                      ? "#000000"
+                      : scrolled
+                        ? "var(--primary)"
+                        : "rgba(255, 255, 255, 0.2)";
+                  e.currentTarget.style.color = "white";
+                  e.currentTarget.style.borderColor =
+                    forceBlackText && !scrolled
+                      ? "#000000"
+                      : scrolled
+                        ? "var(--primary)"
+                        : "white";
                   e.currentTarget.style.boxShadow =
-                    "0 2px 8px rgba(0, 102, 204, 0.3)";
+                    forceBlackText && !scrolled
+                      ? "0 2px 8px rgba(0, 0, 0, 0.3)"
+                      : scrolled
+                        ? "0 2px 8px rgba(0, 102, 204, 0.3)"
+                        : "0 2px 8px rgba(255, 255, 255, 0.2)";
                 }}
               >
                 Sign Up
@@ -231,8 +313,17 @@ export default function Header({ currentPage }: HeaderProps) {
               style={{
                 width: "44px",
                 height: "44px",
-                color: "var(--primary)",
-                backgroundColor: mobileMenuOpen ? "#f0f9ff" : "transparent",
+                color:
+                  forceBlackText && !scrolled
+                    ? "#000000"
+                    : scrolled
+                      ? "var(--primary)"
+                      : "white",
+                backgroundColor: mobileMenuOpen
+                  ? scrolled
+                    ? "#f0f9ff"
+                    : "rgba(255, 255, 255, 0.2)"
+                  : "transparent",
                 border: "none",
                 borderRadius: "12px",
                 cursor: "pointer",

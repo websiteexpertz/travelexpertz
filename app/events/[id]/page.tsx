@@ -442,29 +442,92 @@ export default function EventDetailsPage() {
                     >
                       📍 Location
                     </p>
-                    <a
-                      href={`https://www.google.com/maps/search/${encodeURIComponent(event.location + " " + event.city + " " + event.state)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <div
                       style={{
                         fontSize: "1.1rem",
-                        color: "#667eea",
+                        color: "#1a1a2e",
                         margin: 0,
                         fontWeight: 600,
-                        textDecoration: "none",
-                        transition: "all 0.2s ease",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.textDecoration = "underline";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.textDecoration = "none";
                       }}
                     >
-                      {event.location}
+                      <button
+                        onClick={() => {
+                          router.push(`/hotels?location=${encodeURIComponent(event.location)}`);
+                        }}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#667eea",
+                          fontSize: "1.1rem",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          textDecoration: "none",
+                          transition: "all 0.2s ease",
+                          padding: "0",
+                          marginRight: "0.25rem",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.textDecoration = "underline";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.textDecoration = "none";
+                        }}
+                      >
+                        {event.location}
+                      </button>
                       <br />
-                      {event.city}, {event.state}
-                    </a>
+                      <button
+                        onClick={() => {
+                          router.push(`/hotels?location=${encodeURIComponent(event.city)}`);
+                        }}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#667eea",
+                          fontSize: "1rem",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          textDecoration: "none",
+                          transition: "all 0.2s ease",
+                          padding: "0",
+                          marginRight: "0.25rem",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.textDecoration = "underline";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.textDecoration = "none";
+                        }}
+                      >
+                        {event.city}
+                      </button>
+                      , 
+                      <button
+                        onClick={() => {
+                          router.push(`/hotels?location=${encodeURIComponent(event.state)}`);
+                        }}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#667eea",
+                          fontSize: "1rem",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          textDecoration: "none",
+                          transition: "all 0.2s ease",
+                          padding: "0",
+                          marginLeft: "0.1rem",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.textDecoration = "underline";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.textDecoration = "none";
+                        }}
+                      >
+                        {event.state}
+                      </button>
+                    </div>
                   </div>
 
                   {/* Price */}
