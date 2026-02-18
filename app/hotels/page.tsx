@@ -7,8 +7,6 @@ import Header from "../components/Header";
 import DatePicker from "../components/DatePicker";
 import { formatDateShort } from "@/lib/utils/dateFormat";
 
-export const dynamic = "force-dynamic";
-
 interface Hotel {
   _id?: string;
   name: string;
@@ -76,9 +74,13 @@ const STAR_OPTIONS = [
 ];
 
 export default function Hotels() {
+  const [isMounted, setIsMounted] = useState(false);
   const searchParams = useSearchParams();
 
-  // Get today's date and 2 days later
+  // Ensure component only renders on client
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
   const getTodayDate = () => {
     const today = new Date();
     return today.toISOString().split("T")[0];
@@ -305,6 +307,8 @@ export default function Hotels() {
     selectedAmenities,
     showPopularOnly,
   ]);
+
+  if (!isMounted) return null;
 
   return (
     <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden">
