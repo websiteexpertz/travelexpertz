@@ -122,7 +122,15 @@ export default function HeaderLoggedIn({
             </nav>
 
             {/* Desktop User Actions */}
-            <div className="hidden md:flex items-center gap-3 ml-auto">
+            <div
+              className="desktop-user-actions"
+              style={{
+                display: "none",
+                alignItems: "center",
+                gap: "0.75rem",
+                marginLeft: "auto",
+              }}
+            >
               {/* Wishlist Icon */}
               <Link
                 href="/user/wishlist"
@@ -754,6 +762,12 @@ export default function HeaderLoggedIn({
           to {
             opacity: 1;
             transform: translateX(0);
+          }
+        }
+
+        @media (min-width: 768px) {
+          .desktop-user-actions {
+            display: flex !important;
           }
         }
       `}</style>

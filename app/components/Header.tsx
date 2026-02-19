@@ -178,7 +178,15 @@ export default function Header({ currentPage, forceBlackText }: HeaderProps) {
             </nav>
 
             {/* Desktop Auth Buttons */}
-            <div className="hidden md:flex items-center gap-10 ml-auto">
+            <div
+              className="desktop-auth-buttons"
+              style={{
+                display: "none",
+                alignItems: "center",
+                gap: "2.5rem",
+                marginLeft: "auto",
+              }}
+            >
               <Link
                 href="/auth/login"
                 className="inline-flex items-center justify-center"
@@ -600,6 +608,12 @@ export default function Header({ currentPage, forceBlackText }: HeaderProps) {
           to {
             opacity: 1;
             transform: translateX(0);
+          }
+        }
+
+        @media (min-width: 768px) {
+          .desktop-auth-buttons {
+            display: flex !important;
           }
         }
       `}</style>
