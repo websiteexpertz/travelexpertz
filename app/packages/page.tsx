@@ -281,8 +281,8 @@ const packagesPageStyles = `
   /* Hero Section */
   .packages-hero {
     position: relative;
-    height: 100vh;
-    min-height: 100vh;
+    height: auto;
+    min-height: auto;
     background-size: cover;
     background-position: center;
     overflow: hidden;
@@ -290,7 +290,7 @@ const packagesPageStyles = `
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 0;
+    padding: 3rem 1.5rem;
     margin: 0 !important;
     width: 100%;
     border-radius: 0;
@@ -313,16 +313,16 @@ const packagesPageStyles = `
   }
   
   .packages-hero h1 {
-    font-size: clamp(1.75rem, 5vw, 3rem);
-    font-weight: 800;
-    color: #0f172a;
+    font-size: clamp(1.25rem, 5vw, 2.5rem);
+    font-weight: 700;
+    color: #ffffff;
     margin-bottom: 0.75rem;
-    text-shadow: none;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
   
   .packages-hero p {
-    font-size: clamp(0.9rem, 2vw, 1.1rem);
-    color: #475569;
+    font-size: clamp(0.85rem, 2vw, 1rem);
+    color: #ffffff;
     margin-bottom: 1.5rem;
   }
 
@@ -1234,8 +1234,8 @@ export default function Packages() {
 
               <h1
                 style={{
-                  fontSize: "clamp(1.5rem, 6vw, 4rem)",
-                  fontWeight: 900,
+                  fontSize: "clamp(1.25rem, 5vw, 2.5rem)",
+                  fontWeight: 700,
                   marginBottom: "0.5rem",
                   lineHeight: 1.1,
                   letterSpacing: "-0.03em",
@@ -1251,7 +1251,7 @@ export default function Packages() {
               </h1>
               <p
                 style={{
-                  fontSize: "clamp(0.8rem, 3vw, 1.25rem)",
+                  fontSize: "clamp(0.85rem, 2vw, 1rem)",
                   color: "#ffffff",
                   lineHeight: 1.6,
                   fontWeight: 500,

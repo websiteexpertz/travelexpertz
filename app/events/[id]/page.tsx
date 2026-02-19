@@ -29,6 +29,23 @@ export default function EventDetailsPage() {
   const router = useRouter();
   const eventId = params.id as string;
   const [event, setEvent] = useState<Event | null>(null);
+
+  // Helper function to generate hotels search URL
+  const generateHotelsSearchUrl = (location: string) => {
+    const today = new Date().toISOString().split("T")[0];
+    const checkOut = new Date(new Date().getTime() + 2 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0];
+    const params = new URLSearchParams({
+      location: location,
+      checkIn: today,
+      checkOut: checkOut,
+      guests: "2",
+      rooms: "1",
+      priceRange: "all",
+    });
+    return `/hotels/search?${params.toString()}`;
+  };
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showFullscreenGallery, setShowFullscreenGallery] = useState(false);
@@ -452,7 +469,7 @@ export default function EventDetailsPage() {
                     >
                       <button
                         onClick={() => {
-                          router.push(`/hotels?location=${encodeURIComponent(event.location)}`);
+                          router.push(generateHotelsSearchUrl(event.location));
                         }}
                         style={{
                           background: "none",
@@ -478,7 +495,7 @@ export default function EventDetailsPage() {
                       <br />
                       <button
                         onClick={() => {
-                          router.push(`/hotels?location=${encodeURIComponent(event.city)}`);
+                          router.push(generateHotelsSearchUrl(event.city));
                         }}
                         style={{
                           background: "none",
@@ -501,10 +518,10 @@ export default function EventDetailsPage() {
                       >
                         {event.city}
                       </button>
-                      , 
+                      ,
                       <button
                         onClick={() => {
-                          router.push(`/hotels?location=${encodeURIComponent(event.state)}`);
+                          router.push(generateHotelsSearchUrl(event.state));
                         }}
                         style={{
                           background: "none",

@@ -384,6 +384,7 @@ export default function Home() {
               position: "relative",
               overflow: "hidden",
               transition: "background-image 0.8s ease-in-out",
+              minHeight: "100vh",
             }}
           >
             <div
