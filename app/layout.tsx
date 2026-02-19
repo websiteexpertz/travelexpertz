@@ -6,6 +6,9 @@ import RootLayoutClient from "./layout-client";
 export const metadata: Metadata = {
   title: "TravelExpertz - Travel & Hotel Booking",
   description: "Your ultimate travel booking platform",
+  icons: {
+    icon: "/logo.ico",
+  },
 };
 
 export default function RootLayout({
@@ -18,6 +21,7 @@ export default function RootLayout({
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" href="/logo.ico" />
         <link href="https://fonts.googleapis.com" rel="preconnect" />
         <link
           crossOrigin=""
