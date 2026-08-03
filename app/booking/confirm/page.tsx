@@ -55,7 +55,7 @@ function BookingConfirmationContent() {
   if (loading) {
     return (
       <div>
-        <Header />
+        <Header solidHeader={true} />
         <div style={{ padding: "3rem", textAlign: "center" }}>
           <p>Loading booking confirmation...</p>
         </div>
@@ -66,7 +66,7 @@ function BookingConfirmationContent() {
   if (!booking) {
     return (
       <div>
-        <Header />
+        <Header solidHeader={true} />
         <div style={{ padding: "3rem", textAlign: "center" }}>
           <p>Booking not found</p>
         </div>
@@ -76,7 +76,7 @@ function BookingConfirmationContent() {
 
   return (
     <div>
-      <Header />
+      <Header solidHeader={true} />
 
       <div
         style={{

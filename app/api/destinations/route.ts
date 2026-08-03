@@ -76,14 +76,35 @@ export async function POST(request: NextRequest) {
 
     const db = client.db(MONGODB_DB);
     const destinationsCollection = db.collection("destinations");
+    const locationsCollection = db.collection("locations");
 
     const now = new Date();
-    const result = await destinationsCollection.insertOne({
+    const destinationData = {
       ...body,
       active: true,
       createdAt: now,
       updatedAt: now,
+    };
+
+    const result = await destinationsCollection.insertOne(destinationData);
+
+    // Also create location for this destination
+    const locationData = {
+      name: body.name,
+      destinationId: result.insertedId,
+      active: true,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    // Check if location already exists
+    const existingLocation = await locationsCollection.findOne({
+      name: { $regex: `^${body.name}$`, $options: "i" },
     });
+
+    if (!existingLocation) {
+      await locationsCollection.insertOne(locationData);
+    }
 
     return NextResponse.json({ _id: result.insertedId, ...body }, { status: 201 });
   } catch (error) {
@@ -127,6 +148,12 @@ export async function PATCH(request: NextRequest) {
 
     const db = client.db(MONGODB_DB);
     const destinationsCollection = db.collection("destinations");
+    const locationsCollection = db.collection("locations");
+
+    // Get the original destination to check if name changed
+    const originalDestination = await destinationsCollection.findOne({
+      _id: new ObjectId(id),
+    });
 
     const result = await destinationsCollection.updateOne(
       { _id: new ObjectId(id) },
@@ -137,6 +164,51 @@ export async function PATCH(request: NextRequest) {
 
     if (result.matchedCount === 0) {
       return NextResponse.json({ error: "Destination not found" }, { status: 404 });
+    }
+
+    // If name changed, update or create location
+    if (originalDestination && updateData.name && originalDestination.name !== updateData.name) {
+      // Try to find and update existing location for this destination
+      const existingLocation = await locationsCollection.findOne({
+        destinationId: new ObjectId(id),
+      });
+
+      if (existingLocation) {
+        await locationsCollection.updateOne(
+          { _id: existingLocation._id },
+          { $set: { name: updateData.name, updatedAt: new Date() } }
+        );
+      } else {
+        // Create new location if doesn't exist
+        const nameExists = await locationsCollection.findOne({
+          name: { $regex: `^${updateData.name}$`, $options: "i" },
+        });
+
+        if (!nameExists) {
+          await locationsCollection.insertOne({
+            name: updateData.name,
+            destinationId: new ObjectId(id),
+            active: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+        }
+      }
+    } else if (!originalDestination && updateData.name) {
+      // If original not found but name is provided, create location
+      const nameExists = await locationsCollection.findOne({
+        name: { $regex: `^${updateData.name}$`, $options: "i" },
+      });
+
+      if (!nameExists) {
+        await locationsCollection.insertOne({
+          name: updateData.name,
+          destinationId: new ObjectId(id),
+          active: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
     }
 
     return NextResponse.json({ success: true });
@@ -175,12 +247,16 @@ export async function DELETE(request: NextRequest) {
 
     const db = client.db(MONGODB_DB);
     const destinationsCollection = db.collection("destinations");
+    const locationsCollection = db.collection("locations");
 
     const result = await destinationsCollection.deleteOne({ _id: new ObjectId(id) });
 
     if (result.deletedCount === 0) {
       return NextResponse.json({ error: "Destination not found" }, { status: 404 });
     }
+
+    // Also delete associated location
+    await locationsCollection.deleteOne({ destinationId: new ObjectId(id) });
 
     return NextResponse.json({ success: true });
   } catch (error) {

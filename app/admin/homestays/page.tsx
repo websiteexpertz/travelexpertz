@@ -30,6 +30,8 @@ interface Homestay {
   _id?: string;
   name: string;
   location: string;
+  state?: string;
+  city?: string;
   address: string;
   price: number;
   rating: number;
@@ -69,6 +71,8 @@ interface Homestay {
 const emptyHomestay: Homestay = {
   name: "",
   location: "",
+  state: "",
+  city: "",
   address: "",
   price: 0,
   rating: 4.5,
@@ -122,6 +126,15 @@ export default function AdminHomestays() {
   const [nearbyPlaceName, setNearbyPlaceName] = useState<string>("");
   const [nearbyPlaceDistance, setNearbyPlaceDistance] = useState<string>("");
   const [uploadingImages, setUploadingImages] = useState<boolean>(false);
+  const [uploadingRoomImage, setUploadingRoomImage] = useState<boolean>(false);
+  const [uploadingRoomImages, setUploadingRoomImages] =
+    useState<boolean>(false);
+  const [statesAndCities, setStatesAndCities] = useState<
+    { stateName: string; cityName: string }[]
+  >([]);
+  const [states, setStates] = useState<string[]>([]);
+  const [selectedState, setSelectedState] = useState<string>("");
+  const [selectedCity, setSelectedCity] = useState<string>("");
   const [roomFormData, setRoomFormData] = useState<Room>({
     id: "",
     type: "",
@@ -148,7 +161,26 @@ export default function AdminHomestays() {
 
   useEffect(() => {
     fetchHomestays();
+    fetchStatesAndCities();
   }, []);
+
+  const fetchStatesAndCities = async () => {
+    try {
+      const response = await fetch("/api/hotel-destinations/states/all");
+      if (response.ok) {
+        const data = await response.json();
+        setStatesAndCities(data);
+
+        // Extract unique states
+        const uniqueStates = [
+          ...new Set(data.map((item: any) => item.stateName)),
+        ];
+        setStates(uniqueStates as string[]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch states and cities:", error);
+    }
+  };
 
   const fetchHomestays = async () => {
     try {
@@ -249,6 +281,8 @@ export default function AdminHomestays() {
   const resetForm = () => {
     setFormData(emptyHomestay);
     setEditingId(null);
+    setSelectedState("");
+    setSelectedCity("");
     setActiveTab("basic");
     setEditingRoomIndex(null);
     setRoomFormData({
@@ -439,6 +473,76 @@ export default function AdminHomestays() {
     }));
   };
 
+  const handleRoomImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingRoomImage(true);
+    const formDataForUpload = new FormData();
+    formDataForUpload.append("file", file);
+
+    try {
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formDataForUpload,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setRoomFormData((prev) => ({ ...prev, images: [data.url] }));
+      }
+    } catch (error) {
+      console.error("Failed to upload room image:", error);
+    } finally {
+      setUploadingRoomImage(false);
+    }
+  };
+
+  const handleRoomMultipleImagesUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingRoomImages(true);
+    const uploadedUrls: string[] = [];
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const formDataForUpload = new FormData();
+        formDataForUpload.append("file", files[i]);
+
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: formDataForUpload,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          uploadedUrls.push(data.url);
+        }
+      }
+
+      setRoomFormData((prev) => ({
+        ...prev,
+        images: [...(prev.images || []), ...uploadedUrls],
+      }));
+    } catch (error) {
+      console.error("Failed to upload room images:", error);
+    } finally {
+      setUploadingRoomImages(false);
+    }
+  };
+
+  const removeRoomImage = (index: number) => {
+    setRoomFormData((prev) => ({
+      ...prev,
+      images: (prev.images || []).filter((_, i) => i !== index),
+    }));
+  };
+
   const submitHomestay = async () => {
     const method = editingId ? "PATCH" : "POST";
     const payload = editingId ? { ...formData, _id: editingId } : formData;
@@ -536,6 +640,8 @@ export default function AdminHomestays() {
       rooms: homestay.rooms || [],
       userReviews: homestay.userReviews || [],
     });
+    setSelectedState(homestay.state || "");
+    setSelectedCity(homestay.city || "");
     setEditingId(homestay._id || null);
     setShowForm(true);
     setActiveTab("basic");
@@ -718,30 +824,90 @@ export default function AdminHomestays() {
                       }}
                     />
                   </div>
-                  <div>
-                    <label
-                      style={{
-                        display: "block",
-                        marginBottom: "0.5rem",
-                        fontWeight: 600,
-                        fontSize: "0.9rem",
-                      }}
-                    >
-                      Location *
-                    </label>
-                    <input
-                      name="location"
-                      value={formData.location}
-                      onChange={handleInputChange}
-                      placeholder="City, Country"
-                      style={{
-                        width: "100%",
-                        padding: "0.75rem",
-                        border: "1px solid #d1d5db",
-                        borderRadius: "8px",
-                        fontSize: "0.95rem",
-                      }}
-                    />
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gap: "1rem",
+                    }}
+                  >
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          marginBottom: "0.5rem",
+                          fontWeight: 600,
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        State *
+                      </label>
+                      <select
+                        value={selectedState}
+                        onChange={(e) => {
+                          setSelectedState(e.target.value);
+                          setSelectedCity("");
+                          setFormData({
+                            ...formData,
+                            state: e.target.value,
+                            city: "",
+                          });
+                        }}
+                        style={{
+                          width: "100%",
+                          padding: "0.75rem",
+                          border: "1px solid #d1d5db",
+                          borderRadius: "8px",
+                          fontSize: "0.95rem",
+                        }}
+                      >
+                        <option value="">Select State</option>
+                        {states.map((state) => (
+                          <option key={state} value={state}>
+                            {state}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          marginBottom: "0.5rem",
+                          fontWeight: 600,
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        City *
+                      </label>
+                      <select
+                        value={selectedCity}
+                        onChange={(e) => {
+                          setSelectedCity(e.target.value);
+                          setFormData({
+                            ...formData,
+                            city: e.target.value,
+                            location: `${e.target.value}, ${selectedState}`,
+                          });
+                        }}
+                        style={{
+                          width: "100%",
+                          padding: "0.75rem",
+                          border: "1px solid #d1d5db",
+                          borderRadius: "8px",
+                          fontSize: "0.95rem",
+                        }}
+                      >
+                        <option value="">Select City</option>
+                        {statesAndCities
+                          .filter((item) => item.stateName === selectedState)
+                          .map((item) => (
+                            <option key={item.cityName} value={item.cityName}>
+                              {item.cityName}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
 
@@ -2411,6 +2577,157 @@ export default function AdminHomestays() {
                       >
                         + Add Amenity
                       </button>
+                    </div>
+
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          marginBottom: "0.5rem",
+                          fontWeight: 600,
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        Room Image (Thumbnail)
+                      </label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleRoomImageUpload}
+                        style={{ marginBottom: "0.5rem" }}
+                      />
+                      {uploadingRoomImage && (
+                        <p style={{ color: "#6b7280", fontSize: "0.85rem" }}>
+                          Uploading...
+                        </p>
+                      )}
+                      {roomFormData.images &&
+                        roomFormData.images.length > 0 && (
+                          <div
+                            style={{
+                              marginTop: "0.5rem",
+                              position: "relative",
+                              width: "100px",
+                              height: "100px",
+                            }}
+                          >
+                            <img
+                              src={roomFormData.images[0]}
+                              alt="Room Thumbnail"
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                                borderRadius: "8px",
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeRoomImage(0)}
+                              style={{
+                                position: "absolute",
+                                top: "-8px",
+                                right: "-8px",
+                                padding: "0.3rem",
+                                background: "#ef4444",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "50%",
+                                cursor: "pointer",
+                                fontSize: "0.75rem",
+                                width: "24px",
+                                height: "24px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        )}
+                    </div>
+
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          marginBottom: "0.5rem",
+                          fontWeight: 600,
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        Gallery Images (Multiple)
+                      </label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleRoomMultipleImagesUpload}
+                        style={{ marginBottom: "0.5rem" }}
+                      />
+                      {uploadingRoomImages && (
+                        <p style={{ color: "#6b7280", fontSize: "0.85rem" }}>
+                          Uploading images...
+                        </p>
+                      )}
+                      {roomFormData.images &&
+                        roomFormData.images.length > 1 && (
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns:
+                                "repeat(auto-fill, minmax(100px, 1fr))",
+                              gap: "0.5rem",
+                              marginTop: "0.5rem",
+                            }}
+                          >
+                            {roomFormData.images.slice(1).map((img, index) => (
+                              <div
+                                key={index}
+                                style={{
+                                  position: "relative",
+                                  width: "100px",
+                                  height: "100px",
+                                }}
+                              >
+                                <img
+                                  src={img}
+                                  alt={`Gallery ${index + 1}`}
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                    borderRadius: "8px",
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeRoomImage(index + 1)}
+                                  style={{
+                                    position: "absolute",
+                                    top: "-8px",
+                                    right: "-8px",
+                                    padding: "0.3rem",
+                                    background: "#ef4444",
+                                    color: "white",
+                                    border: "none",
+                                    borderRadius: "50%",
+                                    cursor: "pointer",
+                                    fontSize: "0.75rem",
+                                    width: "24px",
+                                    height: "24px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                  }}
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                     </div>
 
                     <div

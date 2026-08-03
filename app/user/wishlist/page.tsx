@@ -104,7 +104,7 @@ export default function WishlistPage() {
   if (loading) {
     return (
       <>
-        <Header />
+        <Header solidHeader={true} />
         <div
           style={{
             minHeight: "100vh",
@@ -122,7 +122,7 @@ export default function WishlistPage() {
 
   return (
     <>
-      <Header />
+      <Header solidHeader={true} />
       <div
         style={{
           minHeight: "100vh",

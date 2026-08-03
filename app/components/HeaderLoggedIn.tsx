@@ -19,6 +19,7 @@ type HeaderLoggedInProps = {
     | "wishlist"
     | "transactions";
   userName?: string;
+  isHeroPage?: boolean;
 };
 
 const navItems: Array<{
@@ -39,6 +40,7 @@ const navItems: Array<{
 export default function HeaderLoggedIn({
   currentPage,
   userName = "User",
+  isHeroPage = false,
 }: HeaderLoggedInProps) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -61,7 +63,7 @@ export default function HeaderLoggedIn({
   return (
     <>
       <header
-        className={scrolled ? "header-scrolled" : ""}
+        className={`${isHeroPage && !scrolled ? "header-hero" : scrolled || !isHeroPage ? "header-scrolled" : ""}`}
         style={{
           position: "fixed",
           top: 0,
@@ -71,7 +73,8 @@ export default function HeaderLoggedIn({
           zIndex: 1000,
           backgroundColor: "transparent",
           boxShadow: "none",
-          transition: "background-color 0.3s ease, box-shadow 0.3s ease",
+          transition:
+            "background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
         }}
       >
         <div
@@ -108,11 +111,42 @@ export default function HeaderLoggedIn({
                     key={item.key}
                     href={item.href}
                     aria-current={isActive ? "page" : undefined}
+                    className="nav-link"
                     style={{
                       fontSize: "1.05rem",
                       fontWeight: "500",
                       padding: "0.5rem 0.25rem",
-                      color: scrolled ? undefined : "white",
+                      color: isActive
+                        ? "#0B6DFF"
+                        : isHeroPage && !scrolled
+                          ? "white"
+                          : scrolled || !isHeroPage
+                            ? "#1E293B"
+                            : "white",
+                      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                      cursor: "pointer",
+                      position: "relative",
+                      paddingBottom: "0.25rem",
+                      borderBottom: isActive
+                        ? "2px solid #0B6DFF"
+                        : "2px solid transparent",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.color = "#0B6DFF";
+                        e.currentTarget.style.opacity = "0.8";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.color =
+                          isHeroPage && !scrolled
+                            ? "white"
+                            : scrolled || !isHeroPage
+                              ? "#1E293B"
+                              : "white";
+                        e.currentTarget.style.opacity = "1";
+                      }
                     }}
                   >
                     {item.label}

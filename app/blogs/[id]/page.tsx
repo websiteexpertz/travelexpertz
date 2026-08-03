@@ -84,7 +84,7 @@ export default function BlogDetailPage() {
   if (loading) {
     return (
       <>
-        <Header />
+        <Header solidHeader={true} />
         <main style={{ minHeight: "100vh", background: "var(--gray-50)" }}>
           {/* Skeleton Header */}
           <div
@@ -164,7 +164,7 @@ export default function BlogDetailPage() {
   if (!blog) {
     return (
       <>
-        <Header />
+        <Header solidHeader={true} />
         <main
           style={{
             minHeight: "80vh",
@@ -221,7 +221,7 @@ export default function BlogDetailPage() {
 
   return (
     <>
-      <Header />
+      <Header solidHeader={true} />
       <main style={{ minHeight: "100vh", background: "var(--gray-50)" }}>
         {/* Blog Header Banner */}
         <section

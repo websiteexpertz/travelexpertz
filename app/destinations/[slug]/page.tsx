@@ -144,6 +144,42 @@ export default function DestinationDetailPage() {
                 return;
               }
             }
+            if (dest.cityData?.famousCafes) {
+              const found = dest.cityData.famousCafes.find(
+                (d: any) => d.name === itemName,
+              );
+              if (found) {
+                setItem(found);
+                setCurrentDestination(dest);
+                extractRelatedDestinations(dest, itemName);
+                setLoading(false);
+                return;
+              }
+            }
+            if (dest.cityData?.famousAttractions) {
+              const found = dest.cityData.famousAttractions.find(
+                (d: any) => d.name === itemName,
+              );
+              if (found) {
+                setItem(found);
+                setCurrentDestination(dest);
+                extractRelatedDestinations(dest, itemName);
+                setLoading(false);
+                return;
+              }
+            }
+            if (dest.cityData?.shopping) {
+              const found = dest.cityData.shopping.find(
+                (d: any) => d.name === itemName,
+              );
+              if (found) {
+                setItem(found);
+                setCurrentDestination(dest);
+                extractRelatedDestinations(dest, itemName);
+                setLoading(false);
+                return;
+              }
+            }
 
             // Check area/subarea levels
             if (dest.areas && Array.isArray(dest.areas)) {
@@ -268,6 +304,15 @@ export default function DestinationDetailPage() {
     if (destHierarchy.cityData?.thingsToDo) {
       related.push(...destHierarchy.cityData.thingsToDo);
     }
+    if (destHierarchy.cityData?.famousCafes) {
+      related.push(...destHierarchy.cityData.famousCafes);
+    }
+    if (destHierarchy.cityData?.famousAttractions) {
+      related.push(...destHierarchy.cityData.famousAttractions);
+    }
+    if (destHierarchy.cityData?.shopping) {
+      related.push(...destHierarchy.cityData.shopping);
+    }
 
     // Filter out the current item and duplicates
     const uniqueRelated = related.filter(
@@ -366,38 +411,33 @@ export default function DestinationDetailPage() {
     );
   }
 
-  const hasImages = item.images && item.images.length > 0;
-  const currentImage = hasImages ? item.images![currentImageIndex] : null;
-
   return (
-    <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-white">
+    <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-gray-50">
       <Header currentPage="hotels" />
 
-      <main
-        className="flex flex-col items-center w-full justify-center"
-        style={{ paddingTop: "4rem" }}
-      >
-        {/* Gallery Section - Grid Layout Like Events */}
+      <main className="flex flex-col items-center w-full">
+        {/* Image Gallery - Top Section */}
         {hasImages && (
           <div
             style={{
               width: "100%",
-              maxWidth: "1200px",
+              maxWidth: "1280px",
               margin: "0 auto",
               padding: "1.5rem 1rem",
             }}
           >
             <div
+              className="destination-gallery"
               style={{
                 display: "grid",
-                gridTemplateColumns:
-                  item.images!.length === 1 ? "1fr" : "2fr 1fr 1fr",
+                gridTemplateColumns: item.images!.length === 1 ? "1fr" : "2fr 1fr 1fr",
                 gridTemplateRows:
                   item.images!.length === 1 ? "auto" : "1fr 1fr",
                 gap: "0.5rem",
                 height: item.images!.length === 1 ? "auto" : "400px",
                 borderRadius: "16px",
                 overflow: "hidden",
+                position: "relative",
               }}
             >
               {/* Main large image */}
@@ -411,14 +451,13 @@ export default function DestinationDetailPage() {
                   aspectRatio: item.images!.length === 1 ? "16/9" : "auto",
                 }}
                 onClick={() => {
-                  setCurrentImageIndex(0);
                   setFullscreenImageIndex(0);
                   setFullscreenImage(item.images![0]);
                 }}
               >
                 <img
                   src={item.images![0]}
-                  alt={`${item.name} gallery 1`}
+                  alt={item.name}
                   style={{
                     width: "100%",
                     height: "100%",
@@ -458,7 +497,6 @@ export default function DestinationDetailPage() {
                         overflow: "hidden",
                       }}
                       onClick={() => {
-                        setCurrentImageIndex(idx + 1);
                         setFullscreenImageIndex(idx + 1);
                         setFullscreenImage(img);
                       }}
@@ -495,7 +533,6 @@ export default function DestinationDetailPage() {
                             color: "white",
                             fontSize: "1.5rem",
                             fontWeight: 700,
-                            cursor: "pointer",
                           }}
                         >
                           +{item.images!.length - 5} more
@@ -508,51 +545,339 @@ export default function DestinationDetailPage() {
             </div>
           </div>
         )}
-        {/* Content Section */}
+
+        {/* Main Content Section */}
         <div
+          className="destination-main-grid"
           style={{
             width: "100%",
-            padding: "clamp(2rem, 5vw, 4rem) clamp(1rem, 2vw, 1.5rem)",
-            background: "#fff",
+            maxWidth: "1280px",
+            margin: "0 auto",
+            padding: "0 1rem 2rem",
+            display: "grid",
+            gridTemplateColumns: "1fr 380px",
+            gap: "2rem",
           }}
         >
-          <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-            {/* Main Content Grid */}
+          {/* Left Column - Details */}
+          <div>
+            {/* Destination Header */}
+            <div style={{ marginBottom: "2rem" }}>
+              <h1
+                className="destination-title"
+                style={{
+                  fontSize: "2rem",
+                  fontWeight: 800,
+                  marginBottom: "0.5rem",
+                  color: "#1a1a2e",
+                }}
+              >
+                {item.name}
+              </h1>
+              {currentDestination && (
+                <div
+                  className="destination-location"
+                  style={{
+                    fontSize: "0.95rem",
+                    color: "#64748b",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                  }}
+                >
+                  <span>📍</span>
+                  <span>
+                    {currentDestination.cityName}, {currentDestination.stateName}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Description Section */}
+            {item.description && (
+              <div
+                style={{
+                  background: "white",
+                  borderRadius: "12px",
+                  padding: "2rem",
+                  marginBottom: "2rem",
+                  border: "1px solid #e2e8f0",
+                }}
+              >
+                <h2
+                  style={{
+                    fontSize: "1.3rem",
+                    fontWeight: 700,
+                    marginBottom: "1rem",
+                    color: "#1a1a2e",
+                  }}
+                >
+                  About This Destination
+                </h2>
+                <p
+                  style={{
+                    fontSize: "1rem",
+                    lineHeight: 1.8,
+                    color: "#475569",
+                    margin: 0,
+                    whiteSpace: "pre-wrap",
+                  }}
+                >
+                  {item.description}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column - Quick Info Card */}
+          <div>
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 350px",
-                gap: "clamp(2rem, 5vw, 4rem)",
+                background: "white",
+                borderRadius: "12px",
+                border: "1px solid #e2e8f0",
+                padding: "1.5rem",
+                position: "sticky",
+                top: "120px",
               }}
             >
-              {/* Left Column - Details */}
-              <div>
-                {/* Title Section */}
-                <div style={{ marginBottom: "2rem" }}>
-                  <h1
+              <h2
+                style={{
+                  fontSize: "1.2rem",
+                  fontWeight: 700,
+                  color: "#1a1a2e",
+                  margin: "0 0 1rem 0",
+                }}
+              >
+                Destination Info
+              </h2>
+
+              {/* Info Items */}
+              {hasImages && (
+                <div
+                  style={{
+                    marginBottom: "1rem",
+                    paddingBottom: "1rem",
+                    borderBottom: "1px solid #e2e8f0",
+                  }}
+                >
+                  <div
                     style={{
-                      fontSize: "clamp(1.75rem, 5vw, 2.5rem)",
-                      fontWeight: 800,
-                      margin: "0 0 0.5rem 0",
-                      lineHeight: 1.2,
+                      fontSize: "0.8rem",
+                      color: "#94a3b8",
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    📷 Gallery
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "1.5rem",
+                      fontWeight: 700,
+                      color: "#667eea",
+                    }}
+                  >
+                    {item.images!.length}{" "}
+                    {item.images!.length === 1 ? "Image" : "Images"}
+                  </div>
+                </div>
+              )}
+
+              {currentDestination && (
+                <div
+                  style={{
+                    marginBottom: "1rem",
+                    paddingBottom: "1rem",
+                    borderBottom: "1px solid #e2e8f0",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "0.8rem",
+                      color: "#94a3b8",
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    📍 Location
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "1rem",
+                      fontWeight: 600,
                       color: "#1a1a2e",
                     }}
                   >
-                    {item.name}
-                  </h1>
+                    {currentDestination.cityName}, {currentDestination.stateName}
+                  </div>
                 </div>
+              )}
 
-                {/* Description */}
-                {item.description && (
-                  <div
-                    style={{
-                      background:
-                        "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
-                      borderRadius: "16px",
-                      padding: "clamp(1.5rem, 3vw, 2.5rem)",
-                      marginBottom: "2rem",
-                    }}
-                  >
+              {/* Action Button */}
+              <button
+                onClick={() => router.back()}
+                style={{
+                  width: "100%",
+                  padding: "0.75rem 1rem",
+                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  fontSize: "0.95rem",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  transition: "all 0.3s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 6px 20px rgba(102, 126, 234, 0.4)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+              >
+                ← Go Back
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Related Destinations Section */}
+        {relatedDestinations.length > 0 && (
+          <div
+            style={{
+              width: "100%",
+              maxWidth: "1280px",
+              margin: "0 auto",
+              padding: "2rem 1rem",
+            }}
+          >
+            <h2
+              style={{
+                fontSize: "1.5rem",
+                fontWeight: 700,
+                marginBottom: "1.5rem",
+                color: "#1a202c",
+              }}
+            >
+              More Destinations in {currentDestination?.stateName || "This Area"}
+            </h2>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(auto-fill, minmax(220px, 1fr))",
+                gap: "1.5rem",
+              }}
+            >
+              {relatedDestinations.slice(0, 6).map((destination) => (
+                <div
+                  key={destination.name}
+                  onClick={() => {
+                    window.location.href = `/destinations/${encodeURIComponent(destination.name)}`;
+                  }}
+                  style={{
+                    cursor: "pointer",
+                    borderRadius: "12px",
+                    overflow: "hidden",
+                    backgroundColor: "white",
+                    border: "1px solid #e2e8f0",
+                    transition:
+                      "transform 0.3s ease, box-shadow 0.3s ease",
+                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateY(-4px)";
+                    e.currentTarget.style.boxShadow =
+                      "0 8px 16px rgba(0, 0, 0, 0.15)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow =
+                      "0 1px 3px rgba(0, 0, 0, 0.1)";
+                  }}
+                >
+                  {/* Image */}
+                  {destination.images && destination.images[0] && (
+                    <div
+                      style={{
+                        position: "relative",
+                        width: "100%",
+                        paddingBottom: "66.66%",
+                        backgroundColor: "#e2e8f0",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <img
+                        src={destination.images[0]}
+                        alt={destination.name}
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                        }}
+                        onError={(e) => {
+                          e.currentTarget.src =
+                            "https://via.placeholder.com/300x200?text=Image+Not+Found";
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Info */}
+                  <div style={{ padding: "1rem" }}>
+                    <h3
+                      style={{
+                        fontSize: "0.95rem",
+                        fontWeight: 600,
+                        marginBottom: "0.5rem",
+                        color: "#1a202c",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {destination.name}
+                    </h3>
+                    <p
+                      style={{
+                        fontSize: "0.8rem",
+                        color: "#64748b",
+                        margin: 0,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        lineHeight: "1.3",
+                      }}
+                    >
+                      {destination.description?.substring(0, 80) ||
+                        "Explore this destination"}
+                      {destination.description && destination.description.length > 80
+                        ? "..."
+                        : ""}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* Fullscreen Image Modal */}
                     <h2
                       style={{
                         fontSize: "1.5rem",

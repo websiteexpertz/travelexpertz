@@ -31,6 +31,8 @@ interface Hotel {
   _id?: string;
   name: string;
   location: string;
+  city?: string;
+  state?: string;
   address: string;
   price: number;
   rating: number;
@@ -58,6 +60,8 @@ interface Hotel {
 const emptyHotel: Hotel = {
   name: "",
   location: "",
+  city: "",
+  state: "",
   address: "",
   price: 0,
   rating: 4.5,
@@ -628,6 +632,38 @@ export default function ManageHotels() {
                       />
                     </div>
                   </div>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gap: "1.5rem",
+                    }}
+                  >
+                    <div>
+                      <label style={styles.label}>City</label>
+                      <input
+                        type="text"
+                        value={formData.city || ""}
+                        onChange={(e) =>
+                          setFormData({ ...formData, city: e.target.value })
+                        }
+                        style={styles.input}
+                        placeholder="e.g., Mumbai, Jaipur"
+                      />
+                    </div>
+                    <div>
+                      <label style={styles.label}>State</label>
+                      <input
+                        type="text"
+                        value={formData.state || ""}
+                        onChange={(e) =>
+                          setFormData({ ...formData, state: e.target.value })
+                        }
+                        style={styles.input}
+                        placeholder="e.g., Maharashtra, Rajasthan"
+                      />
+                    </div>
 
                   <div>
                     <label style={styles.label}>Full Address *</label>

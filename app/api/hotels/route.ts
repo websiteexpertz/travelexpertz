@@ -18,6 +18,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
     const admin = searchParams.get("admin") === "true";
+    const city = searchParams.get("city");
+    const state = searchParams.get("state");
 
     client = new MongoClient(MONGODB_URI);
     await client.connect();
@@ -67,24 +69,41 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(hotel);
     }
 
+    // Build filter for city/state if provided
+    const hotelFilter: any = admin ? {} : { active: true };
+    if (city) {
+      hotelFilter.city = { $regex: city, $options: "i" };
+    }
+    if (state) {
+      hotelFilter.state = { $regex: state, $options: "i" };
+    }
+
     // Otherwise, fetch all hotels from built-in collection
     const builtInHotels = await hotelsCollection
-      .find(admin ? {} : { active: true })
+      .find(hotelFilter)
       .sort({ popular: -1, createdAt: -1 })
       .toArray();
 
     // Also fetch approved owner properties that are hotels (exclude homestays)
+    const ownerPropertiesFilter: any = {
+      status: "approved",
+      ...(admin ? {} : { active: true }),
+      $or: [
+        { type: "hotel" },
+        { type: "Hotel" },
+        { propertyType: "hotel" },
+        { propertyType: "Hotel" },
+      ],
+    };
+    if (city) {
+      ownerPropertiesFilter.city = { $regex: city, $options: "i" };
+    }
+    if (state) {
+      ownerPropertiesFilter.state = { $regex: state, $options: "i" };
+    }
+
     const ownerProperties = await ownerPropertiesCollection
-      .find({
-        status: "approved",
-        ...(admin ? {} : { active: true }),
-        $or: [
-          { type: "hotel" },
-          { type: "Hotel" },
-          { propertyType: "hotel" },
-          { propertyType: "Hotel" },
-        ],
-      })
+      .find(ownerPropertiesFilter)
       .sort({ createdAt: -1 })
       .toArray();
 

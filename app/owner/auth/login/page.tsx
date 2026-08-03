@@ -74,7 +74,7 @@ export default function OwnerLoginPage() {
 
   return (
     <>
-      <Header />
+      <Header solidHeader={true} />
       <div
         style={{
           minHeight: "100vh",

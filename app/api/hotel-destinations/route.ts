@@ -103,6 +103,7 @@ export async function POST(request: NextRequest) {
 
     const db = client.db(MONGODB_DB);
     const destinationsCollection = db.collection("hotel_destinations");
+    const locationsCollection = db.collection("locations");
 
     const now = new Date();
     const slug = generateSlug(body.stateName + " " + body.cityName);
@@ -114,6 +115,24 @@ export async function POST(request: NextRequest) {
       createdAt: now,
       updatedAt: now,
     });
+
+    // Also create location entry for the state
+    if (body.stateName) {
+      const existingLocation = await locationsCollection.findOne({
+        name: { $regex: `^${body.stateName}$`, $options: "i" },
+      });
+
+      if (!existingLocation) {
+        await locationsCollection.insertOne({
+          name: body.stateName,
+          hotelDestinationId: result.insertedId,
+          country: body.country || "India",
+          active: true,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+    }
 
     return NextResponse.json({ _id: result.insertedId, ...body }, { status: 201 });
   } catch (error) {
@@ -162,6 +181,12 @@ export async function PUT(request: NextRequest) {
 
     const db = client.db(MONGODB_DB);
     const destinationsCollection = db.collection("hotel_destinations");
+    const locationsCollection = db.collection("locations");
+
+    // Get original destination to check if city name changed
+    const originalDestination = await destinationsCollection.findOne({
+      _id: new ObjectId(id),
+    });
 
     const result = await destinationsCollection.updateOne(
       { _id: new ObjectId(id) },
@@ -179,6 +204,37 @@ export async function PUT(request: NextRequest) {
         { error: "Destination not found" },
         { status: 404 }
       );
+    }
+
+    // If state name changed, update or create location
+    if (originalDestination && updateData.stateName && originalDestination.stateName !== updateData.stateName) {
+      // Try to find and update existing location
+      const existingLocation = await locationsCollection.findOne({
+        hotelDestinationId: new ObjectId(id),
+      });
+
+      if (existingLocation) {
+        await locationsCollection.updateOne(
+          { _id: existingLocation._id },
+          { $set: { name: updateData.stateName, updatedAt: new Date() } }
+        );
+      } else {
+        // Create new location if doesn't exist
+        const nameExists = await locationsCollection.findOne({
+          name: { $regex: `^${updateData.stateName}$`, $options: "i" },
+        });
+
+        if (!nameExists) {
+          await locationsCollection.insertOne({
+            name: updateData.stateName,
+            hotelDestinationId: new ObjectId(id),
+            country: updateData.country || "India",
+            active: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+        }
+      }
     }
 
     return NextResponse.json({ success: true });
@@ -220,6 +276,7 @@ export async function DELETE(request: NextRequest) {
 
     const db = client.db(MONGODB_DB);
     const destinationsCollection = db.collection("hotel_destinations");
+    const locationsCollection = db.collection("locations");
 
     const result = await destinationsCollection.deleteOne({
       _id: new ObjectId(id),
@@ -231,6 +288,11 @@ export async function DELETE(request: NextRequest) {
         { status: 404 }
       );
     }
+
+    // Also delete associated location
+    await locationsCollection.deleteOne({
+      hotelDestinationId: new ObjectId(id),
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

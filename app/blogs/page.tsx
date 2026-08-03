@@ -87,7 +87,7 @@ export default function BlogsPage() {
 
   return (
     <>
-      <Header />
+      <Header solidHeader={true} />
       <main style={{ minHeight: "100vh", background: "var(--gray-50)" }}>
         {/* Hero Banner */}
         <section

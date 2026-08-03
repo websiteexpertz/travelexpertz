@@ -79,7 +79,7 @@ export default function AboutPage() {
       }}
     >
       {/* Header */}
-      <Header />
+      <Header solidHeader={true} />
 
       {/* Hero Section */}
       <section

@@ -15,12 +15,23 @@ export default function RootLayoutClient({
   const isAdminPage = pathname?.startsWith("/admin");
   const isOwnerPage = pathname?.startsWith("/owner");
 
+  // Hero pages that should NOT have top spacing (navbar overlays content)
+  const heroPages = ["/", "/home", "/hotels", "/homestays", "/packages"];
+  const isHeroPage = heroPages.includes(pathname || "");
+
+  // Apply navbar spacing to all non-hero pages
+  const shouldApplySpacing = !isHeroPage;
+
   return (
     <>
       <GoogleAnalytics />
       <CookieConsent />
       <WhatsAppChat />
-      {children}
+
+      <div className={shouldApplySpacing ? "navbar-spacing-wrapper" : ""}>
+        {children}
+      </div>
+
       {!isAdminPage && !isOwnerPage && <Footer />}
     </>
   );

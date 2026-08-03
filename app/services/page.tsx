@@ -357,7 +357,7 @@ export default function ServicesPage() {
         }
       `}</style>
 
-      <Header />
+      <Header solidHeader={true} />
       <main style={{ background: "#f8fafc", minHeight: "100vh" }}>
         {/* Hero Section */}
         <section

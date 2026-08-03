@@ -79,7 +79,9 @@ export default function HotelDestinationsAdmin() {
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
 
-  const [page, setPage] = useState<"list" | "form">(editId ? "form" : "list");
+  const [page, setPage] = useState<"list" | "form" | "manage_states">(
+    editId ? "form" : "list",
+  );
   const [destinations, setDestinations] = useState<HotelDestinationHierarchy[]>(
     [],
   );
@@ -104,13 +106,55 @@ export default function HotelDestinationsAdmin() {
   const [itemDescription, setItemDescription] = useState("");
   const [itemImageFiles, setItemImageFiles] = useState<File[]>([]);
   const [itemImagePreviews, setItemImagePreviews] = useState<string[]>([]);
+  const [itemImageUrls, setItemImageUrls] = useState<string[]>([]);
   const [itemProfileImageFile, setItemProfileImageFile] = useState<File | null>(
     null,
   );
   const [itemProfileImagePreview, setItemProfileImagePreview] =
     useState<string>("");
+  const [itemProfileImageUrl, setItemProfileImageUrl] = useState<string>("");
+  const [uploadingItemImages, setUploadingItemImages] = useState(false);
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState<string>("");
+
+  // Add State Modal states
+  const [showAddStateModal, setShowAddStateModal] = useState(false);
+  const [addStateInput, setAddStateInput] = useState("");
+  const [addCityInput, setAddCityInput] = useState("");
+  const [statesSuggestions, setStatesSuggestions] = useState<string[]>([]);
+  const [addStateLoading, setAddStateLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Form page - State and City autocomplete
+  interface StateWithCities {
+    stateName: string;
+    cities: string[];
+  }
+  const [formStateInputSuggestions, setFormStateInputSuggestions] = useState<
+    string[]
+  >([]);
+  const [formCityInputSuggestions, setFormCityInputSuggestions] = useState<
+    string[]
+  >([]);
+  const [showFormStateSuggestions, setShowFormStateSuggestions] =
+    useState(false);
+  const [showFormCitySuggestions, setShowFormCitySuggestions] = useState(false);
+  const [allStatesWithCities, setAllStatesWithCities] = useState<
+    StateWithCities[]
+  >([]);
+
+  // Manage States and Cities
+  interface StateData {
+    _id: string;
+    stateName: string;
+    cityName: string;
+    createdAt: string;
+  }
+  const [statesAndCities, setStatesAndCities] = useState<StateData[]>([]);
+  const [statesLoading, setStatesLoading] = useState(false);
+  const [editingStateId, setEditingStateId] = useState<string | null>(null);
+  const [editingStateName, setEditingStateName] = useState("");
+  const [editingCityName, setEditingCityName] = useState("");
 
   // Deprecated - kept for reference only, use itemImageFiles and itemImagePreviews instead
   // const [itemImageFile, setItemImageFile] = useState<File | null>(null);
@@ -133,6 +177,58 @@ export default function HotelDestinationsAdmin() {
     }
   }, [editId, destinations]);
 
+  useEffect(() => {
+    // Fetch available states when modal opens
+    if (showAddStateModal) {
+      const fetchStates = async () => {
+        try {
+          const res = await fetch("/api/hotel-destinations/states");
+          if (res.ok) {
+            const states = await res.json();
+            setStatesSuggestions(states);
+          }
+        } catch (error) {
+          console.error("Error fetching states:", error);
+        }
+      };
+      fetchStates();
+    }
+  }, [showAddStateModal]);
+
+  useEffect(() => {
+    // Fetch all states and cities for form autocomplete
+    const fetchAllStatesAndCities = async () => {
+      try {
+        const res = await fetch("/api/hotel-destinations/states/all");
+        if (res.ok) {
+          const data = await res.json();
+          // Group cities by state
+          const grouped: Record<string, Set<string>> = {};
+          data.forEach((item: any) => {
+            if (!grouped[item.stateName]) {
+              grouped[item.stateName] = new Set();
+            }
+            if (item.cityName) {
+              grouped[item.stateName].add(item.cityName);
+            }
+          });
+          // Convert to array of StateWithCities
+          const result: StateWithCities[] = Object.entries(grouped).map(
+            ([stateName, cities]) => ({
+              stateName,
+              cities: Array.from(cities),
+            }),
+          );
+          setAllStatesWithCities(result);
+          console.log("Loaded states and cities:", result);
+        }
+      } catch (error) {
+        console.error("Error fetching states and cities:", error);
+      }
+    };
+    fetchAllStatesAndCities();
+  }, [page]);
+
   const fetchDestinations = async () => {
     try {
       setLoading(true);
@@ -144,6 +240,87 @@ export default function HotelDestinationsAdmin() {
       alert("Failed to fetch destinations");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchStatesAndCities = async () => {
+    try {
+      setStatesLoading(true);
+      const res = await fetch("/api/hotel-destinations/states/all");
+      if (res.ok) {
+        const data = await res.json();
+        setStatesAndCities(data);
+      }
+    } catch (error) {
+      console.error("Error fetching states and cities:", error);
+    } finally {
+      setStatesLoading(false);
+    }
+  };
+
+  const handleEditState = (state: StateData) => {
+    setEditingStateId(state._id);
+    setEditingStateName(state.stateName);
+    setEditingCityName(state.cityName);
+  };
+
+  const handleUpdateState = async () => {
+    if (!editingStateId || !editingStateName.trim()) {
+      alert("State name is required");
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        `/api/hotel-destinations/states/${editingStateId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            stateName: editingStateName.trim(),
+            cityName: editingCityName.trim(),
+          }),
+        },
+      );
+
+      const data = await res.json();
+
+      if (res.ok) {
+        alert("State updated successfully!");
+        setEditingStateId(null);
+        setEditingStateName("");
+        setEditingCityName("");
+        fetchStatesAndCities();
+      } else {
+        alert(`Failed to update state: ${data.error || "Unknown error"}`);
+        console.error("Update error:", data);
+      }
+    } catch (error) {
+      console.error("Error updating state:", error);
+      alert(`Error updating state: ${String(error)}`);
+    }
+  };
+
+  const handleDeleteState = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this state?")) return;
+
+    try {
+      const res = await fetch(`/api/hotel-destinations/states/${id}`, {
+        method: "DELETE",
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        alert("State deleted successfully!");
+        fetchStatesAndCities();
+      } else {
+        alert(`Failed to delete state: ${data.error || "Unknown error"}`);
+        console.error("Delete error:", data);
+      }
+    } catch (error) {
+      console.error("Error deleting state:", error);
+      alert(`Error deleting state: ${String(error)}`);
     }
   };
 
@@ -186,6 +363,151 @@ export default function HotelDestinationsAdmin() {
     } catch (error) {
       console.error("Error deleting destination:", error);
       alert("Error deleting destination");
+    }
+  };
+
+  const handleStateInputChange = (value: string) => {
+    setAddStateInput(value);
+
+    if (value.trim().length > 0) {
+      // Filter states from the states collection
+      const filtered = statesSuggestions.filter((state) =>
+        state.toLowerCase().includes(value.toLowerCase()),
+      );
+      setStatesSuggestions(filtered);
+      setShowSuggestions(true);
+    } else {
+      setStatesSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  const selectStateSuggestion = (state: string) => {
+    setAddStateInput(state);
+    setStatesSuggestions([]);
+    setShowSuggestions(false);
+  };
+
+  // Handle state input change in form page (Add New Destination)
+  const handleFormStateInputChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, stateName: value }));
+
+    if (value.trim().length > 0) {
+      // Filter from allStatesWithCities or show all states that match
+      let filtered: string[] = [];
+      if (allStatesWithCities && allStatesWithCities.length > 0) {
+        filtered = allStatesWithCities
+          .filter((state) =>
+            state.stateName.toLowerCase().includes(value.toLowerCase()),
+          )
+          .map((state) => state.stateName);
+        // Remove duplicates
+        filtered = [...new Set(filtered)];
+      }
+      console.log("State suggestions for:", value, "=", filtered);
+      setFormStateInputSuggestions(filtered);
+      setShowFormStateSuggestions(filtered.length > 0);
+    } else {
+      setFormStateInputSuggestions([]);
+      setShowFormStateSuggestions(false);
+    }
+  };
+  const selectFormStateSuggestion = (selectedState: string) => {
+    console.log("Selecting state clicked:", selectedState);
+    setFormData((prev) => ({
+      ...prev,
+      stateName: selectedState,
+      cityName: "",
+    }));
+    setFormStateInputSuggestions([]);
+    setShowFormStateSuggestions(false);
+  };
+
+  // Handle city input change in form page (Add New Destination)
+  const handleFormCityInputChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, cityName: value }));
+
+    if (value.trim().length > 0) {
+      let filtered: string[] = [];
+
+      if (formData.stateName && formData.stateName.trim()) {
+        const selectedState = allStatesWithCities.find(
+          (s) => s.stateName.toLowerCase() === formData.stateName.toLowerCase(),
+        );
+        if (selectedState) {
+          filtered = selectedState.cities.filter((city) =>
+            city.toLowerCase().includes(value.toLowerCase()),
+          );
+        }
+      } else {
+        const allCities = new Set<string>();
+        allStatesWithCities.forEach((state) => {
+          state.cities.forEach((city) => {
+            if (city.toLowerCase().includes(value.toLowerCase())) {
+              allCities.add(city);
+            }
+          });
+        });
+        filtered = Array.from(allCities);
+      }
+
+      setFormCityInputSuggestions(filtered);
+      setShowFormCitySuggestions(filtered.length > 0);
+    } else {
+      setFormCityInputSuggestions([]);
+      setShowFormCitySuggestions(false);
+    }
+  };
+
+  const selectFormCitySuggestion = (selectedCity: string) => {
+    console.log("Selecting city clicked:", selectedCity);
+    setFormData((prev) => ({
+      ...prev,
+      cityName: selectedCity,
+    }));
+    setFormCityInputSuggestions([]);
+    setShowFormCitySuggestions(false);
+  };
+
+  const handleAddStateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!addStateInput.trim()) {
+      alert("Please enter a state name");
+      return;
+    }
+
+    setAddStateLoading(true);
+    try {
+      // Save to a separate states collection for autocomplete only
+      const stateData = {
+        stateName: addStateInput.trim(),
+        cityName: addCityInput.trim(),
+      };
+
+      const res = await fetch("/api/hotel-destinations/states", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(stateData),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        alert("State added successfully!");
+        setShowAddStateModal(false);
+        setAddStateInput("");
+        setAddCityInput("");
+        setStatesSuggestions([]);
+      } else {
+        alert(`Failed to add state: ${data.error || "Unknown error"}`);
+        console.error("Add state error:", data);
+      }
+    } catch (error) {
+      console.error("Error adding state:", error);
+      alert(`Error adding state: ${String(error)}`);
+    } finally {
+      setAddStateLoading(false);
     }
   };
 
@@ -371,17 +693,74 @@ export default function HotelDestinationsAdmin() {
     setSelectedSubareaIdx(updatedAreas[selectedAreaIdx].subareas.length - 1);
   };
 
-  const addItemToCurrentCategory = () => {
+  const uploadItemImages = async (): Promise<void> => {
+    if (itemImageFiles.length === 0 && itemProfileImageFile === null) {
+      return; // No images to upload
+    }
+
+    setUploadingItemImages(true);
+    const uploadedUrls: string[] = [];
+
+    try {
+      // Upload gallery images
+      for (const file of itemImageFiles) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          uploadedUrls.push(data.url);
+        }
+      }
+
+      // Upload profile image
+      let profileImageUrl = "";
+      if (itemProfileImageFile) {
+        const formData = new FormData();
+        formData.append("file", itemProfileImageFile);
+
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          profileImageUrl = data.url;
+        }
+      }
+
+      setItemImageUrls(uploadedUrls);
+      setItemProfileImageUrl(profileImageUrl);
+    } catch (error) {
+      console.error("Failed to upload images:", error);
+      alert("Failed to upload images. Please try again.");
+    } finally {
+      setUploadingItemImages(false);
+    }
+  };
+
+  const addItemToCurrentCategory = async () => {
     if (!itemName.trim()) {
       alert("Please enter item name");
       return;
     }
 
+    // Upload images first
+    if (itemImageFiles.length > 0 || itemProfileImageFile) {
+      await uploadItemImages();
+    }
+
     const newItem: DestinationItem = {
       name: itemName,
       description: itemDescription,
-      images: itemImagePreviews.length > 0 ? itemImagePreviews : [],
-      profileImage: itemProfileImagePreview,
+      images: itemImageUrls.length > 0 ? itemImageUrls : [],
+      profileImage: itemProfileImageUrl || undefined,
     };
 
     // Check if we're editing an existing item
@@ -512,8 +891,10 @@ export default function HotelDestinationsAdmin() {
     setItemDescription("");
     setItemImageFiles([]);
     setItemImagePreviews([]);
+    setItemImageUrls([]);
     setItemProfileImageFile(null);
     setItemProfileImagePreview("");
+    setItemProfileImageUrl("");
   };
 
   const removeItem = (index: number) => {
@@ -602,6 +983,30 @@ export default function HotelDestinationsAdmin() {
       });
 
       if (res.ok) {
+        // Save state-city combination to database
+        const stateCityCombination = {
+          stateName: formData.stateName.trim(),
+          cityName: formData.cityName.trim(),
+        };
+
+        // Try to add to states collection (it will skip if already exists)
+        try {
+          const stateRes = await fetch("/api/hotel-destinations/states", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(stateCityCombination),
+          });
+          if (!stateRes.ok) {
+            const errorData = await stateRes.json();
+            // Log but don't fail if state already exists
+            if (!errorData.error?.includes("already exists")) {
+              console.error("Error saving state-city combination:", errorData);
+            }
+          }
+        } catch (error) {
+          console.error("Error saving state-city combination:", error);
+        }
+
         alert(
           formData._id
             ? "Destination updated successfully"
@@ -774,7 +1179,7 @@ export default function HotelDestinationsAdmin() {
                   🏔️ State Information
                 </h2>
 
-                <div style={{ marginBottom: "1.5rem" }}>
+                <div style={{ marginBottom: "1.5rem", position: "relative" }}>
                   <label
                     style={{
                       display: "block",
@@ -788,11 +1193,10 @@ export default function HotelDestinationsAdmin() {
                     type="text"
                     placeholder="e.g., Rajasthan"
                     value={formData.stateName}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        stateName: e.target.value,
-                      })
+                    onChange={(e) => handleFormStateInputChange(e.target.value)}
+                    onFocus={() => setShowFormStateSuggestions(true)}
+                    onBlur={() =>
+                      setTimeout(() => setShowFormStateSuggestions(false), 250)
                     }
                     style={{
                       width: "100%",
@@ -804,6 +1208,56 @@ export default function HotelDestinationsAdmin() {
                     }}
                     required
                   />
+                  {showFormStateSuggestions &&
+                    formStateInputSuggestions.length > 0 && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "100%",
+                          left: 0,
+                          right: 0,
+                          background: "#fff",
+                          border: "1px solid #e0e0e0",
+                          borderTop: "none",
+                          borderRadius: "0 0 8px 8px",
+                          maxHeight: "200px",
+                          overflowY: "auto",
+                          zIndex: 10,
+                          marginTop: "-2px",
+                          paddingTop: "0.5rem",
+                          boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+                        }}
+                      >
+                        {formStateInputSuggestions.map((state, idx) => (
+                          <div
+                            key={idx}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              selectFormStateSuggestion(state);
+                            }}
+                            style={{
+                              padding: "0.75rem 1rem",
+                              cursor: "pointer",
+                              background: idx % 2 === 0 ? "#f9fafb" : "#ffffff",
+                              borderBottom:
+                                idx < formStateInputSuggestions.length - 1
+                                  ? "1px solid #f0f0f0"
+                                  : "none",
+                              transition: "background 0.2s",
+                            }}
+                            onMouseEnter={(e) =>
+                              (e.currentTarget.style.background = "#e0e7ff")
+                            }
+                            onMouseLeave={(e) =>
+                              (e.currentTarget.style.background =
+                                idx % 2 === 0 ? "#f9fafb" : "#ffffff")
+                            }
+                          >
+                            {state}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                 </div>
 
                 {/* Categories for State */}
@@ -1114,7 +1568,7 @@ export default function HotelDestinationsAdmin() {
                   🏙️ City Information
                 </h2>
 
-                <div style={{ marginBottom: "1.5rem" }}>
+                <div style={{ marginBottom: "1.5rem", position: "relative" }}>
                   <label
                     style={{
                       display: "block",
@@ -1128,11 +1582,10 @@ export default function HotelDestinationsAdmin() {
                     type="text"
                     placeholder="e.g., Jaipur"
                     value={formData.cityName}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        cityName: e.target.value,
-                      })
+                    onChange={(e) => handleFormCityInputChange(e.target.value)}
+                    onFocus={() => setShowFormCitySuggestions(true)}
+                    onBlur={() =>
+                      setTimeout(() => setShowFormCitySuggestions(false), 250)
                     }
                     style={{
                       width: "100%",
@@ -1144,6 +1597,56 @@ export default function HotelDestinationsAdmin() {
                     }}
                     required
                   />
+                  {showFormCitySuggestions &&
+                    formCityInputSuggestions.length > 0 && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "100%",
+                          left: 0,
+                          right: 0,
+                          background: "#fff",
+                          border: "1px solid #e0e0e0",
+                          borderTop: "none",
+                          borderRadius: "0 0 8px 8px",
+                          maxHeight: "200px",
+                          overflowY: "auto",
+                          zIndex: 10,
+                          marginTop: "-2px",
+                          paddingTop: "0.5rem",
+                          boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+                        }}
+                      >
+                        {formCityInputSuggestions.map((city, idx) => (
+                          <div
+                            key={idx}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              selectFormCitySuggestion(city);
+                            }}
+                            style={{
+                              padding: "0.75rem 1rem",
+                              cursor: "pointer",
+                              background: idx % 2 === 0 ? "#f9fafb" : "#ffffff",
+                              borderBottom:
+                                idx < formCityInputSuggestions.length - 1
+                                  ? "1px solid #f0f0f0"
+                                  : "none",
+                              transition: "background 0.2s",
+                            }}
+                            onMouseEnter={(e) =>
+                              (e.currentTarget.style.background = "#e0e7ff")
+                            }
+                            onMouseLeave={(e) =>
+                              (e.currentTarget.style.background =
+                                idx % 2 === 0 ? "#f9fafb" : "#ffffff")
+                            }
+                          >
+                            {city}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                 </div>
 
                 {/* Categories for City */}
@@ -1316,9 +1819,26 @@ export default function HotelDestinationsAdmin() {
 
                     {renderImageUploadSection()}
 
+                    {uploadingItemImages && (
+                      <div
+                        style={{
+                          padding: "0.75rem",
+                          background: "#eff6ff",
+                          border: "1px solid #bfdbfe",
+                          borderRadius: "8px",
+                          marginBottom: "1rem",
+                          color: "#1e40af",
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        ⏳ Uploading images... Please wait.
+                      </div>
+                    )}
+
                     <button
                       type="button"
                       onClick={addItemToCurrentCategory}
+                      disabled={uploadingItemImages}
                       style={{
                         background:
                           editingItemIdx !== null ? "#10b981" : "#667eea",
@@ -1326,11 +1846,16 @@ export default function HotelDestinationsAdmin() {
                         border: "none",
                         padding: "0.75rem 1.5rem",
                         borderRadius: "8px",
-                        cursor: "pointer",
+                        cursor: uploadingItemImages ? "not-allowed" : "pointer",
                         fontWeight: "600",
+                        opacity: uploadingItemImages ? 0.6 : 1,
                       }}
                     >
-                      {editingItemIdx !== null ? "✓ Update Item" : "+ Add Item"}
+                      {uploadingItemImages
+                        ? "Uploading..."
+                        : editingItemIdx !== null
+                          ? "✓ Update Item"
+                          : "+ Add Item"}
                     </button>
                     {editingItemIdx !== null && (
                       <button
@@ -1341,6 +1866,8 @@ export default function HotelDestinationsAdmin() {
                           setItemDescription("");
                           setItemProfileImagePreview("");
                           setItemImagePreviews([]);
+                          setItemImageUrls([]);
+                          setItemProfileImageUrl("");
                         }}
                         style={{
                           background: "#6b7280",
@@ -2452,6 +2979,308 @@ export default function HotelDestinationsAdmin() {
     );
   }
 
+  // MANAGE STATES PAGE
+  if (page === "manage_states") {
+    if (statesLoading) {
+      return (
+        <div
+          style={{
+            padding: "2rem",
+            paddingTop: "5rem",
+            maxWidth: "1200px",
+            margin: "0 auto",
+            minHeight: "100vh",
+            background: "linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%)",
+            textAlign: "center",
+          }}
+        >
+          <div style={{ fontSize: "1.1rem", color: "#666" }}>
+            Loading states and cities...
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div
+        style={{
+          padding: "2rem",
+          paddingTop: "5rem",
+          maxWidth: "1200px",
+          margin: "0 auto",
+          minHeight: "100vh",
+          background: "linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%)",
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            marginBottom: "2rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "1rem",
+          }}
+        >
+          <button
+            onClick={() => setPage("list")}
+            style={{
+              background: "#e5e7eb",
+              color: "#374151",
+              border: "none",
+              padding: "0.75rem 1.5rem",
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontWeight: "600",
+              fontSize: "0.95rem",
+              transition: "all 0.3s ease",
+            }}
+          >
+            ← Back to List
+          </button>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: "1.5rem",
+              fontWeight: "700",
+              color: "#1a1a2e",
+            }}
+          >
+            🗺️ Manage States & Cities
+          </h1>
+        </div>
+
+        {/* States Table */}
+        {statesAndCities.length === 0 ? (
+          <div
+            style={{
+              background: "#fff",
+              padding: "2rem",
+              borderRadius: "12px",
+              textAlign: "center",
+              color: "#666",
+            }}
+          >
+            No states added yet. Click "Add State" to create one.
+          </div>
+        ) : (
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: "12px",
+              padding: "1.5rem",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+              overflowX: "auto",
+            }}
+          >
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+              }}
+            >
+              <thead>
+                <tr style={{ borderBottom: "2px solid #e0e0e0" }}>
+                  <th
+                    style={{
+                      padding: "1rem",
+                      textAlign: "left",
+                      fontWeight: "700",
+                      color: "#1a1a2e",
+                    }}
+                  >
+                    State Name
+                  </th>
+                  <th
+                    style={{
+                      padding: "1rem",
+                      textAlign: "left",
+                      fontWeight: "700",
+                      color: "#1a1a2e",
+                    }}
+                  >
+                    City Name
+                  </th>
+                  <th
+                    style={{
+                      padding: "1rem",
+                      textAlign: "center",
+                      fontWeight: "700",
+                      color: "#1a1a2e",
+                    }}
+                  >
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {(() => {
+                  // Group cities by state
+                  const groupedByState = statesAndCities.reduce(
+                    (acc, item) => {
+                      const stateName = item.stateName;
+                      if (!acc[stateName]) {
+                        acc[stateName] = [];
+                      }
+                      acc[stateName].push(item);
+                      return acc;
+                    },
+                    {} as Record<string, typeof statesAndCities>,
+                  );
+
+                  // Render grouped states and cities
+                  return Object.entries(groupedByState).map(
+                    ([stateName, cities]) => (
+                      <React.Fragment key={stateName}>
+                        {cities.map((city, cityIdx) => (
+                          <tr
+                            key={city._id}
+                            style={{
+                              borderBottom: "1px solid #f0f0f0",
+                              background:
+                                editingStateId === city._id
+                                  ? "#f9fafb"
+                                  : "#fff",
+                            }}
+                          >
+                            <td style={{ padding: "1rem" }}>
+                              {cityIdx === 0 ? (
+                                <span
+                                  style={{
+                                    color: "#1a1a2e",
+                                    fontWeight: "700",
+                                    fontSize: "0.95rem",
+                                  }}
+                                >
+                                  {stateName}
+                                </span>
+                              ) : (
+                                ""
+                              )}
+                            </td>
+                            <td
+                              style={{
+                                padding: "1rem",
+                                paddingLeft: "2rem",
+                              }}
+                            >
+                              {editingStateId === city._id ? (
+                                <input
+                                  type="text"
+                                  value={editingCityName}
+                                  onChange={(e) =>
+                                    setEditingCityName(e.target.value)
+                                  }
+                                  placeholder="Optional"
+                                  style={{
+                                    width: "100%",
+                                    padding: "0.5rem",
+                                    border: "1px solid #e0e0e0",
+                                    borderRadius: "6px",
+                                    fontSize: "0.95rem",
+                                    fontFamily: "inherit",
+                                  }}
+                                />
+                              ) : (
+                                <span style={{ color: "#666" }}>
+                                  {city.cityName || "—"}
+                                </span>
+                              )}
+                            </td>
+                            <td
+                              style={{
+                                padding: "1rem",
+                                textAlign: "center",
+                                display: "flex",
+                                gap: "0.5rem",
+                                justifyContent: "center",
+                              }}
+                            >
+                              {editingStateId === city._id ? (
+                                <>
+                                  <button
+                                    onClick={handleUpdateState}
+                                    style={{
+                                      padding: "0.5rem 1rem",
+                                      background: "#10b981",
+                                      color: "#fff",
+                                      border: "none",
+                                      borderRadius: "6px",
+                                      cursor: "pointer",
+                                      fontWeight: "600",
+                                      fontSize: "0.85rem",
+                                    }}
+                                  >
+                                    ✓ Save
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setEditingStateId(null);
+                                      setEditingStateName("");
+                                      setEditingCityName("");
+                                    }}
+                                    style={{
+                                      padding: "0.5rem 1rem",
+                                      background: "#6b7280",
+                                      color: "#fff",
+                                      border: "none",
+                                      borderRadius: "6px",
+                                      cursor: "pointer",
+                                      fontWeight: "600",
+                                      fontSize: "0.85rem",
+                                    }}
+                                  >
+                                    Cancel
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => handleEditState(city)}
+                                    style={{
+                                      padding: "0.5rem 1rem",
+                                      background: "#3b82f6",
+                                      color: "#fff",
+                                      border: "none",
+                                      borderRadius: "6px",
+                                      cursor: "pointer",
+                                      fontWeight: "600",
+                                      fontSize: "0.85rem",
+                                    }}
+                                  >
+                                    ✏️ Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteState(city._id)}
+                                    style={{
+                                      padding: "0.5rem 1rem",
+                                      background: "#ef4444",
+                                      color: "#fff",
+                                      border: "none",
+                                      borderRadius: "6px",
+                                      cursor: "pointer",
+                                      fontWeight: "600",
+                                      fontSize: "0.85rem",
+                                    }}
+                                  >
+                                    🗑️ Delete
+                                  </button>
+                                </>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </React.Fragment>
+                    ),
+                  );
+                })()}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   // LIST PAGE
   if (loading) {
     return (
@@ -2533,6 +3362,41 @@ export default function HotelDestinationsAdmin() {
           }}
         >
           + Add New Destination
+        </button>
+        <button
+          onClick={() => setShowAddStateModal(true)}
+          style={{
+            background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+            color: "#fff",
+            border: "none",
+            padding: "0.75rem 1.5rem",
+            borderRadius: "8px",
+            cursor: "pointer",
+            fontWeight: "600",
+            fontSize: "0.95rem",
+            transition: "all 0.3s ease",
+          }}
+        >
+          ⚡ Add State
+        </button>
+        <button
+          onClick={() => {
+            fetchStatesAndCities();
+            setPage("manage_states");
+          }}
+          style={{
+            background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+            color: "#fff",
+            border: "none",
+            padding: "0.75rem 1.5rem",
+            borderRadius: "8px",
+            cursor: "pointer",
+            fontWeight: "600",
+            fontSize: "0.95rem",
+            transition: "all 0.3s ease",
+          }}
+        >
+          📋 Manage States
         </button>
       </div>
 
@@ -2671,6 +3535,225 @@ export default function HotelDestinationsAdmin() {
           ))
         )}
       </div>
+
+      {/* Add State Modal */}
+      {showAddStateModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+          }}
+          onClick={() => setShowAddStateModal(false)}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: "12px",
+              padding: "2rem",
+              maxWidth: "600px",
+              width: "90%",
+              boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2
+              style={{
+                fontSize: "1.5rem",
+                fontWeight: "700",
+                color: "#1a1a2e",
+                marginTop: 0,
+                marginBottom: "1.5rem",
+              }}
+            >
+              ⚡ Add State
+            </h2>
+
+            <form onSubmit={handleAddStateSubmit}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "1rem",
+                  marginBottom: "1.5rem",
+                }}
+              >
+                {/* State Column */}
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "0.5rem",
+                      fontWeight: "600",
+                      color: "#374151",
+                    }}
+                  >
+                    State Name *
+                  </label>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type="text"
+                      placeholder="e.g., Rajasthan"
+                      value={addStateInput}
+                      onChange={(e) => handleStateInputChange(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "0.75rem",
+                        border: "2px solid #e0e0e0",
+                        borderRadius: "8px",
+                        fontSize: "1rem",
+                        boxSizing: "border-box",
+                        fontFamily: "inherit",
+                      }}
+                      autoFocus
+                      disabled={addStateLoading}
+                    />
+
+                    {/* Autocomplete suggestions */}
+                    {showSuggestions && statesSuggestions.length > 0 && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "100%",
+                          left: 0,
+                          right: 0,
+                          background: "#fff",
+                          border: "1px solid #e0e0e0",
+                          borderTop: "none",
+                          borderBottomLeftRadius: "8px",
+                          borderBottomRightRadius: "8px",
+                          boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+                          zIndex: 10,
+                          maxHeight: "200px",
+                          overflowY: "auto",
+                        }}
+                      >
+                        {statesSuggestions.map((state, idx) => (
+                          <div
+                            key={idx}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              selectStateSuggestion(state);
+                            }}
+                            style={{
+                              padding: "0.75rem",
+                              cursor: "pointer",
+                              background: "#fff",
+                              borderBottom:
+                                idx < statesSuggestions.length - 1
+                                  ? "1px solid #f0f0f0"
+                                  : "none",
+                              transition: "background 0.2s",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = "#f8fafc";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = "#fff";
+                            }}
+                          >
+                            {state}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* City Column */}
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "0.5rem",
+                      fontWeight: "600",
+                      color: "#374151",
+                    }}
+                  >
+                    City Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g., Jaipur (Optional)"
+                    value={addCityInput}
+                    onChange={(e) => setAddCityInput(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "0.75rem",
+                      border: "2px solid #e0e0e0",
+                      borderRadius: "8px",
+                      fontSize: "1rem",
+                      boxSizing: "border-box",
+                      fontFamily: "inherit",
+                    }}
+                    disabled={addStateLoading}
+                  />
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: "1rem",
+                  justifyContent: "flex-end",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddStateModal(false);
+                    setAddStateInput("");
+                    setAddCityInput("");
+                    setStatesSuggestions([]);
+                    setShowSuggestions(false);
+                  }}
+                  disabled={addStateLoading}
+                  style={{
+                    padding: "0.75rem 1.5rem",
+                    border: "2px solid #e0e0e0",
+                    background: "#fff",
+                    color: "#374151",
+                    borderRadius: "8px",
+                    cursor: addStateLoading ? "not-allowed" : "pointer",
+                    fontWeight: "600",
+                    fontSize: "0.95rem",
+                    transition: "all 0.3s ease",
+                    opacity: addStateLoading ? 0.6 : 1,
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={addStateLoading}
+                  style={{
+                    padding: "0.75rem 1.5rem",
+                    background: addStateLoading
+                      ? "#9ca3af"
+                      : "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "8px",
+                    cursor: addStateLoading ? "not-allowed" : "pointer",
+                    fontWeight: "600",
+                    fontSize: "0.95rem",
+                    transition: "all 0.3s ease",
+                  }}
+                >
+                  {addStateLoading ? "Adding..." : "✓ Add State"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

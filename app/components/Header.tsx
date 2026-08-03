@@ -22,6 +22,7 @@ type HeaderProps = {
     | "wishlist"
     | "transactions";
   forceBlackText?: boolean;
+  isHeroPage?: boolean;
 };
 
 interface Package {
@@ -62,7 +63,7 @@ const authItems: Array<{
   { key: "signup", label: "Sign Up", href: "/auth/register" },
 ];
 
-export default function Header({ currentPage, forceBlackText }: HeaderProps) {
+export default function Header({ currentPage, forceBlackText, isHeroPage = false }: HeaderProps) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState("User");
   const [mounted, setMounted] = useState(false);
@@ -122,7 +123,7 @@ export default function Header({ currentPage, forceBlackText }: HeaderProps) {
         : currentPage;
     return (
       <>
-        <HeaderLoggedIn currentPage={validCurrentPage} userName={userName} />
+        <HeaderLoggedIn currentPage={validCurrentPage} userName={userName} isHeroPage={isHeroPage} />
       </>
     );
   }
@@ -130,7 +131,7 @@ export default function Header({ currentPage, forceBlackText }: HeaderProps) {
   return (
     <>
       <header
-        className={`${scrolled ? "header-scrolled" : ""} ${forceBlackText && !scrolled ? "header-black-text" : ""}`}
+        className={`${isHeroPage && !scrolled ? "header-hero" : scrolled || !isHeroPage ? "header-scrolled" : ""} ${forceBlackText && !scrolled && !isHeroPage ? "header-black-text" : ""}`}
       >
         <div className="max-w-7xl mx-auto" style={{ position: "relative" }}>
           <div className="flex items-center">
@@ -159,16 +160,43 @@ export default function Header({ currentPage, forceBlackText }: HeaderProps) {
                     key={item.key}
                     href={item.href}
                     aria-current={isActive ? "page" : undefined}
+                    className="nav-link"
                     style={{
                       fontSize: "1.05rem",
                       fontWeight: "500",
                       padding: "0.5rem 0.25rem",
-                      color:
-                        forceBlackText && !scrolled
-                          ? "#000000"
-                          : scrolled
-                            ? undefined
-                            : "white",
+                      color: isActive
+                        ? "#0B6DFF"
+                        : isHeroPage && !scrolled
+                          ? "white"
+                          : forceBlackText && !scrolled
+                            ? "#000000"
+                            : scrolled || !isHeroPage
+                              ? "#1E293B"
+                              : "white",
+                      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                      cursor: "pointer",
+                      position: "relative",
+                      paddingBottom: "0.25rem",
+                      borderBottom: isActive ? "2px solid #0B6DFF" : "2px solid transparent",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.color = "#0B6DFF";
+                        e.currentTarget.style.opacity = "0.8";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.color = isHeroPage && !scrolled
+                          ? "white"
+                          : forceBlackText && !scrolled
+                            ? "#000000"
+                            : scrolled || !isHeroPage
+                              ? "#1E293B"
+                              : "white";
+                        e.currentTarget.style.opacity = "1";
+                      }
                     }}
                   >
                     {item.label}
@@ -183,7 +211,7 @@ export default function Header({ currentPage, forceBlackText }: HeaderProps) {
               style={{
                 display: "none",
                 alignItems: "center",
-                gap: "2.5rem",
+                gap: "14px",
                 marginLeft: "auto",
               }}
             >
@@ -191,45 +219,31 @@ export default function Header({ currentPage, forceBlackText }: HeaderProps) {
                 href="/auth/login"
                 className="inline-flex items-center justify-center"
                 style={{
-                  minWidth: "130px",
-                  height: "3rem",
                   backgroundColor: "transparent",
-                  color:
-                    forceBlackText && !scrolled
-                      ? "#000000"
-                      : scrolled
-                        ? "var(--primary)"
-                        : "white",
-                  border: `2px solid ${forceBlackText && !scrolled ? "#000000" : scrolled ? "var(--primary)" : "white"}`,
-                  borderRadius: "0.5rem",
+                  color: isHeroPage && !scrolled ? "white" : forceBlackText && !scrolled ? "#000000" : "#0B6DFF",
+                  border: `1px solid ${isHeroPage && !scrolled ? "rgba(255, 255, 255, 0.5)" : forceBlackText && !scrolled ? "#000000" : "#0B6DFF"}`,
+                  borderRadius: "12px",
                   fontWeight: 600,
-                  fontSize: "1rem",
+                  fontSize: "0.95rem",
                   cursor: "pointer",
-                  transition: "all 0.2s ease",
-                  padding: "0.5rem 1.5rem",
-                  marginRight: "1rem",
+                  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                  padding: "12px 26px",
                 }}
                 onMouseEnter={(e) => {
-                  if (forceBlackText && !scrolled) {
-                    e.currentTarget.style.backgroundColor = "#000000";
-                    e.currentTarget.style.color = "white";
+                  if (isHeroPage && !scrolled) {
+                    e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.15)";
+                    e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.8)";
+                  } else if (forceBlackText && !scrolled) {
+                    e.currentTarget.style.backgroundColor = "rgba(0, 0, 0, 0.05)";
+                    e.currentTarget.style.borderColor = "#000000";
                   } else {
-                    e.currentTarget.style.backgroundColor = scrolled
-                      ? "var(--primary)"
-                      : "white";
-                    e.currentTarget.style.color = scrolled
-                      ? "white"
-                      : "var(--primary)";
+                    e.currentTarget.style.backgroundColor = "#F0F7FF";
+                    e.currentTarget.style.borderColor = "#0B6DFF";
                   }
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor = "transparent";
-                  e.currentTarget.style.color =
-                    forceBlackText && !scrolled
-                      ? "#000000"
-                      : scrolled
-                        ? "var(--primary)"
-                        : "white";
+                  e.currentTarget.style.borderColor = isHeroPage && !scrolled ? "rgba(255, 255, 255, 0.5)" : forceBlackText && !scrolled ? "#000000" : "#0B6DFF";
                 }}
               >
                 Login
@@ -238,75 +252,48 @@ export default function Header({ currentPage, forceBlackText }: HeaderProps) {
                 href="/auth/register"
                 className="inline-flex items-center justify-center"
                 style={{
-                  minWidth: "130px",
-                  height: "3rem",
-                  backgroundColor:
-                    forceBlackText && !scrolled
-                      ? "#000000"
-                      : scrolled
-                        ? "var(--primary)"
-                        : "rgba(255, 255, 255, 0.2)",
+                  background: isHeroPage && !scrolled 
+                    ? "rgba(255, 255, 255, 0.2)"
+                    : forceBlackText && !scrolled 
+                      ? "#000000" 
+                      : "linear-gradient(135deg, #0B6DFF, #0056D6)",
                   color: "white",
-                  border: `2px solid ${forceBlackText && !scrolled ? "#000000" : scrolled ? "var(--primary)" : "white"}`,
-                  borderRadius: "0.5rem",
+                  border: isHeroPage && !scrolled ? "1px solid rgba(255, 255, 255, 0.3)" : "none",
+                  borderRadius: "12px",
                   fontWeight: 600,
-                  fontSize: "1rem",
+                  fontSize: "0.95rem",
                   cursor: "pointer",
-                  transition: "all 0.2s ease",
-                  padding: "0.5rem 1.5rem",
-                  boxShadow:
-                    forceBlackText && !scrolled
-                      ? "0 2px 8px rgba(0, 0, 0, 0.3)"
-                      : scrolled
-                        ? "0 2px 8px rgba(0, 102, 204, 0.3)"
-                        : "0 2px 8px rgba(255, 255, 255, 0.2)",
+                  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                  padding: "12px 28px",
+                  boxShadow: isHeroPage && !scrolled 
+                    ? "0 4px 12px rgba(0, 0, 0, 0.1)"
+                    : forceBlackText && !scrolled
+                      ? "0 4px 12px rgba(0, 0, 0, 0.25)"
+                      : "0 4px 12px rgba(11, 109, 255, 0.25)",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor =
-                    forceBlackText && !scrolled
-                      ? "#333333"
-                      : scrolled
-                        ? "var(--primary-dark)"
-                        : "white";
-                  e.currentTarget.style.color =
-                    forceBlackText && !scrolled
-                      ? "white"
-                      : scrolled
-                        ? "white"
-                        : "var(--primary)";
-                  e.currentTarget.style.borderColor =
-                    forceBlackText && !scrolled
-                      ? "#333333"
-                      : scrolled
-                        ? "var(--primary-dark)"
-                        : "white";
-                  e.currentTarget.style.boxShadow =
-                    forceBlackText && !scrolled
-                      ? "0 4px 12px rgba(0, 0, 0, 0.4)"
-                      : scrolled
-                        ? "0 4px 12px rgba(0, 102, 204, 0.4)"
-                        : "0 4px 12px rgba(255, 255, 255, 0.3)";
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                  if (isHeroPage && !scrolled) {
+                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.3)";
+                    e.currentTarget.style.boxShadow = "0 8px 20px rgba(0, 0, 0, 0.15)";
+                  } else if (forceBlackText && !scrolled) {
+                    e.currentTarget.style.boxShadow = "0 8px 16px rgba(0, 0, 0, 0.35)";
+                  } else {
+                    e.currentTarget.style.boxShadow = "0 8px 20px rgba(11, 109, 255, 0.35)";
+                  }
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor =
-                    forceBlackText && !scrolled
-                      ? "#000000"
-                      : scrolled
-                        ? "var(--primary)"
-                        : "rgba(255, 255, 255, 0.2)";
-                  e.currentTarget.style.color = "white";
-                  e.currentTarget.style.borderColor =
-                    forceBlackText && !scrolled
-                      ? "#000000"
-                      : scrolled
-                        ? "var(--primary)"
-                        : "white";
-                  e.currentTarget.style.boxShadow =
-                    forceBlackText && !scrolled
-                      ? "0 2px 8px rgba(0, 0, 0, 0.3)"
-                      : scrolled
-                        ? "0 2px 8px rgba(0, 102, 204, 0.3)"
-                        : "0 2px 8px rgba(255, 255, 255, 0.2)";
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.background = isHeroPage && !scrolled 
+                    ? "rgba(255, 255, 255, 0.2)"
+                    : forceBlackText && !scrolled 
+                      ? "#000000" 
+                      : "linear-gradient(135deg, #0B6DFF, #0056D6)";
+                  e.currentTarget.style.boxShadow = isHeroPage && !scrolled 
+                    ? "0 4px 12px rgba(0, 0, 0, 0.1)"
+                    : forceBlackText && !scrolled
+                      ? "0 4px 12px rgba(0, 0, 0, 0.25)"
+                      : "0 4px 12px rgba(11, 109, 255, 0.25)";
                 }}
               >
                 Sign Up
@@ -546,15 +533,21 @@ export default function Header({ currentPage, forceBlackText }: HeaderProps) {
                 alignItems: "center",
                 justifyContent: "center",
                 gap: "0.5rem",
-                padding: "0.875rem 1.5rem",
-                backgroundColor: "white",
-                color: "var(--primary)",
-                border: "2px solid var(--primary)",
+                padding: "12px 26px",
+                backgroundColor: "transparent",
+                color: "#0B6DFF",
+                border: "1px solid #0B6DFF",
                 borderRadius: "12px",
                 fontWeight: 600,
                 fontSize: "0.95rem",
                 textDecoration: "none",
-                transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#F0F7FF";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent";
               }}
             >
               <span
@@ -573,17 +566,24 @@ export default function Header({ currentPage, forceBlackText }: HeaderProps) {
                 alignItems: "center",
                 justifyContent: "center",
                 gap: "0.5rem",
-                padding: "0.875rem 1.5rem",
-                background:
-                  "linear-gradient(135deg, var(--primary) 0%, #0052a3 100%)",
+                padding: "12px 28px",
+                background: "linear-gradient(135deg, #0B6DFF, #0056D6)",
                 color: "white",
                 border: "none",
                 borderRadius: "12px",
                 fontWeight: 600,
                 fontSize: "0.95rem",
                 textDecoration: "none",
-                boxShadow: "0 4px 15px rgba(0, 102, 204, 0.35)",
-                transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                boxShadow: "0 4px 12px rgba(11, 109, 255, 0.25)",
+                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow = "0 8px 20px rgba(11, 109, 255, 0.35)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 4px 12px rgba(11, 109, 255, 0.25)";
               }}
             >
               <span

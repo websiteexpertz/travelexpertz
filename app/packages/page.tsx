@@ -1157,7 +1157,7 @@ export default function Packages() {
   return (
     <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-gray-50">
       <style>{packagesPageStyles}</style>
-      <Header currentPage="packages" />
+      <Header currentPage="packages" isHeroPage={true} />
       <main
         className="flex flex-col items-center w-full flex-1"
         style={{ padding: 0, margin: 0 }}

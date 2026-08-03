@@ -195,7 +195,7 @@ export default function EventsPage() {
 
   return (
     <>
-      <Header />
+      <Header solidHeader={true} />
       <main style={{ minHeight: "100vh", background: "var(--gray-50)" }}>
         {/* ===== HERO SECTION ===== */}
         <section

@@ -319,7 +319,7 @@ function HotelsContent() {
 
   return (
     <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden">
-      <Header currentPage="hotels" />
+      <Header currentPage="hotels" isHeroPage={true} />
 
       <main className="flex flex-col items-center w-full">
         {/* Hero Section - Premium Design */}
@@ -659,15 +659,33 @@ function HotelsContent() {
                         <div
                           style={{ position: "relative", flex: "0 0 250px" }}
                         >
-                          <img
-                            src={hotel.image}
-                            alt={hotel.name}
-                            style={{
-                              width: "100%",
-                              height: "100%",
-                              objectFit: "cover",
-                            }}
-                          />
+                          {hotel.image && (
+                            <img
+                              src={hotel.image}
+                              alt={hotel.name}
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                              }}
+                            />
+                          )}
+                          {!hotel.image && (
+                            <div
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                backgroundColor: "#f0f0f0",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "#999",
+                                fontSize: "0.9rem",
+                              }}
+                            >
+                              No image
+                            </div>
+                          )}
                           {hotel.popular && (
                             <div
                               style={{
@@ -709,11 +727,24 @@ function HotelsContent() {
                             style={{
                               fontSize: "0.875rem",
                               color: "#6b7280",
-                              marginBottom: "0.75rem",
+                              marginBottom: "0.25rem",
                             }}
                           >
-                            {hotel.location}
+                            {hotel.city && hotel.state
+                              ? `${hotel.city}, ${hotel.state}`
+                              : hotel.location}
                           </p>
+                          {hotel.location && (hotel.city || hotel.state) && (
+                            <p
+                              style={{
+                                fontSize: "0.8rem",
+                                color: "#9ca3af",
+                                marginBottom: "0.75rem",
+                              }}
+                            >
+                              {hotel.location}
+                            </p>
+                          )}
 
                           <div
                             style={{

@@ -232,7 +232,7 @@ export default function BookingsPage() {
   if (loading) {
     return (
       <>
-        <Header />
+        <Header solidHeader={true} />
         <div
           style={{
             minHeight: "100vh",
@@ -275,7 +275,7 @@ export default function BookingsPage() {
 
   return (
     <>
-      <Header />
+      <Header solidHeader={true} />
       <div style={containerStyle}>
         <h1 style={titleStyle}>📅 My Bookings & Inquiries</h1>
 

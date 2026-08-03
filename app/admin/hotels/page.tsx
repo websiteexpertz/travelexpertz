@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import PropertyOwnerSelect from "../components/PropertyOwnerSelect";
 
 interface Room {
   id: string;
@@ -30,6 +31,8 @@ interface Hotel {
   _id?: string;
   name: string;
   location: string;
+  state?: string;
+  city?: string;
   address: string;
   price: number;
   rating: number;
@@ -52,6 +55,7 @@ interface Hotel {
   hostName: string;
   hostEmail?: string;
   hostPhone?: string;
+  ownerId?: string;
   latitude?: number;
   longitude?: number;
   mapUrl?: string;
@@ -68,6 +72,8 @@ interface Hotel {
 const emptyHotel: Hotel = {
   name: "",
   location: "",
+  state: "",
+  city: "",
   address: "",
   price: 0,
   rating: 4.5,
@@ -90,6 +96,7 @@ const emptyHotel: Hotel = {
   hostName: "",
   hostEmail: "",
   hostPhone: "",
+  ownerId: "",
   latitude: 0,
   longitude: 0,
   mapUrl: "",
@@ -120,6 +127,15 @@ export default function AdminHotels() {
   const [nearbyPlaceName, setNearbyPlaceName] = useState<string>("");
   const [nearbyPlaceDistance, setNearbyPlaceDistance] = useState<string>("");
   const [uploadingImages, setUploadingImages] = useState<boolean>(false);
+  const [uploadingRoomImage, setUploadingRoomImage] = useState<boolean>(false);
+  const [uploadingRoomImages, setUploadingRoomImages] =
+    useState<boolean>(false);
+  const [statesAndCities, setStatesAndCities] = useState<
+    { stateName: string; cityName: string }[]
+  >([]);
+  const [states, setStates] = useState<string[]>([]);
+  const [selectedState, setSelectedState] = useState<string>("");
+  const [selectedCity, setSelectedCity] = useState<string>("");
   const [roomFormData, setRoomFormData] = useState<Room>({
     id: "",
     type: "",
@@ -146,7 +162,26 @@ export default function AdminHotels() {
 
   useEffect(() => {
     fetchHotels();
+    fetchStatesAndCities();
   }, []);
+
+  const fetchStatesAndCities = async () => {
+    try {
+      const response = await fetch("/api/hotel-destinations/states/all");
+      if (response.ok) {
+        const data = await response.json();
+        setStatesAndCities(data);
+
+        // Extract unique states
+        const uniqueStates = [
+          ...new Set(data.map((item: any) => item.stateName)),
+        ];
+        setStates(uniqueStates as string[]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch states and cities:", error);
+    }
+  };
 
   const fetchHotels = async () => {
     try {
@@ -437,6 +472,76 @@ export default function AdminHotels() {
     }));
   };
 
+  const handleRoomImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingRoomImage(true);
+    const formDataForUpload = new FormData();
+    formDataForUpload.append("file", file);
+
+    try {
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formDataForUpload,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setRoomFormData((prev) => ({ ...prev, images: [data.url] }));
+      }
+    } catch (error) {
+      console.error("Failed to upload room image:", error);
+    } finally {
+      setUploadingRoomImage(false);
+    }
+  };
+
+  const handleRoomMultipleImagesUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingRoomImages(true);
+    const uploadedUrls: string[] = [];
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const formDataForUpload = new FormData();
+        formDataForUpload.append("file", files[i]);
+
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: formDataForUpload,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          uploadedUrls.push(data.url);
+        }
+      }
+
+      setRoomFormData((prev) => ({
+        ...prev,
+        images: [...(prev.images || []), ...uploadedUrls],
+      }));
+    } catch (error) {
+      console.error("Failed to upload room images:", error);
+    } finally {
+      setUploadingRoomImages(false);
+    }
+  };
+
+  const removeRoomImage = (index: number) => {
+    setRoomFormData((prev) => ({
+      ...prev,
+      images: (prev.images || []).filter((_, i) => i !== index),
+    }));
+  };
+
   const submitHotel = async () => {
     const method = editingId ? "PATCH" : "POST";
     const payload = editingId ? { ...formData, _id: editingId } : formData;
@@ -528,6 +633,12 @@ export default function AdminHotels() {
     setFormData({
       ...emptyHotel,
       ...hotel,
+      hostName: hotel.hostName || "",
+      hostEmail: hotel.hostEmail || "",
+      hostPhone: hotel.hostPhone || "",
+      ownerId: hotel.ownerId || "",
+      mapUrl: hotel.mapUrl || "",
+      dealDescription: hotel.dealDescription || "",
       policies: hotel.policies || emptyHotel.policies,
       nearbyPlaces: hotel.nearbyPlaces || [],
       rooms: hotel.rooms || [],
@@ -724,13 +835,16 @@ export default function AdminHotels() {
                         fontSize: "0.9rem",
                       }}
                     >
-                      Location *
+                      State *
                     </label>
-                    <input
-                      name="location"
-                      value={formData.location}
-                      onChange={handleInputChange}
-                      placeholder="City, Country"
+                    <select
+                      value={selectedState}
+                      onChange={(e) => {
+                        const state = e.target.value;
+                        setSelectedState(state);
+                        setSelectedCity("");
+                        setFormData({ ...formData, state, city: "" });
+                      }}
                       style={{
                         width: "100%",
                         padding: "0.75rem",
@@ -738,7 +852,55 @@ export default function AdminHotels() {
                         borderRadius: "8px",
                         fontSize: "0.95rem",
                       }}
-                    />
+                    >
+                      <option value="">Select State</option>
+                      {states.map((state) => (
+                        <option key={state} value={state}>
+                          {state}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        marginBottom: "0.5rem",
+                        fontWeight: 600,
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      City *
+                    </label>
+                    <select
+                      value={selectedCity}
+                      onChange={(e) => {
+                        const city = e.target.value;
+                        setSelectedCity(city);
+                        setFormData({
+                          ...formData,
+                          city,
+                          location: `${city}, ${selectedState}`,
+                        });
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "0.75rem",
+                        border: "1px solid #d1d5db",
+                        borderRadius: "8px",
+                        fontSize: "0.95rem",
+                      }}
+                    >
+                      <option value="">Select City</option>
+                      {statesAndCities
+                        .filter((item) => item.stateName === selectedState)
+                        .map((item) => (
+                          <option key={item.cityName} value={item.cityName}>
+                            {item.cityName}
+                          </option>
+                        ))}
+                    </select>
                   </div>
                 </div>
 
@@ -981,6 +1143,48 @@ export default function AdminHotels() {
                 <div
                   style={{
                     display: "grid",
+                    gridTemplateColumns: "1fr",
+                    gap: "1.5rem",
+                    marginBottom: "1.5rem",
+                  }}
+                >
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        marginBottom: "0.5rem",
+                        fontWeight: 600,
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      Select Property Owner
+                    </label>
+                    <PropertyOwnerSelect
+                      value={formData.ownerId || null}
+                      onChange={(owner) => {
+                        if (owner) {
+                          setFormData((prev) => ({
+                            ...prev,
+                            ownerId: owner._id,
+                            hostName: owner.name || prev.hostName,
+                            hostEmail: owner.email || prev.hostEmail,
+                            hostPhone: owner.phone || prev.hostPhone,
+                          }));
+                        } else {
+                          setFormData((prev) => ({
+                            ...prev,
+                            ownerId: "",
+                          }));
+                        }
+                      }}
+                      onError={(error) => console.error("Owner selection error:", error)}
+                    />
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
                     gridTemplateColumns: "1fr 1fr 1fr",
                     gap: "1.5rem",
                   }}
@@ -998,7 +1202,7 @@ export default function AdminHotels() {
                     </label>
                     <input
                       name="hostName"
-                      value={formData.hostName}
+                      value={formData.hostName || ""}
                       onChange={handleInputChange}
                       placeholder="Host name"
                       style={{
@@ -1007,6 +1211,7 @@ export default function AdminHotels() {
                         border: "1px solid #d1d5db",
                         borderRadius: "8px",
                         fontSize: "0.95rem",
+                        backgroundColor: formData.ownerId ? "#f0f9ff" : "white",
                       }}
                     />
                   </div>
@@ -2375,6 +2580,157 @@ export default function AdminHotels() {
                       </button>
                     </div>
 
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          marginBottom: "0.5rem",
+                          fontWeight: 600,
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        Room Image (Thumbnail)
+                      </label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleRoomImageUpload}
+                        style={{ marginBottom: "0.5rem" }}
+                      />
+                      {uploadingRoomImage && (
+                        <p style={{ color: "#6b7280", fontSize: "0.85rem" }}>
+                          Uploading...
+                        </p>
+                      )}
+                      {roomFormData.images &&
+                        roomFormData.images.length > 0 && (
+                          <div
+                            style={{
+                              marginTop: "0.5rem",
+                              position: "relative",
+                              width: "100px",
+                              height: "100px",
+                            }}
+                          >
+                            <img
+                              src={roomFormData.images[0]}
+                              alt="Room Thumbnail"
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                                borderRadius: "8px",
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeRoomImage(0)}
+                              style={{
+                                position: "absolute",
+                                top: "-8px",
+                                right: "-8px",
+                                padding: "0.3rem",
+                                background: "#ef4444",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "50%",
+                                cursor: "pointer",
+                                fontSize: "0.75rem",
+                                width: "24px",
+                                height: "24px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        )}
+                    </div>
+
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          marginBottom: "0.5rem",
+                          fontWeight: 600,
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        Gallery Images (Multiple)
+                      </label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleRoomMultipleImagesUpload}
+                        style={{ marginBottom: "0.5rem" }}
+                      />
+                      {uploadingRoomImages && (
+                        <p style={{ color: "#6b7280", fontSize: "0.85rem" }}>
+                          Uploading images...
+                        </p>
+                      )}
+                      {roomFormData.images &&
+                        roomFormData.images.length > 1 && (
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns:
+                                "repeat(auto-fill, minmax(100px, 1fr))",
+                              gap: "0.5rem",
+                              marginTop: "0.5rem",
+                            }}
+                          >
+                            {roomFormData.images.slice(1).map((img, index) => (
+                              <div
+                                key={index}
+                                style={{
+                                  position: "relative",
+                                  width: "100px",
+                                  height: "100px",
+                                }}
+                              >
+                                <img
+                                  src={img}
+                                  alt={`Gallery ${index + 1}`}
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                    borderRadius: "8px",
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeRoomImage(index + 1)}
+                                  style={{
+                                    position: "absolute",
+                                    top: "-8px",
+                                    right: "-8px",
+                                    padding: "0.3rem",
+                                    background: "#ef4444",
+                                    color: "white",
+                                    border: "none",
+                                    borderRadius: "50%",
+                                    cursor: "pointer",
+                                    fontSize: "0.75rem",
+                                    width: "24px",
+                                    height: "24px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                  }}
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                    </div>
+
                     <div
                       style={{
                         display: "flex",
@@ -3225,7 +3581,17 @@ export default function AdminHotels() {
                           lineHeight: "1.6",
                         }}
                       >
-                        <div>📍 {hotel.location}</div>
+                        <div>
+                          📍{" "}
+                          {hotel.city && hotel.state
+                            ? `${hotel.city}, ${hotel.state}`
+                            : hotel.location}
+                        </div>
+                        {hotel.location && (hotel.city || hotel.state) && (
+                          <div style={{ fontSize: "0.8rem", color: "#9ca3af" }}>
+                            📌 {hotel.location}
+                          </div>
+                        )}
                         <div>
                           💰 {formatInr(hotel.price)}/night • ⭐ {hotel.rating}{" "}
                           ({hotel.reviews} reviews)

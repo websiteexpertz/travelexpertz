@@ -167,7 +167,7 @@ export default function OwnerRegisterPage() {
 
   return (
     <>
-      <Header />
+      <Header solidHeader={true} />
       <div
         style={{
           minHeight: "100vh",

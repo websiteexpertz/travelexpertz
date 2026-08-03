@@ -1,0 +1,58 @@
+/* Location Dropdown Wrapper */
+.location-dropdown-wrapper {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-width: 0;
+  z-index: 200;
+}
+
+/* Location Dropdown Input */
+.search-location-input {
+  width: 100% !important;
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+  color: #1f2937 !important;
+  font-size: 0.9rem !important;
+  padding: 0 !important;
+  font-family: inherit !important;
+}
+
+.search-location-input::placeholder {
+  color: rgba(107, 114, 128, 0.6) !important;
+}
+
+.search-location-input:focus {
+  outline: none !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Dropdown in search context - ensure high z-index */
+.search-item .location-dropdown-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  z-index: 200;
+}
+
+/* Override any parent overflow issues */
+.search-box-content {
+  position: relative;
+  z-index: 1;
+}
+
+.search-item {
+  position: relative;
+  z-index: 1;
+}
+
+/* Ensure dropdown appears above everything */
+.location-dropdown-wrapper [style*="position: absolute"],
+.location-dropdown-wrapper > div[style*="position: absolute"] {
+  z-index: 10000 !important;
+}
+
+

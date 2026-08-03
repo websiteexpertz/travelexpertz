@@ -134,7 +134,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <>
-      <Header />
+      <Header solidHeader={true} />
       <div
         style={{
           minHeight: "100vh",

@@ -407,7 +407,7 @@ export default function Homestays() {
   return (
     <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden">
       <style dangerouslySetInnerHTML={{ __html: homestayHeroStyles }} />
-      <Header currentPage="homestays" />
+      <Header currentPage="homestays" isHeroPage={true} />
 
       <main className="flex flex-col items-center w-full">
         {/* Hero Section - Premium Design */}

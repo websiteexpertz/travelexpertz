@@ -108,65 +108,8 @@ const RATING_OPTIONS = [
   { label: "3.0+", value: 3.0 },
 ];
 
-// Top attractions data - can be fetched from API
-const ATTRACTIONS = {
-  Goa: [
-    "Baga Beach",
-    "Fort Aguada",
-    "Calangute Beach",
-    "Panjim Old Town",
-    "Dudhsagar Waterfall",
-  ],
-  Mumbai: [
-    "Gateway of India",
-    "Marine Drive",
-    "Taj Mahal Hotel",
-    "Colaba Causeway",
-    "Juhu Beach",
-  ],
-  Delhi: [
-    "Red Fort",
-    "India Gate",
-    "Jama Masjid",
-    "Humayun's Tomb",
-    "Raj Ghat",
-  ],
-  Jaipur: [
-    "City Palace",
-    "Hawa Mahal",
-    "Jantar Mantar",
-    "Albert Hall Museum",
-    "Govind Dev Ji Temple",
-  ],
-  Bangalore: [
-    "Vidhana Soudha",
-    "Cubbon Park",
-    "Lalbagh Botanical Garden",
-    "Tipu Sultan's Summer Palace",
-    "Indira Nagar Layout",
-  ],
-  Hyderabad: [
-    "Charminar",
-    "Hussain Sagar Lake",
-    "Golconda Fort",
-    "Mecca Masjid",
-    "Qutb Shahi Tombs",
-  ],
-  Pune: [
-    "Shaniwarwada Fort",
-    "Aga Khan Palace",
-    "Osho Ashram",
-    "Parvati Hill",
-    "Rajgad Fort",
-  ],
-  Kolkata: [
-    "Victoria Memorial",
-    "Howrah Bridge",
-    "St. Paul's Cathedral",
-    "Indian Museum",
-    "Dakshineswar Temple",
-  ],
-} as const;
+// Top attractions data - fetched from API based on location
+const ATTRACTIONS = {} as const;
 
 export default function HotelSearch() {
   return (
@@ -256,8 +199,13 @@ function HotelSearchContent() {
   const [destinationData, setDestinationData] = useState<any>(null);
   const [allDestinations, setAllDestinations] = useState<any[]>([]);
   const [destinationTabActive, setDestinationTabActive] = useState<
-    "topDestinations" | "topAttractions" | "thingsToDo"
-  >("topDestinations");
+    | "topDestinations"
+    | "topAttractions"
+    | "thingsToDo"
+    | "famousCafes"
+    | "famousAttractions"
+    | "shopping"
+  >("thingsToDo");
 
   // Fetch hotel-destinations
   useEffect(() => {
@@ -307,6 +255,62 @@ function HotelSearchContent() {
 
     fetchHotelsAndHomestays();
   }, []);
+
+  // Update active tab when location changes between state and city
+  useEffect(() => {
+    if (!filters.location || !allDestinations.length) return;
+
+    const searchLocation = filters.location.toLowerCase().trim();
+    // Normalize by removing spaces to match "Uttar Pradesh" with "uttarpradesh"
+    const normalizedSearch = searchLocation.replace(/\s+/g, "");
+
+    // STRICT MATCHING ONLY - exact match for state or city name
+    const destination = allDestinations.find((d) => {
+      const stateName = d.stateName?.toLowerCase().trim() || "";
+      const cityName = d.cityName?.toLowerCase().trim() || "";
+
+      const normalizedStateName = stateName.replace(/\s+/g, "");
+      const normalizedCityName = cityName.replace(/\s+/g, "");
+
+      // Exact match only
+      return (
+        normalizedStateName === normalizedSearch ||
+        normalizedCityName === normalizedSearch
+      );
+    });
+
+    if (!destination) return;
+
+    const isCity =
+      destination.cityName?.toLowerCase().trim() === searchLocation ||
+      destination.cityName?.toLowerCase().trim().replace(/\s+/g, "") ===
+        normalizedSearch;
+    const isState =
+      destination.stateName?.toLowerCase().trim() === searchLocation ||
+      destination.stateName?.toLowerCase().trim().replace(/\s+/g, "") ===
+        normalizedSearch;
+
+    // Reset to appropriate default tab based on location type
+    if (isCity && !isState) {
+      // City search: default to "thingsToDo"
+      if (
+        destinationTabActive === "topDestinations" ||
+        destinationTabActive === "topAttractions"
+      ) {
+        setDestinationTabActive("thingsToDo");
+      }
+    } else if (isState) {
+      // State search: default to "topDestinations"
+      if (
+        destinationTabActive === "thingsToDo" ||
+        destinationTabActive === "famousCafes" ||
+        destinationTabActive === "famousAttractions" ||
+        destinationTabActive === "shopping"
+      ) {
+        setDestinationTabActive("topDestinations");
+      }
+    }
+  }, [filters.location, allDestinations, destinationTabActive]);
 
   // Handle scroll event for other functionality if needed
   // Currently not using scroll detection
@@ -372,10 +376,20 @@ function HotelSearchContent() {
           selectedPropertyTypes.length === 0 ||
           selectedPropertyTypes.includes(normalizedType);
 
+        // Search location: check hotel name, city, state, and location
         const matchesLocation = filters.location
-          ? hotel.location
+          ? hotel.name.toLowerCase().includes(filters.location.toLowerCase()) ||
+            hotel.location
               .toLowerCase()
-              .includes(filters.location.toLowerCase())
+              .includes(filters.location.toLowerCase()) ||
+            ((hotel as any).city &&
+              (hotel as any).city
+                .toLowerCase()
+                .includes(filters.location.toLowerCase())) ||
+            ((hotel as any).state &&
+              (hotel as any).state
+                .toLowerCase()
+                .includes(filters.location.toLowerCase()))
           : true;
 
         const matchesPrice = (() => {
@@ -422,11 +436,11 @@ function HotelSearchContent() {
         const matchesAmenities =
           selectedAmenities.length === 0 ||
           selectedAmenities.every((a) => hotel.amenities.includes(a));
-        
+
         const matchesRatingsFilter =
           selectedRatings.length === 0 ||
           hotel.rating >= Math.max(...selectedRatings);
-        
+
         const matchesPopular = !showPopularOnly || hotel.popular;
 
         return (
@@ -459,70 +473,55 @@ function HotelSearchContent() {
     showPopularOnly,
   ]);
 
-  // Get destination data based on search location
+  // Get destination data based on search location - STRICT MATCHING ONLY
   const getDestinationData = () => {
     if (!filters.location || !allDestinations.length) return null;
 
-    const searchLocation = filters.location.toLowerCase();
-    const destination = allDestinations.find((d) => {
-      const stateName = d.stateName?.toLowerCase() || "";
-      const cityName = d.cityName?.toLowerCase() || "";
-      const areas = d.areas?.map((a: any) => a.name.toLowerCase()) || [];
-      const subareas =
-        d.areas?.flatMap((a: any) =>
-          (a.subareas || []).map((s: any) => s.name.toLowerCase()),
-        ) || [];
+    let searchLocation = filters.location.toLowerCase().trim();
+    // Normalize by removing spaces to match "Uttar Pradesh" with "uttarpradesh"
+    const normalizedSearch = searchLocation.replace(/\s+/g, "");
 
+    // ONLY search by exact location/city/state name match - NO hotel fallback
+    const destination = allDestinations.find((d) => {
+      const stateName = d.stateName?.toLowerCase().trim() || "";
+      const cityName = d.cityName?.toLowerCase().trim() || "";
+
+      // Normalize destination names too
+      const normalizedStateName = stateName.replace(/\s+/g, "");
+      const normalizedCityName = cityName.replace(/\s+/g, "");
+
+      // EXACT MATCH ONLY - after removing spaces
       return (
-        stateName.includes(searchLocation) ||
-        cityName.includes(searchLocation) ||
-        areas.some((area: string) => area.includes(searchLocation)) ||
-        subareas.some((subarea: string) => subarea.includes(searchLocation)) ||
-        searchLocation.includes(stateName) ||
-        searchLocation.includes(cityName)
+        normalizedStateName === normalizedSearch ||
+        normalizedCityName === normalizedSearch
       );
     });
 
-    if (!destination) return null;
+    if (!destination) {
+      // No matching destination found - return null (show nothing)
+      return null;
+    }
 
-    // Determine what level of data to show
-    if (searchLocation.includes(destination.stateName?.toLowerCase() || "")) {
-      // Show state level data
-      return {
-        type: "state",
-        name: destination.stateName,
-        data: destination.stateData,
-      };
-    } else if (
-      searchLocation.includes(destination.cityName?.toLowerCase() || "")
-    ) {
-      // Show city level data
+    // Determine what level of data to show based on what matched
+    const destStateName = destination.stateName?.toLowerCase().trim() || "";
+    const destCityName = destination.cityName?.toLowerCase().trim() || "";
+    const normalizedDestStateName = destStateName.replace(/\s+/g, "");
+    const normalizedDestCityName = destCityName.replace(/\s+/g, "");
+
+    if (normalizedDestCityName === normalizedSearch) {
+      // Show city level data (Things to Do) - matched city
       return {
         type: "city",
         name: destination.cityName,
         data: destination.cityData,
       };
-    } else {
-      // Show area/subarea level data
-      const area = destination.areas?.find(
-        (a: any) =>
-          a.name.toLowerCase().includes(searchLocation) ||
-          searchLocation.includes(a.name.toLowerCase()),
-      );
-
-      if (area) {
-        const subarea = area.subareas?.find(
-          (s: any) =>
-            s.name.toLowerCase().includes(searchLocation) ||
-            searchLocation.includes(s.name.toLowerCase()),
-        );
-
-        return {
-          type: subarea ? "subarea" : "area",
-          name: subarea?.name || area.name,
-          data: subarea || area,
-        };
-      }
+    } else if (normalizedDestStateName === normalizedSearch) {
+      // Show state level data - matched state
+      return {
+        type: "state",
+        name: destination.stateName,
+        data: destination.stateData,
+      };
     }
 
     return null;
@@ -792,108 +791,255 @@ function HotelSearchContent() {
                   flexWrap: "wrap",
                 }}
               >
-                <button
-                  type="button"
-                  onClick={() => setDestinationTabActive("topDestinations")}
-                  style={{
-                    padding: "0.6rem 1.2rem",
-                    background:
-                      destinationTabActive === "topDestinations"
-                        ? "#667eea"
-                        : "rgba(102, 126, 234, 0.15)",
-                    border: "1px solid #667eea",
-                    borderRadius: "8px",
-                    color:
-                      destinationTabActive === "topDestinations"
-                        ? "white"
-                        : "#1f2937",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "all 0.3s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (destinationTabActive !== "topDestinations") {
-                      e.currentTarget.style.background =
-                        "rgba(102, 126, 234, 0.25)";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (destinationTabActive !== "topDestinations") {
-                      e.currentTarget.style.background =
-                        "rgba(102, 126, 234, 0.15)";
-                    }
-                  }}
-                >
-                  🏛️ Top Destinations
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDestinationTabActive("topAttractions")}
-                  style={{
-                    padding: "0.6rem 1.2rem",
-                    background:
-                      destinationTabActive === "topAttractions"
-                        ? "#667eea"
-                        : "rgba(102, 126, 234, 0.15)",
-                    border: "1px solid #667eea",
-                    borderRadius: "8px",
-                    color:
-                      destinationTabActive === "topAttractions"
-                        ? "white"
-                        : "#1f2937",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "all 0.3s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (destinationTabActive !== "topAttractions") {
-                      e.currentTarget.style.background =
-                        "rgba(102, 126, 234, 0.25)";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (destinationTabActive !== "topAttractions") {
-                      e.currentTarget.style.background =
-                        "rgba(102, 126, 234, 0.15)";
-                    }
-                  }}
-                >
-                  ✨ Top Attractions
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDestinationTabActive("thingsToDo")}
-                  style={{
-                    padding: "0.6rem 1.2rem",
-                    background:
-                      destinationTabActive === "thingsToDo"
-                        ? "#667eea"
-                        : "rgba(102, 126, 234, 0.15)",
-                    border: "1px solid #667eea",
-                    borderRadius: "8px",
-                    color:
-                      destinationTabActive === "thingsToDo"
-                        ? "white"
-                        : "#1f2937",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "all 0.3s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (destinationTabActive !== "thingsToDo") {
-                      e.currentTarget.style.background =
-                        "rgba(102, 126, 234, 0.25)";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (destinationTabActive !== "thingsToDo") {
-                      e.currentTarget.style.background =
-                        "rgba(102, 126, 234, 0.15)";
-                    }
-                  }}
-                >
-                  🎯 Things to Do
-                </button>
+                {/* STATE LEVEL TABS */}
+                {destinationInfo?.type === "state" ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setDestinationTabActive("topDestinations")}
+                      style={{
+                        padding: "0.6rem 1.2rem",
+                        background:
+                          destinationTabActive === "topDestinations"
+                            ? "#667eea"
+                            : "rgba(102, 126, 234, 0.15)",
+                        border: "1px solid #667eea",
+                        borderRadius: "8px",
+                        color:
+                          destinationTabActive === "topDestinations"
+                            ? "white"
+                            : "#1f2937",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        transition: "all 0.3s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (destinationTabActive !== "topDestinations") {
+                          e.currentTarget.style.background =
+                            "rgba(102, 126, 234, 0.25)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (destinationTabActive !== "topDestinations") {
+                          e.currentTarget.style.background =
+                            "rgba(102, 126, 234, 0.15)";
+                        }
+                      }}
+                    >
+                      🏛️ Top Destinations
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDestinationTabActive("topAttractions")}
+                      style={{
+                        padding: "0.6rem 1.2rem",
+                        background:
+                          destinationTabActive === "topAttractions"
+                            ? "#667eea"
+                            : "rgba(102, 126, 234, 0.15)",
+                        border: "1px solid #667eea",
+                        borderRadius: "8px",
+                        color:
+                          destinationTabActive === "topAttractions"
+                            ? "white"
+                            : "#1f2937",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        transition: "all 0.3s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (destinationTabActive !== "topAttractions") {
+                          e.currentTarget.style.background =
+                            "rgba(102, 126, 234, 0.25)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (destinationTabActive !== "topAttractions") {
+                          e.currentTarget.style.background =
+                            "rgba(102, 126, 234, 0.15)";
+                        }
+                      }}
+                    >
+                      ✨ Top Attractions
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDestinationTabActive("thingsToDo")}
+                      style={{
+                        padding: "0.6rem 1.2rem",
+                        background:
+                          destinationTabActive === "thingsToDo"
+                            ? "#667eea"
+                            : "rgba(102, 126, 234, 0.15)",
+                        border: "1px solid #667eea",
+                        borderRadius: "8px",
+                        color:
+                          destinationTabActive === "thingsToDo"
+                            ? "white"
+                            : "#1f2937",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        transition: "all 0.3s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (destinationTabActive !== "thingsToDo") {
+                          e.currentTarget.style.background =
+                            "rgba(102, 126, 234, 0.25)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (destinationTabActive !== "thingsToDo") {
+                          e.currentTarget.style.background =
+                            "rgba(102, 126, 234, 0.15)";
+                        }
+                      }}
+                    >
+                      🎯 Things to Do
+                    </button>
+                  </>
+                ) : (
+                  /* CITY LEVEL TABS */
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setDestinationTabActive("thingsToDo")}
+                      style={{
+                        padding: "0.6rem 1.2rem",
+                        background:
+                          destinationTabActive === "thingsToDo"
+                            ? "#667eea"
+                            : "rgba(102, 126, 234, 0.15)",
+                        border: "1px solid #667eea",
+                        borderRadius: "8px",
+                        color:
+                          destinationTabActive === "thingsToDo"
+                            ? "white"
+                            : "#1f2937",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        transition: "all 0.3s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (destinationTabActive !== "thingsToDo") {
+                          e.currentTarget.style.background =
+                            "rgba(102, 126, 234, 0.25)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (destinationTabActive !== "thingsToDo") {
+                          e.currentTarget.style.background =
+                            "rgba(102, 126, 234, 0.15)";
+                        }
+                      }}
+                    >
+                      🎯 Things to Do
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDestinationTabActive("famousCafes")}
+                      style={{
+                        padding: "0.6rem 1.2rem",
+                        background:
+                          destinationTabActive === "famousCafes"
+                            ? "#667eea"
+                            : "rgba(102, 126, 234, 0.15)",
+                        border: "1px solid #667eea",
+                        borderRadius: "8px",
+                        color:
+                          destinationTabActive === "famousCafes"
+                            ? "white"
+                            : "#1f2937",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        transition: "all 0.3s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (destinationTabActive !== "famousCafes") {
+                          e.currentTarget.style.background =
+                            "rgba(102, 126, 234, 0.25)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (destinationTabActive !== "famousCafes") {
+                          e.currentTarget.style.background =
+                            "rgba(102, 126, 234, 0.15)";
+                        }
+                      }}
+                    >
+                      ☕ Famous Cafés & Restaurants
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setDestinationTabActive("famousAttractions")
+                      }
+                      style={{
+                        padding: "0.6rem 1.2rem",
+                        background:
+                          destinationTabActive === "famousAttractions"
+                            ? "#667eea"
+                            : "rgba(102, 126, 234, 0.15)",
+                        border: "1px solid #667eea",
+                        borderRadius: "8px",
+                        color:
+                          destinationTabActive === "famousAttractions"
+                            ? "white"
+                            : "#1f2937",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        transition: "all 0.3s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (destinationTabActive !== "famousAttractions") {
+                          e.currentTarget.style.background =
+                            "rgba(102, 126, 234, 0.25)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (destinationTabActive !== "famousAttractions") {
+                          e.currentTarget.style.background =
+                            "rgba(102, 126, 234, 0.15)";
+                        }
+                      }}
+                    >
+                      ✨ Famous Attractions
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDestinationTabActive("shopping")}
+                      style={{
+                        padding: "0.6rem 1.2rem",
+                        background:
+                          destinationTabActive === "shopping"
+                            ? "#667eea"
+                            : "rgba(102, 126, 234, 0.15)",
+                        border: "1px solid #667eea",
+                        borderRadius: "8px",
+                        color:
+                          destinationTabActive === "shopping"
+                            ? "white"
+                            : "#1f2937",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        transition: "all 0.3s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (destinationTabActive !== "shopping") {
+                          e.currentTarget.style.background =
+                            "rgba(102, 126, 234, 0.25)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (destinationTabActive !== "shopping") {
+                          e.currentTarget.style.background =
+                            "rgba(102, 126, 234, 0.15)";
+                        }
+                      }}
+                    >
+                      🛍️ Shopping
+                    </button>
+                  </>
+                )}
               </div>
 
               {/* Content Carousel */}
@@ -910,15 +1056,14 @@ function HotelSearchContent() {
                       allItems = destinationInfo.data?.thingsToDo || [];
                     }
                   } else if (destinationInfo.type === "city") {
-                    if (destinationTabActive === "topDestinations") {
-                      allItems = destinationInfo.data?.topDestinations || [];
-                    } else if (destinationTabActive === "topAttractions") {
-                      allItems =
-                        destinationInfo.data?.topAttractions ||
-                        destinationInfo.data?.famousAttractions ||
-                        [];
-                    } else if (destinationTabActive === "thingsToDo") {
+                    if (destinationTabActive === "thingsToDo") {
                       allItems = destinationInfo.data?.thingsToDo || [];
+                    } else if (destinationTabActive === "famousCafes") {
+                      allItems = destinationInfo.data?.famousCafes || [];
+                    } else if (destinationTabActive === "famousAttractions") {
+                      allItems = destinationInfo.data?.famousAttractions || [];
+                    } else if (destinationTabActive === "shopping") {
+                      allItems = destinationInfo.data?.shopping || [];
                     }
                   } else if (
                     destinationInfo.type === "area" ||
@@ -944,6 +1089,12 @@ function HotelSearchContent() {
                       items = dest.stateData?.topAttractions || [];
                     } else if (destinationTabActive === "thingsToDo") {
                       items = dest.cityData?.thingsToDo || [];
+                    } else if (destinationTabActive === "famousCafes") {
+                      items = dest.cityData?.famousCafes || [];
+                    } else if (destinationTabActive === "famousAttractions") {
+                      items = dest.cityData?.famousAttractions || [];
+                    } else if (destinationTabActive === "shopping") {
+                      items = dest.cityData?.shopping || [];
                     }
                     allItems.push(...items);
                   });
@@ -1000,13 +1151,18 @@ function HotelSearchContent() {
                             height: "160px",
                             overflow: "hidden",
                             background: "#f0f0f0",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
                           }}
                         >
                           <img
                             src={
-                              item.images && item.images.length > 0
-                                ? item.images[0]
-                                : `https://via.placeholder.com/400x300?text=${encodeURIComponent(item.name)}`
+                              item.profileImage
+                                ? item.profileImage
+                                : item.images && item.images.length > 0
+                                  ? item.images[0]
+                                  : `https://via.placeholder.com/400x300?text=${encodeURIComponent(item.name)}`
                             }
                             alt={item.name}
                             style={{
@@ -1323,6 +1479,7 @@ function HotelSearchContent() {
                                 display: "flex",
                                 alignItems: "center",
                                 gap: "0.5rem",
+                                marginBottom: "0.2rem",
                               }}
                             >
                               <span
@@ -1331,8 +1488,30 @@ function HotelSearchContent() {
                               >
                                 location_on
                               </span>
-                              {hotel.location}
+                              {hotel.city && hotel.state
+                                ? `${hotel.city}, ${hotel.state}`
+                                : hotel.location}
                             </p>
+                            {hotel.location && (hotel.city || hotel.state) && (
+                              <p
+                                style={{
+                                  fontSize: "0.8rem",
+                                  color: "#9ca3af",
+                                  margin: 0,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.5rem",
+                                }}
+                              >
+                                <span
+                                  className="material-symbols-outlined"
+                                  style={{ fontSize: "0.85rem" }}
+                                >
+                                  place
+                                </span>
+                                {hotel.location}
+                              </p>
+                            )}
                           </div>
 
                           {/* Price */}

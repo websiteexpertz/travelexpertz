@@ -101,6 +101,11 @@ html, body, #__next, #root {
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
   
   --gold: #D4AF37;
+
+  /* ====== NAVBAR HEIGHTS (Exact height for proper spacing) ====== */
+  --navbar-height-desktop: 72px;
+  --navbar-height-tablet: 68px;
+  --navbar-height-mobile: 64px;
 }
 
 /* ====== GLOBAL STYLES ====== */
@@ -256,14 +261,26 @@ header {
   z-index: 9999;
   margin: 0 !important;
   padding: 0;
-  transition: background-color 0.3s ease, box-shadow 0.3s ease, border-bottom 0.3s ease;
+  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              backdrop-filter 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              border-bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Hero page header - transparent with glassmorphism */
+header.header-hero {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Header after scroll or on non-hero pages */
 header.header-scrolled {
-  background-color: rgba(255, 255, 255, 0.95) !important;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+  background-color: rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
@@ -465,6 +482,41 @@ header button:nth-child(3):hover {
 @media (min-width: 1024px) {
   header button:nth-child(3) {
     display: inline-block;
+  }
+}
+
+/* ====== NAVBAR SPACING UTILITY ====== */
+/* Global spacing class for pages with fixed navbar */
+/* Applies exact navbar height as top padding - no excess */
+
+/* Main content wrapper - applies to all non-hero pages */
+.navbar-spacing-wrapper {
+  padding-top: var(--navbar-height-desktop);
+  margin: 0;
+}
+
+/* Clear first child margins to avoid extra spacing */
+.navbar-spacing-wrapper > :first-child {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.navbar-spacing-wrapper section:first-child {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+/* Responsive spacing - Tablet */
+@media (max-width: 1024px) {
+  .navbar-spacing-wrapper {
+    padding-top: var(--navbar-height-tablet);
+  }
+}
+
+/* Responsive spacing - Mobile */
+@media (max-width: 768px) {
+  .navbar-spacing-wrapper {
+    padding-top: var(--navbar-height-mobile);
   }
 }
 
@@ -738,7 +790,7 @@ header button:nth-child(3):hover {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1.5px solid rgba(219, 234, 254, 0.8);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .search-item::after {

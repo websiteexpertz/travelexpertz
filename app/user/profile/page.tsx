@@ -140,7 +140,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <>
-        <Header />
+        <Header solidHeader={true} />
         <div
           style={{
             minHeight: "100vh",
@@ -158,7 +158,7 @@ export default function ProfilePage() {
 
   return (
     <>
-      <Header />
+      <Header solidHeader={true} />
       <div
         style={{
           minHeight: "100vh",

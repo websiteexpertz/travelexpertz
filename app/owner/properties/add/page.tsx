@@ -23,6 +23,8 @@ interface OwnerProperty {
   type: string; // "hotel" or "homestay"
   propertyType?: string;
   location: string;
+  city?: string;
+  state?: string;
   address: string;
   price: number;
   rating: number;
@@ -56,6 +58,8 @@ const emptyProperty: OwnerProperty = {
   type: "homestay",
   propertyType: "homestay",
   location: "",
+  city: "",
+  state: "",
   address: "",
   price: 0,
   rating: 4.5,
@@ -189,6 +193,24 @@ export default function OwnerAddProperty() {
       return;
     }
 
+    // Auto-update location when city or state changes
+    if (name === "city" || name === "state") {
+      setFormData((prev) => {
+        const updatedData = {
+          ...prev,
+          [name]: nextValue,
+        };
+        // Auto-populate location from city and state
+        if (name === "city" && updatedData.state) {
+          updatedData.location = `${nextValue}, ${updatedData.state}`;
+        } else if (name === "state" && updatedData.city) {
+          updatedData.location = `${updatedData.city}, ${nextValue}`;
+        }
+        return updatedData;
+      });
+      return;
+    }
+
     setFormData((prev) => ({
       ...prev,
       [name]: nextValue,
@@ -278,6 +300,49 @@ export default function OwnerAddProperty() {
 
   const removeImage = (index: number) => {
     setFormData((prev) => ({
+      ...prev,
+      images: (prev.images || []).filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleRoomImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingImages(true);
+    const uploadedUrls: string[] = [];
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const formDataForUpload = new FormData();
+        formDataForUpload.append("file", files[i]);
+
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: formDataForUpload,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          uploadedUrls.push(data.url);
+        }
+      }
+
+      setRoomFormData((prev) => ({
+        ...prev,
+        images: [...(prev.images || []), ...uploadedUrls],
+      }));
+    } catch (error) {
+      console.error("Failed to upload room images:", error);
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
+  const removeRoomImage = (index: number) => {
+    setRoomFormData((prev) => ({
       ...prev,
       images: (prev.images || []).filter((_, i) => i !== index),
     }));
@@ -656,6 +721,65 @@ export default function OwnerAddProperty() {
                     <option value="Penthouse">Penthouse</option>
                   </select>
                 </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "1.5rem",
+                  }}
+                >
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        marginBottom: "0.5rem",
+                        fontWeight: 600,
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      City *
+                    </label>
+                    <input
+                      name="city"
+                      value={formData.city || ""}
+                      onChange={handleInputChange}
+                      placeholder="e.g., Dehradun, Mumbai"
+                      style={{
+                        width: "100%",
+                        padding: "0.75rem",
+                        border: "1px solid #d1d5db",
+                        borderRadius: "8px",
+                        fontSize: "0.95rem",
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        marginBottom: "0.5rem",
+                        fontWeight: 600,
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      State *
+                    </label>
+                    <input
+                      name="state"
+                      value={formData.state || ""}
+                      onChange={handleInputChange}
+                      placeholder="e.g., Uttrakhand, Maharashtra"
+                      style={{
+                        width: "100%",
+                        padding: "0.75rem",
+                        border: "1px solid #d1d5db",
+                        borderRadius: "8px",
+                        fontSize: "0.95rem",
+                      }}
+                    />
+                  </div>
+                </div>
+
                 <div>
                   <label
                     style={{
@@ -665,19 +789,24 @@ export default function OwnerAddProperty() {
                       fontSize: "0.9rem",
                     }}
                   >
-                    Location *
+                    Location (Auto-filled from City, State)
                   </label>
                   <input
                     name="location"
-                    value={formData.location}
-                    onChange={handleInputChange}
-                    placeholder="City, Country"
+                    value={
+                      formData.city && formData.state
+                        ? `${formData.city}, ${formData.state}`
+                        : formData.location
+                    }
+                    readOnly
                     style={{
                       width: "100%",
                       padding: "0.75rem",
                       border: "1px solid #d1d5db",
                       borderRadius: "8px",
                       fontSize: "0.95rem",
+                      backgroundColor: "#f3f4f6",
+                      color: "#6b7280",
                     }}
                   />
                 </div>
@@ -2198,6 +2327,104 @@ export default function OwnerAddProperty() {
                     >
                       + Add Amenity
                     </button>
+                  </div>
+
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        marginBottom: "0.75rem",
+                        fontWeight: 600,
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      Room Images
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleRoomImageUpload}
+                      disabled={uploadingImages}
+                      style={{
+                        width: "100%",
+                        padding: "0.75rem",
+                        border: "2px dashed #d1d5db",
+                        borderRadius: "8px",
+                        cursor: uploadingImages ? "not-allowed" : "pointer",
+                        opacity: uploadingImages ? 0.6 : 1,
+                      }}
+                    />
+                    <p
+                      style={{
+                        fontSize: "0.8rem",
+                        color: "#6b7280",
+                        marginTop: "0.5rem",
+                      }}
+                    >
+                      {uploadingImages
+                        ? "Uploading..."
+                        : "Select one or more images"}
+                    </p>
+                    {roomFormData.images && roomFormData.images.length > 0 && (
+                      <div style={{ marginTop: "1rem" }}>
+                        <p
+                          style={{
+                            fontSize: "0.85rem",
+                            fontWeight: 600,
+                            marginBottom: "0.75rem",
+                          }}
+                        >
+                          Uploaded Images ({roomFormData.images.length})
+                        </p>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "1rem",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          {roomFormData.images.map((img, idx) => (
+                            <div key={idx} style={{ position: "relative" }}>
+                              <img
+                                src={img}
+                                alt={`Room ${idx + 1}`}
+                                style={{
+                                  width: "120px",
+                                  height: "90px",
+                                  objectFit: "cover",
+                                  borderRadius: "8px",
+                                  border: "1px solid #d1d5db",
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeRoomImage(idx)}
+                                style={{
+                                  position: "absolute",
+                                  top: "0.25rem",
+                                  right: "0.25rem",
+                                  background: "#ef4444",
+                                  color: "white",
+                                  border: "none",
+                                  borderRadius: "50%",
+                                  width: "24px",
+                                  height: "24px",
+                                  cursor: "pointer",
+                                  fontSize: "0.9rem",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  padding: 0,
+                                }}
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div

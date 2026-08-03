@@ -8,7 +8,9 @@ import Header from "./components/Header";
 import ReviewForm from "./components/ReviewForm";
 import ImageModal from "./components/ImageModal";
 import DatePicker from "./components/DatePicker";
+import LocationDropdown from "./components/LocationDropdown";
 import { formatDateShort } from "@/lib/utils/dateFormat";
+import "@/app/styles/location-dropdown.css";
 
 // Dynamic import for ServiceBookingFormEnhanced
 const ServiceBookingFormEnhanced = dynamic(
@@ -367,7 +369,7 @@ export default function Home() {
   return (
     <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden">
       {/* TopNavBar */}
-      <Header currentPage="home" />
+      <Header currentPage="home" isHeroPage={true} />
 
       <main className="flex flex-col items-center w-full">
         {/* ========== HERO SECTION ========== */}
@@ -545,32 +547,17 @@ export default function Home() {
               <div className="search-box-content">
                 <div className="search-item">
                   <span className="material-symbols-outlined">location_on</span>
-                  <input
-                    type="text"
-                    placeholder="Location"
-                    value={filters.location}
-                    onChange={(e) =>
-                      setFilters({ ...filters, location: e.target.value })
-                    }
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        handleSearch();
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <LocationDropdown
+                      value={filters.location}
+                      onChange={(value) =>
+                        setFilters({ ...filters, location: value })
                       }
-                    }}
-                    style={{
-                      border: "none",
-                      outline: "none",
-                      background: "transparent",
-                      flex: 1,
-                      fontSize: "0.9rem",
-                    }}
-                  />
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ marginLeft: "auto" }}
-                  >
-                    arrow_drop_down
-                  </span>
+                      placeholder="Select location"
+                      className="search-location-input"
+                      transparent={true}
+                    />
+                  </div>
                 </div>
                 <div className="search-item">
                   <span className="material-symbols-outlined">
