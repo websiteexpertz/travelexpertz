@@ -8,6 +8,8 @@ interface Hotel {
   _id?: string;
   name: string;
   location: string;
+  city?: string;
+  state?: string;
   price: number;
   rating: number;
   reviews: number;
@@ -109,7 +111,7 @@ const RATING_OPTIONS = [
 ];
 
 // Top attractions data - fetched from API based on location
-const ATTRACTIONS = {} as const;
+const ATTRACTIONS: Record<string, string[]> = {};
 
 export default function HotelSearch() {
   return (
