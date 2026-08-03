@@ -23,6 +23,7 @@ type HeaderProps = {
     | "transactions";
   forceBlackText?: boolean;
   isHeroPage?: boolean;
+  solidHeader?: boolean;
 };
 
 interface Package {
@@ -63,7 +64,12 @@ const authItems: Array<{
   { key: "signup", label: "Sign Up", href: "/auth/register" },
 ];
 
-export default function Header({ currentPage, forceBlackText, isHeroPage = false }: HeaderProps) {
+export default function Header({
+  currentPage,
+  forceBlackText,
+  isHeroPage = false,
+  solidHeader = false,
+}: HeaderProps) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState("User");
   const [mounted, setMounted] = useState(false);
@@ -123,7 +129,12 @@ export default function Header({ currentPage, forceBlackText, isHeroPage = false
         : currentPage;
     return (
       <>
-        <HeaderLoggedIn currentPage={validCurrentPage} userName={userName} isHeroPage={isHeroPage} />
+        <HeaderLoggedIn
+          currentPage={validCurrentPage}
+          userName={userName}
+          isHeroPage={isHeroPage}
+          solidHeader={solidHeader}
+        />
       </>
     );
   }
@@ -131,7 +142,7 @@ export default function Header({ currentPage, forceBlackText, isHeroPage = false
   return (
     <>
       <header
-        className={`${isHeroPage && !scrolled ? "header-hero" : scrolled || !isHeroPage ? "header-scrolled" : ""} ${forceBlackText && !scrolled && !isHeroPage ? "header-black-text" : ""}`}
+        className={`${isHeroPage && !scrolled && !solidHeader ? "header-hero" : scrolled || solidHeader || !isHeroPage ? "header-scrolled" : ""} ${forceBlackText && !scrolled && !isHeroPage ? "header-black-text" : ""}`}
       >
         <div className="max-w-7xl mx-auto" style={{ position: "relative" }}>
           <div className="flex items-center">
@@ -178,7 +189,9 @@ export default function Header({ currentPage, forceBlackText, isHeroPage = false
                       cursor: "pointer",
                       position: "relative",
                       paddingBottom: "0.25rem",
-                      borderBottom: isActive ? "2px solid #0B6DFF" : "2px solid transparent",
+                      borderBottom: isActive
+                        ? "2px solid #0B6DFF"
+                        : "2px solid transparent",
                     }}
                     onMouseEnter={(e) => {
                       if (!isActive) {
@@ -188,13 +201,14 @@ export default function Header({ currentPage, forceBlackText, isHeroPage = false
                     }}
                     onMouseLeave={(e) => {
                       if (!isActive) {
-                        e.currentTarget.style.color = isHeroPage && !scrolled
-                          ? "white"
-                          : forceBlackText && !scrolled
-                            ? "#000000"
-                            : scrolled || !isHeroPage
-                              ? "#1E293B"
-                              : "white";
+                        e.currentTarget.style.color =
+                          isHeroPage && !scrolled
+                            ? "white"
+                            : forceBlackText && !scrolled
+                              ? "#000000"
+                              : scrolled || !isHeroPage
+                                ? "#1E293B"
+                                : "white";
                         e.currentTarget.style.opacity = "1";
                       }
                     }}
@@ -220,7 +234,12 @@ export default function Header({ currentPage, forceBlackText, isHeroPage = false
                 className="inline-flex items-center justify-center"
                 style={{
                   backgroundColor: "transparent",
-                  color: isHeroPage && !scrolled ? "white" : forceBlackText && !scrolled ? "#000000" : "#0B6DFF",
+                  color:
+                    isHeroPage && !scrolled
+                      ? "white"
+                      : forceBlackText && !scrolled
+                        ? "#000000"
+                        : "#0B6DFF",
                   border: `1px solid ${isHeroPage && !scrolled ? "rgba(255, 255, 255, 0.5)" : forceBlackText && !scrolled ? "#000000" : "#0B6DFF"}`,
                   borderRadius: "12px",
                   fontWeight: 600,
@@ -231,10 +250,13 @@ export default function Header({ currentPage, forceBlackText, isHeroPage = false
                 }}
                 onMouseEnter={(e) => {
                   if (isHeroPage && !scrolled) {
-                    e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.15)";
-                    e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.8)";
+                    e.currentTarget.style.backgroundColor =
+                      "rgba(255, 255, 255, 0.15)";
+                    e.currentTarget.style.borderColor =
+                      "rgba(255, 255, 255, 0.8)";
                   } else if (forceBlackText && !scrolled) {
-                    e.currentTarget.style.backgroundColor = "rgba(0, 0, 0, 0.05)";
+                    e.currentTarget.style.backgroundColor =
+                      "rgba(0, 0, 0, 0.05)";
                     e.currentTarget.style.borderColor = "#000000";
                   } else {
                     e.currentTarget.style.backgroundColor = "#F0F7FF";
@@ -243,7 +265,12 @@ export default function Header({ currentPage, forceBlackText, isHeroPage = false
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor = "transparent";
-                  e.currentTarget.style.borderColor = isHeroPage && !scrolled ? "rgba(255, 255, 255, 0.5)" : forceBlackText && !scrolled ? "#000000" : "#0B6DFF";
+                  e.currentTarget.style.borderColor =
+                    isHeroPage && !scrolled
+                      ? "rgba(255, 255, 255, 0.5)"
+                      : forceBlackText && !scrolled
+                        ? "#000000"
+                        : "#0B6DFF";
                 }}
               >
                 Login
@@ -252,48 +279,59 @@ export default function Header({ currentPage, forceBlackText, isHeroPage = false
                 href="/auth/register"
                 className="inline-flex items-center justify-center"
                 style={{
-                  background: isHeroPage && !scrolled 
-                    ? "rgba(255, 255, 255, 0.2)"
-                    : forceBlackText && !scrolled 
-                      ? "#000000" 
-                      : "linear-gradient(135deg, #0B6DFF, #0056D6)",
+                  background:
+                    isHeroPage && !scrolled
+                      ? "rgba(255, 255, 255, 0.2)"
+                      : forceBlackText && !scrolled
+                        ? "#000000"
+                        : "linear-gradient(135deg, #0B6DFF, #0056D6)",
                   color: "white",
-                  border: isHeroPage && !scrolled ? "1px solid rgba(255, 255, 255, 0.3)" : "none",
+                  border:
+                    isHeroPage && !scrolled
+                      ? "1px solid rgba(255, 255, 255, 0.3)"
+                      : "none",
                   borderRadius: "12px",
                   fontWeight: 600,
                   fontSize: "0.95rem",
                   cursor: "pointer",
                   transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                   padding: "12px 28px",
-                  boxShadow: isHeroPage && !scrolled 
-                    ? "0 4px 12px rgba(0, 0, 0, 0.1)"
-                    : forceBlackText && !scrolled
-                      ? "0 4px 12px rgba(0, 0, 0, 0.25)"
-                      : "0 4px 12px rgba(11, 109, 255, 0.25)",
+                  boxShadow:
+                    isHeroPage && !scrolled
+                      ? "0 4px 12px rgba(0, 0, 0, 0.1)"
+                      : forceBlackText && !scrolled
+                        ? "0 4px 12px rgba(0, 0, 0, 0.25)"
+                        : "0 4px 12px rgba(11, 109, 255, 0.25)",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = "translateY(-2px)";
                   if (isHeroPage && !scrolled) {
-                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.3)";
-                    e.currentTarget.style.boxShadow = "0 8px 20px rgba(0, 0, 0, 0.15)";
+                    e.currentTarget.style.background =
+                      "rgba(255, 255, 255, 0.3)";
+                    e.currentTarget.style.boxShadow =
+                      "0 8px 20px rgba(0, 0, 0, 0.15)";
                   } else if (forceBlackText && !scrolled) {
-                    e.currentTarget.style.boxShadow = "0 8px 16px rgba(0, 0, 0, 0.35)";
+                    e.currentTarget.style.boxShadow =
+                      "0 8px 16px rgba(0, 0, 0, 0.35)";
                   } else {
-                    e.currentTarget.style.boxShadow = "0 8px 20px rgba(11, 109, 255, 0.35)";
+                    e.currentTarget.style.boxShadow =
+                      "0 8px 20px rgba(11, 109, 255, 0.35)";
                   }
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.background = isHeroPage && !scrolled 
-                    ? "rgba(255, 255, 255, 0.2)"
-                    : forceBlackText && !scrolled 
-                      ? "#000000" 
-                      : "linear-gradient(135deg, #0B6DFF, #0056D6)";
-                  e.currentTarget.style.boxShadow = isHeroPage && !scrolled 
-                    ? "0 4px 12px rgba(0, 0, 0, 0.1)"
-                    : forceBlackText && !scrolled
-                      ? "0 4px 12px rgba(0, 0, 0, 0.25)"
-                      : "0 4px 12px rgba(11, 109, 255, 0.25)";
+                  e.currentTarget.style.background =
+                    isHeroPage && !scrolled
+                      ? "rgba(255, 255, 255, 0.2)"
+                      : forceBlackText && !scrolled
+                        ? "#000000"
+                        : "linear-gradient(135deg, #0B6DFF, #0056D6)";
+                  e.currentTarget.style.boxShadow =
+                    isHeroPage && !scrolled
+                      ? "0 4px 12px rgba(0, 0, 0, 0.1)"
+                      : forceBlackText && !scrolled
+                        ? "0 4px 12px rgba(0, 0, 0, 0.25)"
+                        : "0 4px 12px rgba(11, 109, 255, 0.25)";
                 }}
               >
                 Sign Up
@@ -579,11 +617,13 @@ export default function Header({ currentPage, forceBlackText, isHeroPage = false
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = "translateY(-2px)";
-                e.currentTarget.style.boxShadow = "0 8px 20px rgba(11, 109, 255, 0.35)";
+                e.currentTarget.style.boxShadow =
+                  "0 8px 20px rgba(11, 109, 255, 0.35)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "0 4px 12px rgba(11, 109, 255, 0.25)";
+                e.currentTarget.style.boxShadow =
+                  "0 4px 12px rgba(11, 109, 255, 0.25)";
               }}
             >
               <span

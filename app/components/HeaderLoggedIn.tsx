@@ -20,6 +20,7 @@ type HeaderLoggedInProps = {
     | "transactions";
   userName?: string;
   isHeroPage?: boolean;
+  solidHeader?: boolean;
 };
 
 const navItems: Array<{
@@ -41,6 +42,7 @@ export default function HeaderLoggedIn({
   currentPage,
   userName = "User",
   isHeroPage = false,
+  solidHeader = false,
 }: HeaderLoggedInProps) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -63,7 +65,7 @@ export default function HeaderLoggedIn({
   return (
     <>
       <header
-        className={`${isHeroPage && !scrolled ? "header-hero" : scrolled || !isHeroPage ? "header-scrolled" : ""}`}
+        className={`${isHeroPage && !scrolled && !solidHeader ? "header-hero" : scrolled || solidHeader || !isHeroPage ? "header-scrolled" : ""}`}
         style={{
           position: "fixed",
           top: 0,
