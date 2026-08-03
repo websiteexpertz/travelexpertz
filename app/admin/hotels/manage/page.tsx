@@ -179,7 +179,7 @@ export default function ManageHotels() {
         alert(
           editingId
             ? "Hotel updated successfully!"
-            : "Hotel added successfully!"
+            : "Hotel added successfully!",
         );
         setShowForm(false);
         setFormData(emptyHotel);
@@ -227,7 +227,7 @@ export default function ManageHotels() {
 
   const handleImageUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
-    type: "main" | "gallery" | "room"
+    type: "main" | "gallery" | "room",
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -413,7 +413,7 @@ export default function ManageHotels() {
   const updateCustomField = (
     index: number,
     field: "label" | "value" | "type",
-    value: string
+    value: string,
   ) => {
     const updatedFields = [...(formData.customFields || [])];
     updatedFields[index] = { ...updatedFields[index], [field]: value };
@@ -576,7 +576,9 @@ export default function ManageHotels() {
                   onClick={() => setActiveTab(tab.id as typeof activeTab)}
                   style={{
                     ...styles.tabButton,
-                    ...(activeTab === tab.id ? styles.activeTab : {}),
+                    ...(activeTab === (tab.id as typeof activeTab)
+                      ? styles.activeTab
+                      : {}),
                   }}
                 >
                   <span
@@ -664,6 +666,7 @@ export default function ManageHotels() {
                         placeholder="e.g., Maharashtra, Rajasthan"
                       />
                     </div>
+                  </div>
 
                   <div>
                     <label style={styles.label}>Full Address *</label>
@@ -992,7 +995,7 @@ export default function ManageHotels() {
                                 updateCustomField(
                                   index,
                                   "label",
-                                  e.target.value
+                                  e.target.value,
                                 )
                               }
                               style={styles.input}
@@ -1008,7 +1011,7 @@ export default function ManageHotels() {
                                 updateCustomField(
                                   index,
                                   "value",
-                                  e.target.value
+                                  e.target.value,
                                 )
                               }
                               style={styles.input}
@@ -1345,7 +1348,7 @@ export default function ManageHotels() {
                                   updateCustomField(
                                     index,
                                     "label",
-                                    e.target.value
+                                    e.target.value,
                                   )
                                 }
                                 style={styles.input}
@@ -1361,7 +1364,7 @@ export default function ManageHotels() {
                                   updateCustomField(
                                     index,
                                     "value",
-                                    e.target.value
+                                    e.target.value,
                                   )
                                 }
                                 style={styles.input}
@@ -1853,7 +1856,7 @@ export default function ManageHotels() {
                                         updateCustomField(
                                           index,
                                           "label",
-                                          e.target.value
+                                          e.target.value,
                                         )
                                       }
                                       placeholder="Field Name"
@@ -1871,7 +1874,7 @@ export default function ManageHotels() {
                                         updateCustomField(
                                           index,
                                           "value",
-                                          e.target.value
+                                          e.target.value,
                                         )
                                       }
                                       placeholder="Value"
@@ -1898,7 +1901,7 @@ export default function ManageHotels() {
                                       🗑️
                                     </button>
                                   </div>
-                                )
+                                ),
                               )}
                             </div>
                           )}
@@ -2200,7 +2203,7 @@ export default function ManageHotels() {
                                   updateCustomField(
                                     index,
                                     "label",
-                                    e.target.value
+                                    e.target.value,
                                   )
                                 }
                                 style={styles.input}
@@ -2216,7 +2219,7 @@ export default function ManageHotels() {
                                   updateCustomField(
                                     index,
                                     "value",
-                                    e.target.value
+                                    e.target.value,
                                   )
                                 }
                                 style={styles.input}
