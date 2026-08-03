@@ -315,10 +315,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingLocation) {
-      return NextResponse.json(
-        { _id: existingLocation._id, ...existingLocation },
-        { status: 200 }
-      );
+      return NextResponse.json(existingLocation, { status: 200 });
     }
 
     const now = new Date();
