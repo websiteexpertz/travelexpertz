@@ -411,6 +411,8 @@ export default function DestinationDetailPage() {
     );
   }
 
+  const hasImages = item.images && item.images.length > 0;
+
   return (
     <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-gray-50">
       <Header currentPage="hotels" />
@@ -430,7 +432,8 @@ export default function DestinationDetailPage() {
               className="destination-gallery"
               style={{
                 display: "grid",
-                gridTemplateColumns: item.images!.length === 1 ? "1fr" : "2fr 1fr 1fr",
+                gridTemplateColumns:
+                  item.images!.length === 1 ? "1fr" : "2fr 1fr 1fr",
                 gridTemplateRows:
                   item.images!.length === 1 ? "auto" : "1fr 1fr",
                 gap: "0.5rem",
@@ -545,7 +548,6 @@ export default function DestinationDetailPage() {
             </div>
           </div>
         )}
-
         {/* Main Content Section */}
         <div
           className="destination-main-grid"
@@ -587,7 +589,8 @@ export default function DestinationDetailPage() {
                 >
                   <span>📍</span>
                   <span>
-                    {currentDestination.cityName}, {currentDestination.stateName}
+                    {currentDestination.cityName},{" "}
+                    {currentDestination.stateName}
                   </span>
                 </div>
               )}
@@ -713,7 +716,8 @@ export default function DestinationDetailPage() {
                       color: "#1a1a2e",
                     }}
                   >
-                    {currentDestination.cityName}, {currentDestination.stateName}
+                    {currentDestination.cityName},{" "}
+                    {currentDestination.stateName}
                   </div>
                 </div>
               )}
@@ -724,7 +728,8 @@ export default function DestinationDetailPage() {
                 style={{
                   width: "100%",
                   padding: "0.75rem 1rem",
-                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                  background:
+                    "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                   color: "white",
                   border: "none",
                   borderRadius: "8px",
@@ -748,7 +753,6 @@ export default function DestinationDetailPage() {
             </div>
           </div>
         </div>
-
         {/* Related Destinations Section */}
         {relatedDestinations.length > 0 && (
           <div
@@ -767,14 +771,14 @@ export default function DestinationDetailPage() {
                 color: "#1a202c",
               }}
             >
-              More Destinations in {currentDestination?.stateName || "This Area"}
+              More Destinations in{" "}
+              {currentDestination?.stateName || "This Area"}
             </h2>
 
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fill, minmax(220px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
                 gap: "1.5rem",
               }}
             >
@@ -790,8 +794,7 @@ export default function DestinationDetailPage() {
                     overflow: "hidden",
                     backgroundColor: "white",
                     border: "1px solid #e2e8f0",
-                    transition:
-                      "transform 0.3s ease, box-shadow 0.3s ease",
+                    transition: "transform 0.3s ease, box-shadow 0.3s ease",
                     boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
                   }}
                   onMouseEnter={(e) => {
@@ -865,7 +868,8 @@ export default function DestinationDetailPage() {
                     >
                       {destination.description?.substring(0, 80) ||
                         "Explore this destination"}
-                      {destination.description && destination.description.length > 80
+                      {destination.description &&
+                      destination.description.length > 80
                         ? "..."
                         : ""}
                     </p>
@@ -875,258 +879,6 @@ export default function DestinationDetailPage() {
             </div>
           </div>
         )}
-      </main>
-
-      {/* Fullscreen Image Modal */}
-                    <h2
-                      style={{
-                        fontSize: "1.5rem",
-                        fontWeight: 700,
-                        color: "#1a1a2e",
-                        margin: "0 0 1rem 0",
-                      }}
-                    >
-                      About
-                    </h2>
-                    <p
-                      style={{
-                        fontSize: "1rem",
-                        color: "#666",
-                        lineHeight: 1.8,
-                        margin: 0,
-                        whiteSpace: "pre-wrap",
-                      }}
-                    >
-                      {item.description}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Right Column - Info Card */}
-              <div>
-                <div
-                  style={{
-                    background: "white",
-                    borderRadius: "16px",
-                    border: "2px solid rgba(102, 126, 234, 0.1)",
-                    padding: "clamp(1.5rem, 3vw, 2.5rem)",
-                    position: "sticky",
-                    top: "120px",
-                  }}
-                >
-                  <h2
-                    style={{
-                      fontSize: "1.3rem",
-                      fontWeight: 700,
-                      color: "#1a1a2e",
-                      margin: "0 0 1.5rem 0",
-                    }}
-                  >
-                    Quick Info
-                  </h2>
-
-                  {/* Image Count */}
-                  {hasImages && (
-                    <div
-                      style={{
-                        background:
-                          "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
-                        borderRadius: "12px",
-                        padding: "1rem",
-                        marginBottom: "1rem",
-                      }}
-                    >
-                      <p
-                        style={{
-                          fontSize: "0.85rem",
-                          color: "#999",
-                          margin: "0 0 0.25rem 0",
-                          fontWeight: 600,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.5px",
-                        }}
-                      >
-                        📷 Gallery
-                      </p>
-                      <p
-                        style={{
-                          fontSize: "1.1rem",
-                          color: "#667eea",
-                          margin: 0,
-                          fontWeight: 600,
-                        }}
-                      >
-                        {item.images!.length}{" "}
-                        {item.images!.length === 1 ? "Image" : "Images"}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Back Button */}
-                  <button
-                    onClick={() => router.back()}
-                    style={{
-                      width: "100%",
-                      padding: "0.75rem 1.5rem",
-                      background:
-                        "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "8px",
-                      fontSize: "1rem",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      transition: "all 0.3s ease",
-                      marginTop: "1rem",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = "translateY(-2px)";
-                      e.currentTarget.style.boxShadow =
-                        "0 6px 20px rgba(102, 126, 234, 0.4)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = "translateY(0)";
-                      e.currentTarget.style.boxShadow = "none";
-                    }}
-                  >
-                    ← Go Back
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Related Destinations Section */}
-            {relatedDestinations.length > 0 && (
-              <div
-                style={{
-                  marginTop: "3rem",
-                  paddingTop: "2rem",
-                  borderTop: "2px solid #e2e8f0",
-                }}
-              >
-                <h2
-                  style={{
-                    fontSize: "1.75rem",
-                    fontWeight: 700,
-                    marginBottom: "1.5rem",
-                    color: "#1a202c",
-                  }}
-                >
-                  Other Destinations in{" "}
-                  {currentDestination?.stateName || "This State"}
-                </h2>
-
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                      "repeat(auto-fill, minmax(250px, 1fr))",
-                    gap: "1.5rem",
-                    marginBottom: "2rem",
-                  }}
-                >
-                  {relatedDestinations.map((destination) => (
-                    <div
-                      key={destination.name}
-                      onClick={() => {
-                        // Navigate to related destination
-                        const slug = destination.name
-                          .toLowerCase()
-                          .replace(/\s+/g, "-")
-                          .replace(/[^a-z0-9-]/g, "");
-                        window.location.href = `/destinations/${encodeURIComponent(destination.name)}`;
-                      }}
-                      style={{
-                        cursor: "pointer",
-                        borderRadius: "12px",
-                        overflow: "hidden",
-                        backgroundColor: "#f8fafc",
-                        transition: "transform 0.3s ease, box-shadow 0.3s ease",
-                        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = "translateY(-4px)";
-                        e.currentTarget.style.boxShadow =
-                          "0 8px 16px rgba(0, 0, 0, 0.15)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = "translateY(0)";
-                        e.currentTarget.style.boxShadow =
-                          "0 2px 8px rgba(0, 0, 0, 0.1)";
-                      }}
-                    >
-                      {/* Destination Image */}
-                      {destination.images && destination.images[0] && (
-                        <div
-                          style={{
-                            position: "relative",
-                            width: "100%",
-                            paddingBottom: "66.66%",
-                            backgroundColor: "#e2e8f0",
-                            cursor: "pointer",
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setFullscreenImageIndex(0);
-                            setFullscreenImage(destination.images![0]);
-                          }}
-                        >
-                          <img
-                            src={destination.images[0]}
-                            alt={destination.name}
-                            style={{
-                              position: "absolute",
-                              top: 0,
-                              left: 0,
-                              width: "100%",
-                              height: "100%",
-                              objectFit: "cover",
-                            }}
-                          />
-                        </div>
-                      )}
-
-                      {/* Destination Info */}
-                      <div style={{ padding: "1rem" }}>
-                        <h3
-                          style={{
-                            fontSize: "1.1rem",
-                            fontWeight: 600,
-                            marginBottom: "0.5rem",
-                            color: "#1a202c",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {destination.name}
-                        </h3>
-                        <p
-                          style={{
-                            fontSize: "0.85rem",
-                            color: "#666",
-                            margin: 0,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            display: "-webkit-box",
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: "vertical",
-                            lineHeight: "1.4",
-                          }}
-                        >
-                          {destination.description?.substring(0, 100) ||
-                            "Explore this amazing destination"}
-                          ...
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
         {/* Fullscreen Image Modal */}
         {fullscreenImage && (
           <div
