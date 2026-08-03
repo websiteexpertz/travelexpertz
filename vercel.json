@@ -7,7 +7,19 @@
     "backend": {
       "root": "backend",
       "framework": "nodejs",
-      "entrypoint": "src/server.js"
+      "entrypoint": "src/server.js",
+      "routes": [
+        {
+          "src": "/api/backend/(.*)",
+          "transforms": [
+            {
+              "type": "request.path",
+              "op": "set",
+              "args": "/api/$1"
+            }
+          ]
+        }
+      ]
     }
   },
   "rewrites": [
