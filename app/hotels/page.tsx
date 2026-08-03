@@ -11,6 +11,8 @@ interface Hotel {
   _id?: string;
   name: string;
   location: string;
+  city?: string;
+  state?: string;
   price: number;
   rating: number;
   reviews: number;
