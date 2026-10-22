@@ -30,7 +30,7 @@ export default function AdminLoginPage() {
       if (response.ok) {
         // Store token in localStorage
         localStorage.setItem("adminToken", data.token);
-        // Also set cookie for middleware (7 days expiration)
+        // Also set cookie for Proxy (7 days expiration)
         document.cookie = `adminToken=${data.token}; max-age=${
           7 * 24 * 60 * 60
         }; path=/; SameSite=Strict`;
@@ -38,7 +38,7 @@ export default function AdminLoginPage() {
         // Small delay to ensure cookie is set before redirect
         await new Promise((resolve) => setTimeout(resolve, 100));
 
-        // Use window.location for a full page reload to ensure middleware picks up cookie
+        // Use window.location for a full page reload to ensure Proxy picks up cookie
         window.location.href = "/admin";
       } else {
         setError(data.message || "Invalid credentials");

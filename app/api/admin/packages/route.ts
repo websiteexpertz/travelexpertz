@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { MongoClient } from "mongodb";
+import { requireAdmin } from "@/lib/admin-auth";
 
 const MONGODB_URI = process.env.MONGODB_URI || "";
 const MONGODB_DB = process.env.MONGODB_DB || "travelexpertz";
 
 // GET - Fetch all packages
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
+
   let client: MongoClient | null = null;
   try {
     if (!MONGODB_URI) {
@@ -33,6 +37,9 @@ export async function GET() {
 
 // POST - Create new package
 export async function POST(request: NextRequest) {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
+
   let client: MongoClient | null = null;
   try {
     if (!MONGODB_URI) {

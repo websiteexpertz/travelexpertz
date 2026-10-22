@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { MongoClient, ObjectId } from "mongodb";
+import { requireAdmin } from "@/lib/admin-auth";
 
 const MONGODB_URI = process.env.MONGODB_URI || "";
 const MONGODB_DB = process.env.MONGODB_DB || "travelexpertz";
 
 // GET all form fields
 export async function GET(request: NextRequest) {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
+
   let client: MongoClient | null = null;
   try {
     if (!MONGODB_URI) {
@@ -47,6 +51,9 @@ export async function GET(request: NextRequest) {
 
 // POST create new form field
 export async function POST(request: NextRequest) {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
+
   let client: MongoClient | null = null;
   try {
     if (!MONGODB_URI) {
@@ -131,6 +138,9 @@ export async function POST(request: NextRequest) {
 
 // PUT update form field
 export async function PUT(request: NextRequest) {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
+
   let client: MongoClient | null = null;
   try {
     if (!MONGODB_URI) {
@@ -231,6 +241,9 @@ export async function PUT(request: NextRequest) {
 
 // DELETE form field
 export async function DELETE(request: NextRequest) {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
+
   let client: MongoClient | null = null;
   try {
     if (!MONGODB_URI) {

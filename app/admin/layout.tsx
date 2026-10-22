@@ -19,7 +19,7 @@ export default function AdminLayout({
 
   useEffect(() => {
     // Parse token and get username
-    // Middleware will handle unauthorized redirects
+    // Proxy will handle unauthorized redirects
     const token = localStorage.getItem("adminToken");
     if (token) {
       try {
@@ -33,7 +33,7 @@ export default function AdminLayout({
         console.error("Error parsing token:", error);
       }
     }
-    // Always set loading to false - middleware handles auth blocking
+    // Always set loading to false - Proxy handles auth blocking
     setIsLoading(false);
   }, []);
 

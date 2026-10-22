@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { MongoClient, ObjectId } from "mongodb";
+import { requireAdmin } from "@/lib/admin-auth";
 
 const MONGODB_URI = process.env.MONGODB_URI || "";
 const MONGODB_DB = process.env.MONGODB_DB || "travelexpertz";
@@ -9,6 +10,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
+
   let client: MongoClient | null = null;
   try {
     if (!MONGODB_URI) {
@@ -45,6 +49,9 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
+
   let client: MongoClient | null = null;
   try {
     if (!MONGODB_URI) {
@@ -119,6 +126,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
+
   let client: MongoClient | null = null;
   try {
     if (!MONGODB_URI) {

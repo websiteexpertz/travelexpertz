@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/admin-auth";
 
 interface FieldConfig {
   key: string;
@@ -40,6 +41,9 @@ const DEFAULT_FORM_OPTIONS: FormOptions = {
  * Returns form configuration options for package details page
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
+
   try {
     // TODO: In the future, fetch from database instead of returning defaults
     // For now, return hardcoded defaults that match the frontend expectations
@@ -59,11 +63,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 /**
  * POST /api/admin/form-options
  * Updates form configuration options (admin only)
- * TODO: Add authentication check for admin
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
+
   try {
-    // TODO: Add admin authentication check here
     const body = await request.json();
 
     if (!body.tableColumns || !Array.isArray(body.tableColumns)) {

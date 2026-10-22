@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { MongoClient } from "mongodb";
+import { requireAdmin } from "@/lib/admin-auth";
 
 export async function GET(req: NextRequest) {
+  const unauthorized = requireAdmin(req);
+  if (unauthorized) return unauthorized;
+
   let client: MongoClient | null = null;
   try {
     client = new MongoClient(process.env.MONGODB_URI || "mongodb://localhost:27017");

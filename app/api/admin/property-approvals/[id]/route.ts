@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { MongoClient, ObjectId } from "mongodb";
+import { requireAdmin } from "@/lib/admin-auth";
 
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const unauthorized = requireAdmin(req);
+  if (unauthorized) return unauthorized;
+
   let client: MongoClient | null = null;
   try {
     const { id } = await params;
@@ -57,6 +61,9 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const unauthorized = requireAdmin(req);
+  if (unauthorized) return unauthorized;
+
   let client: MongoClient | null = null;
   try {
     const { id } = await params;
