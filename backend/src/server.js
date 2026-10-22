@@ -25,18 +25,18 @@ app.use(express.json());
 connectDB();
 
 // Routes
-app.use("/api/testimonials", testimonialRoutes);
-app.use("/api/faqs", faqRoutes);
-app.use("/api/services", serviceRoutes);
-app.use("/api/packages", packageRoutes);
-app.use("/api/whyus", whyusRoutes);
-app.use("/api/about", aboutRoutes);
-app.use("/api/homestays", homestayRoutes);
-app.use("/api/bookings", bookingRoutes);
-app.use("/api/categories", categoryRoutes);
+app.use("/api/backend/testimonials", testimonialRoutes);
+app.use("/api/backend/faqs", faqRoutes);
+app.use("/api/backend/services", serviceRoutes);
+app.use("/api/backend/packages", packageRoutes);
+app.use("/api/backend/whyus", whyusRoutes);
+app.use("/api/backend/about", aboutRoutes);
+app.use("/api/backend/homestays", homestayRoutes);
+app.use("/api/backend/bookings", bookingRoutes);
+app.use("/api/backend/categories", categoryRoutes);
 
 // Health check
-app.get("/api/health", (req, res) => {
+app.get("/api/backend/health", (req, res) => {
   res.status(200).json({ status: "Server is running" });
 });
 
