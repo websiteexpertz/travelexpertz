@@ -13,7 +13,9 @@ interface CabInput {
   seats?: unknown;
   baseFare?: unknown;
   perKmRate?: unknown;
+  driverAllowance?: unknown;
   taxPercent?: unknown;
+  rating?: unknown;
   luggageCapacity?: unknown;
   driverName?: unknown;
   driverPhone?: unknown;
@@ -52,7 +54,11 @@ function normalizeCab(input: CabInput) {
   const seats = Number(input.seats);
   const baseFare = Number(input.baseFare);
   const perKmRate = Number(input.perKmRate);
+  const driverAllowance = Number(input.driverAllowance);
   const taxPercent = Number(input.taxPercent);
+  const rating = input.rating === "" || input.rating === null || input.rating === undefined
+    ? null
+    : Number(input.rating);
   const luggageCapacity = Number(input.luggageCapacity);
   const driverName = typeof input.driverName === "string" ? input.driverName.trim() : "";
   const driverPhone = typeof input.driverPhone === "string" ? input.driverPhone.trim() : "";
@@ -72,6 +78,12 @@ function normalizeCab(input: CabInput) {
   }
   if (!Number.isFinite(perKmRate) || perKmRate < 0 || perKmRate > 10000) {
     return { error: "Per-kilometre rate must be between 0 and 10,000." };
+  }
+  if (!Number.isFinite(driverAllowance) || driverAllowance < 0 || driverAllowance > 100000) {
+    return { error: "Driver allowance must be between 0 and 100,000." };
+  }
+  if (rating !== null && (!Number.isFinite(rating) || rating < 0 || rating > 5)) {
+    return { error: "Rating must be between 0 and 5." };
   }
   if (!Number.isFinite(taxPercent) || taxPercent < 0 || taxPercent > 100) {
     return { error: "Government tax must be between 0% and 100%." };
@@ -93,7 +105,9 @@ function normalizeCab(input: CabInput) {
       seats,
       baseFare,
       perKmRate,
+      driverAllowance,
       taxPercent,
+      rating: rating || null,
       luggageCapacity,
       driverName,
       driverPhone,

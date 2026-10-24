@@ -11,13 +11,16 @@ interface CabBooking {
   dropoffLocation: string;
   pickupAt: string;
   returnAt?: string | null;
-  tripType: "one-way" | "round-trip";
+  tripType: "one-way" | "round-trip" | "airport-transfer";
   passengers: number;
   luggage: number;
   estimatedFare: number;
   governmentTax?: number;
   governmentTaxPercent?: number;
   fareSubtotal?: number;
+  fareBase?: number;
+  farePerKm?: number;
+  driverAllowance?: number;
   driverName?: string;
   driverPhone?: string;
   fullName: string;
@@ -133,7 +136,7 @@ export default function AdminCabBookingsPage() {
                       <td style={cellStyle}>{booking.pickupLocation}<br /><span style={{ color: "#64748b" }}>to</span><br />{booking.dropoffLocation}<br /><span style={{ color: "#64748b" }}>{booking.tripType}</span></td>
                       <td style={cellStyle}>{new Date(booking.pickupAt).toLocaleString()}<br />{booking.returnAt ? `Return: ${new Date(booking.returnAt).toLocaleString()}` : ""}</td>
                       <td style={cellStyle}>{booking.passengers} passengers<br />{booking.luggage} bags</td>
-                      <td style={cellStyle}>₹{booking.estimatedFare.toLocaleString("en-IN")} total<br /><span style={{ color: "#64748b" }}>₹{(booking.governmentTax || 0).toLocaleString("en-IN")} tax ({booking.governmentTaxPercent || 0}%)</span></td>
+                      <td style={cellStyle}>₹{booking.estimatedFare.toLocaleString("en-IN")} total<br /><span style={{ color: "#64748b" }}>Base ₹{(booking.fareBase || 0).toLocaleString("en-IN")} + distance ₹{Math.max(0, (booking.fareSubtotal || 0) - (booking.fareBase || 0) - (booking.driverAllowance || 0)).toLocaleString("en-IN")}<br />Driver ₹{(booking.driverAllowance || 0).toLocaleString("en-IN")} · tax ₹{(booking.governmentTax || 0).toLocaleString("en-IN")} ({booking.governmentTaxPercent || 0}%)</span></td>
                       <td style={cellStyle}><span style={{ padding: "0.25rem 0.55rem", borderRadius: "999px", background: badge.bg, color: badge.text, fontSize: "0.77rem", fontWeight: 700 }}>{booking.status}</span>{booking.notes && <p style={{ maxWidth: "180px", margin: "0.5rem 0 0", color: "#64748b", fontSize: "0.78rem" }}>{booking.notes}</p>}</td>
                       <td style={cellStyle}>
                         {booking.status === "pending" && <div style={{ display: "grid", gap: "0.45rem" }}>

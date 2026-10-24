@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import Header from "../components/Header";
 import styles from "./cabs.module.css";
 
@@ -13,11 +14,14 @@ type Cab = {
   luggageCapacity: number;
   baseFare: number;
   perKmRate: number;
+  driverAllowance: number;
   taxPercent: number;
+  rating: number | null;
+  isAvailable: boolean;
 };
 
 type BookingForm = {
-  tripType: "one-way" | "round-trip";
+  tripType: "one-way" | "round-trip" | "airport-transfer";
   pickupLocation: string;
   dropoffLocation: string;
   pickupDate: string;
@@ -65,58 +69,137 @@ const inr = new Intl.NumberFormat("en-IN", {
   maximumFractionDigits: 0,
 });
 
+function getCabPricing(cab: Cab, distanceKm: number, tripType: BookingForm["tripType"]) {
+  const fareDistanceKm = distanceKm * (tripType === "round-trip" ? 2 : 1);
+  const fareSubtotal = Math.round(cab.baseFare + fareDistanceKm * cab.perKmRate + cab.driverAllowance);
+  const governmentTax = Math.round(fareSubtotal * cab.taxPercent / 100);
+  return { fareDistanceKm, fareSubtotal, governmentTax, total: fareSubtotal + governmentTax };
+}
+
 export default function CabsPage() {
   const [cabs, setCabs] = useState<Cab[]>([]);
-  const [loadingCabs, setLoadingCabs] = useState(true);
+  const [loadingCabs, setLoadingCabs] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const [fleetError, setFleetError] = useState("");
   const [form, setForm] = useState<BookingForm>(initialForm);
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [seatFilter, setSeatFilter] = useState("all");
+  const [maxFare, setMaxFare] = useState("");
+  const [availabilityFilter, setAvailabilityFilter] = useState<"available" | "all" | "unavailable">("available");
+  const [sortBy, setSortBy] = useState<"price" | "rating" | "duration">("price");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [confirmation, setConfirmation] = useState<{
     bookingReference: string;
     estimatedFare: number;
     message: string;
+    pickupLocation: string;
+    dropoffLocation: string;
+    pickupAt: string;
+    vehicleModel: string;
+    tripType: BookingForm["tripType"];
   } | null>(null);
 
-  useEffect(() => {
-    fetch("/api/cabs", { cache: "no-store" })
-      .then(async (response) => {
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Could not load vehicles.");
-        setCabs(Array.isArray(data) ? data : []);
+  const categories = useMemo(() => [...new Set(cabs.map((cab) => cab.category).filter(Boolean))].sort(), [cabs]);
+
+  const matchingCabs = useMemo(() => {
+    const fareLimit = maxFare.trim() ? Number(maxFare) : Number.POSITIVE_INFINITY;
+    return cabs
+      .filter((cab) => {
+        const matchesCapacity = cab.seats >= form.passengers && cab.luggageCapacity >= form.luggage;
+        const matchesCategory = categoryFilter === "all" || cab.category === categoryFilter;
+        const matchesSeats = seatFilter === "all" || cab.seats >= Number(seatFilter);
+        const matchesPrice = getCabPricing(cab, form.distanceKm, form.tripType).total <= fareLimit;
+        const matchesAvailability =
+          availabilityFilter === "all" ||
+          (availabilityFilter === "available" ? cab.isAvailable : !cab.isAvailable);
+        return matchesCapacity && matchesCategory && matchesSeats && matchesPrice && matchesAvailability;
       })
-      .catch((error: unknown) => {
-        setFleetError(error instanceof Error ? error.message : "Could not load vehicles.");
-      })
-      .finally(() => setLoadingCabs(false));
-  }, []);
+      .sort((first, second) => {
+        if (sortBy === "rating") return (second.rating ?? -1) - (first.rating ?? -1);
+        if (sortBy === "duration") return 0;
+        return getCabPricing(first, form.distanceKm, form.tripType).total
+          - getCabPricing(second, form.distanceKm, form.tripType).total;
+      });
+  }, [availabilityFilter, categoryFilter, cabs, form.distanceKm, form.luggage, form.passengers, form.tripType, maxFare, seatFilter, sortBy]);
 
-  const matchingCabs = useMemo(
-    () => cabs.filter((cab) => cab.seats >= form.passengers && cab.luggageCapacity >= form.luggage),
-    [cabs, form.luggage, form.passengers],
-  );
-
-  const selectedCab = matchingCabs.find((cab) => cab._id === form.cabId);
-  const fareSubtotal = selectedCab
-    ? Math.round(selectedCab.baseFare + form.distanceKm * selectedCab.perKmRate * (form.tripType === "round-trip" ? 2 : 1))
-    : 0;
-  const governmentTax = selectedCab ? Math.round(fareSubtotal * selectedCab.taxPercent / 100) : 0;
-  const estimatedFare = fareSubtotal + governmentTax;
+  const selectedCab = hasSearched
+    ? matchingCabs.find((cab) => cab._id === form.cabId && cab.isAvailable)
+    : undefined;
+  const selectedPricing = selectedCab ? getCabPricing(selectedCab, form.distanceKm, form.tripType) : null;
+  const fareSubtotal = selectedPricing?.fareSubtotal ?? 0;
+  const governmentTax = selectedPricing?.governmentTax ?? 0;
+  const estimatedFare = selectedPricing?.total ?? 0;
 
   useEffect(() => {
-    if (!form.cabId || !matchingCabs.some((cab) => cab._id === form.cabId)) {
+    if (hasSearched && (!form.cabId || !matchingCabs.some((cab) => cab._id === form.cabId && cab.isAvailable))) {
       setForm((current) => ({ ...current, cabId: matchingCabs[0]?._id || "" }));
     }
-  }, [form.cabId, matchingCabs]);
+  }, [form.cabId, hasSearched, matchingCabs]);
 
   const updateForm = <K extends keyof BookingForm>(key: K, value: BookingForm[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
     setFormError("");
     setConfirmation(null);
+    if (["tripType", "pickupLocation", "dropoffLocation", "pickupDate", "pickupTime", "returnDate", "returnTime", "passengers", "luggage", "distanceKm"].includes(key)) {
+      setHasSearched(false);
+    }
+  };
+
+  const searchCabs = async () => {
+    setFleetError("");
+    setFormError("");
+    const pickupAt = new Date(`${form.pickupDate}T${form.pickupTime}:00`);
+    const maximumDate = new Date();
+    maximumDate.setDate(maximumDate.getDate() + 365);
+    if (!form.pickupLocation.trim() || !form.dropoffLocation.trim()) {
+      setFormError("Enter both pickup and drop-off locations.");
+      return;
+    }
+    if (!Number.isFinite(form.distanceKm) || form.distanceKm < 1 || form.distanceKm > 5000) {
+      setFormError("Enter a trip distance between 1 and 5,000 km.");
+      return;
+    }
+    if (Number.isNaN(pickupAt.getTime()) || pickupAt <= new Date() || pickupAt > maximumDate) {
+      setFormError("Choose a future pickup time within the next year.");
+      return;
+    }
+
+    let serviceEndAt = new Date(pickupAt.getTime() + Math.max(2, form.distanceKm / 35) * 60 * 60 * 1000);
+    if (form.tripType === "round-trip") {
+      serviceEndAt = new Date(`${form.returnDate}T${form.returnTime}:00`);
+      if (Number.isNaN(serviceEndAt.getTime()) || serviceEndAt <= pickupAt || serviceEndAt > maximumDate) {
+        setFormError("Choose a return time after pickup and within the next year.");
+        return;
+      }
+    }
+
+    setLoadingCabs(true);
+    setHasSearched(false);
+    try {
+      const query = new URLSearchParams({
+        startAt: pickupAt.toISOString(),
+        endAt: serviceEndAt.toISOString(),
+        includeUnavailable: "true",
+      });
+      const response = await fetch(`/api/cabs?${query}`, { cache: "no-store" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not load vehicles.");
+      setCabs(Array.isArray(data) ? data : []);
+      setHasSearched(true);
+    } catch (error) {
+      setFleetError(error instanceof Error ? error.message : "Could not load vehicles.");
+    } finally {
+      setLoadingCabs(false);
+    }
   };
 
   const submitBooking = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!hasSearched || !selectedCab) {
+      setFormError("Search for an available cab and select it before requesting your ride.");
+      return;
+    }
     setSubmitting(true);
     setFormError("");
     try {
@@ -127,7 +210,14 @@ export default function CabsPage() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not submit your request.");
-      setConfirmation(data);
+      setConfirmation({
+        ...data,
+        pickupLocation: form.pickupLocation,
+        dropoffLocation: form.dropoffLocation,
+        pickupAt: `${form.pickupDate} · ${form.pickupTime}`,
+        vehicleModel: selectedCab.model,
+        tripType: form.tripType,
+      });
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "Could not submit your request.");
@@ -145,16 +235,33 @@ export default function CabsPage() {
             <span className="material-symbols-outlined">check</span>
           </div>
           <p className={styles.eyebrow}>Request received</p>
-          <h1>Your ride is in motion.</h1>
+          <h1>Your request is on its way.</h1>
           <p className={styles.confirmationCopy}>{confirmation.message}</p>
+          <div className={styles.referenceRow}>
+            <span>Confirmation status</span>
+            <strong>Pending confirmation</strong>
+          </div>
           <div className={styles.referenceRow}>
             <span>Booking reference</span>
             <strong>{confirmation.bookingReference}</strong>
           </div>
           <div className={styles.referenceRow}>
+            <span>Journey</span>
+            <strong>{confirmation.pickupLocation} to {confirmation.dropoffLocation}</strong>
+          </div>
+          <div className={styles.referenceRow}>
+            <span>Pick-up</span>
+            <strong>{confirmation.pickupAt}</strong>
+          </div>
+          <div className={styles.referenceRow}>
+            <span>Vehicle</span>
+            <strong>{confirmation.vehicleModel}</strong>
+          </div>
+          <div className={styles.referenceRow}>
             <span>Estimated fare</span>
             <strong>{inr.format(confirmation.estimatedFare)}</strong>
           </div>
+          <Link className={styles.manageBookingsLink} href="/user/cab-bookings">View or manage your cab bookings</Link>
           <button className={styles.secondaryButton} onClick={() => setConfirmation(null)}>
             Make another booking
           </button>
@@ -176,6 +283,7 @@ export default function CabsPage() {
               <span><span className="material-symbols-outlined">verified_user</span>Local fleet</span>
               <span><span className="material-symbols-outlined">support_agent</span>Human confirmation</span>
             </div>
+            <Link className={styles.manageBookingsLink} href="/user/cab-bookings">Manage my cab bookings</Link>
           </div>
           <div className={styles.heroImage}>
             <Image src="/cab.png" alt="City cab ready for your journey" fill priority sizes="(max-width: 760px) 100vw, 50vw" />
@@ -209,21 +317,28 @@ export default function CabsPage() {
                 >
                   <span className="material-symbols-outlined">sync_alt</span>Round trip
                 </button>
+                <button
+                  type="button"
+                  className={form.tripType === "airport-transfer" ? styles.tripActive : ""}
+                  onClick={() => updateForm("tripType", "airport-transfer")}
+                >
+                  <span className="material-symbols-outlined">flight</span>Airport transfer
+                </button>
               </div>
 
               <div className={styles.routeFields}>
-                <Field label="Pick-up location" icon="radio_button_checked">
-                  <input required maxLength={180} autoComplete="street-address" placeholder="City, address or landmark" value={form.pickupLocation} onChange={(e) => updateForm("pickupLocation", e.target.value)} />
+                <Field label={form.tripType === "airport-transfer" ? "Pick-up / airport location" : "Pick-up location"} icon="radio_button_checked">
+                  <input required maxLength={180} autoComplete="street-address" placeholder={form.tripType === "airport-transfer" ? "Airport, city or terminal" : "City, address or landmark"} value={form.pickupLocation} onChange={(e) => updateForm("pickupLocation", e.target.value)} />
                 </Field>
                 <span className={styles.routeConnector} aria-hidden="true" />
-                <Field label="Drop-off location" icon="location_on">
-                  <input required maxLength={180} placeholder="Where are you going?" value={form.dropoffLocation} onChange={(e) => updateForm("dropoffLocation", e.target.value)} />
+                <Field label={form.tripType === "airport-transfer" ? "Drop-off / airport location" : "Drop-off location"} icon="location_on">
+                  <input required maxLength={180} placeholder={form.tripType === "airport-transfer" ? "Airport, city or terminal" : "Where are you going?"} value={form.dropoffLocation} onChange={(e) => updateForm("dropoffLocation", e.target.value)} />
                 </Field>
               </div>
 
               <div className={styles.formGrid}>
                 <Field label="Pick-up date" icon="calendar_month">
-                  <input required type="date" min={localDate(1)} value={form.pickupDate} onChange={(e) => updateForm("pickupDate", e.target.value)} />
+                  <input required type="date" min={localDate()} max={localDate(365)} value={form.pickupDate} onChange={(e) => updateForm("pickupDate", e.target.value)} />
                 </Field>
                 <Field label="Pick-up time" icon="schedule">
                   <input required type="time" value={form.pickupTime} onChange={(e) => updateForm("pickupTime", e.target.value)} />
@@ -231,7 +346,7 @@ export default function CabsPage() {
                 {form.tripType === "round-trip" && (
                   <>
                     <Field label="Return date" icon="event_repeat">
-                      <input required type="date" min={form.pickupDate} value={form.returnDate} onChange={(e) => updateForm("returnDate", e.target.value)} />
+                      <input required type="date" min={form.pickupDate} max={localDate(365)} value={form.returnDate} onChange={(e) => updateForm("returnDate", e.target.value)} />
                     </Field>
                     <Field label="Return time" icon="schedule">
                       <input required type="time" value={form.returnTime} onChange={(e) => updateForm("returnTime", e.target.value)} />
@@ -252,6 +367,12 @@ export default function CabsPage() {
                   </select>
                 </Field>
               </div>
+              <p className={styles.distanceHelp}>Enter the approximate road distance. Travel time is estimated at an average of 35 km/h.</p>
+              {formError && <p className={styles.errorState} role="alert">{formError}</p>}
+              <button className={styles.searchButton} type="button" onClick={() => void searchCabs()} disabled={loadingCabs}>
+                <span className="material-symbols-outlined" aria-hidden="true">search</span>
+                {loadingCabs ? "Checking availability..." : "Search available cabs"}
+              </button>
             </section>
 
             <section className={styles.section}>
@@ -259,35 +380,103 @@ export default function CabsPage() {
                 <span className={styles.stepNumber}>02</span>
                 <div>
                   <h2>Choose your cab</h2>
-                  <p>Available vehicles sized for your group.</p>
+                  <p>Compare estimates for vehicles that fit your group.</p>
                 </div>
               </div>
+              {hasSearched && (
+                <>
+                <div className={styles.resultTools} aria-label="Cab filters and sorting">
+                  <label className={styles.filterField}>Category
+                    <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
+                      <option value="all">All vehicle types</option>
+                      {categories.map((category) => <option key={category} value={category}>{category}</option>)}
+                    </select>
+                  </label>
+                  <label className={styles.filterField}>Minimum seats
+                    <select value={seatFilter} onChange={(event) => setSeatFilter(event.target.value)}>
+                      <option value="all">Any capacity</option>
+                      <option value="4">4+ seats</option>
+                      <option value="6">6+ seats</option>
+                      <option value="8">8+ seats</option>
+                    </select>
+                  </label>
+                  <label className={styles.filterField}>Maximum total fare
+                    <input type="number" min={0} placeholder="No limit" value={maxFare} onChange={(event) => setMaxFare(event.target.value)} />
+                  </label>
+                  <label className={styles.filterField}>Availability
+                    <select value={availabilityFilter} onChange={(event) => setAvailabilityFilter(event.target.value as typeof availabilityFilter)}>
+                      <option value="available">Available for this time</option>
+                      <option value="all">All fleet</option>
+                      <option value="unavailable">Unavailable</option>
+                    </select>
+                  </label>
+                  <label className={styles.filterField}>Sort by
+                    <select value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)}>
+                      <option value="price">Lowest fare</option>
+                      <option value="rating">Highest rating</option>
+                      <option value="duration">Estimated travel time</option>
+                    </select>
+                  </label>
+                </div>
+                {sortBy === "duration" && <p className={styles.distanceHelp}>Travel time is route-estimated, so vehicles share the same time estimate for this journey.</p>}
+                </>
+              )}
               {loadingCabs ? (
                 <p className={styles.inlineState}>Finding available vehicles...</p>
               ) : fleetError ? (
                 <p className={styles.errorState} role="alert">{fleetError}</p>
+              ) : !hasSearched ? (
+                <p className={styles.inlineState}>Enter your journey details, then search to see vehicles available for your pickup time.</p>
               ) : matchingCabs.length === 0 ? (
-                <p className={styles.inlineState}>No available vehicles have enough passenger and luggage capacity. Adjust the counts or check back soon.</p>
+                <p className={styles.inlineState}>No vehicles match this journey and your filters. Adjust your filters or try another pickup time.</p>
               ) : (
                 <div className={styles.vehicleList}>
-                  {matchingCabs.map((cab, index) => (
-                    <label key={cab._id} className={`${styles.vehicleOption} ${form.cabId === cab._id ? styles.vehicleSelected : ""}`}>
-                      <input type="radio" name="cab" value={cab._id} checked={form.cabId === cab._id} onChange={() => updateForm("cabId", cab._id)} />
-                      <span className={styles.vehicleIcon}>
-                        <span className="material-symbols-outlined">{index === 0 ? "directions_car" : index === 1 ? "airport_shuttle" : "local_taxi"}</span>
-                      </span>
-                      <span className={styles.vehicleInfo}>
-                        <strong>{cab.model}</strong>
-                        <span>{cab.category} <span aria-hidden="true">·</span> {cab.seats} seats <span aria-hidden="true">·</span> {cab.luggageCapacity} bags</span>
-                      </span>
-                      <span className={styles.vehicleRate}>{inr.format(cab.perKmRate)}<small>/ km</small></span>
-                    </label>
-                  ))}
+                  {matchingCabs.map((cab) => {
+                    const pricing = getCabPricing(cab, form.distanceKm, form.tripType);
+                    const durationHours = Math.ceil(form.distanceKm / 35) * (form.tripType === "round-trip" ? 2 : 1);
+                    return (
+                      <article key={cab._id} className={`${styles.vehicleCard} ${form.cabId === cab._id ? styles.vehicleSelected : ""} ${!cab.isAvailable ? styles.vehicleUnavailable : ""}`}>
+                        <div className={styles.vehicleImage}>
+                          <Image src="/cab.png" alt={`${cab.category} ${cab.model}`} fill sizes="(max-width: 760px) 100vw, 240px" />
+                        </div>
+                        <div className={styles.vehicleCardBody}>
+                          <div className={styles.vehicleCardTop}>
+                            <div>
+                              <p className={styles.vehicleCategory}>{cab.category}</p>
+                              <h3>{cab.model}</h3>
+                            </div>
+                            <span className={cab.isAvailable ? styles.availableBadge : styles.unavailableBadge}>
+                              {cab.isAvailable ? "Available" : "Unavailable"}
+                            </span>
+                          </div>
+                          <div className={styles.vehicleSpecs}>
+                            <span><span className="material-symbols-outlined">group</span>{cab.seats} seats</span>
+                            <span><span className="material-symbols-outlined">luggage</span>{cab.luggageCapacity} bags</span>
+                            <span><span className="material-symbols-outlined">route</span>{form.distanceKm} km</span>
+                            <span><span className="material-symbols-outlined">schedule</span>~{durationHours} hr{durationHours === 1 ? "" : "s"}</span>
+                            <span><span className="material-symbols-outlined">star</span>{cab.rating ? `${cab.rating.toFixed(1)} rating` : "Not rated"}</span>
+                          </div>
+                          <div className={styles.vehicleFareDetails}>
+                            <span>Base fare <strong>{inr.format(cab.baseFare)}</strong></span>
+                            <span>Distance <strong>{inr.format(pricing.fareDistanceKm * cab.perKmRate)}</strong></span>
+                            <span>Driver allowance <strong>{inr.format(cab.driverAllowance)}</strong></span>
+                            <span>Taxes ({cab.taxPercent}%) <strong>{inr.format(pricing.governmentTax)}</strong></span>
+                          </div>
+                          <div className={styles.vehicleCardFooter}>
+                            <p>Estimated total<strong>{inr.format(pricing.total)}</strong></p>
+                            <button type="button" disabled={!cab.isAvailable} onClick={() => updateForm("cabId", cab._id)}>
+                              {!cab.isAvailable ? "Not available" : form.cabId === cab._id ? "Selected" : "Select cab"}
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
                 </div>
               )}
             </section>
 
-            <section className={styles.section}>
+            {selectedCab && <section className={styles.section}>
               <div className={styles.sectionHeading}>
                 <span className={styles.stepNumber}>03</span>
                 <div>
@@ -309,7 +498,7 @@ export default function CabsPage() {
                   <input maxLength={500} value={form.notes} onChange={(e) => updateForm("notes", e.target.value)} placeholder="Child seat, extra stop, accessibility..." />
                 </Field>
               </div>
-            </section>
+            </section>}
           </div>
 
           <aside className={styles.summary}>
@@ -325,11 +514,11 @@ export default function CabsPage() {
               <p>{form.dropoffLocation || "Drop-off location"}</p>
             </div>
             <div className={styles.summaryDetails}>
-              <span>Trip</span><strong>{form.tripType === "round-trip" ? "Round trip" : "One way"}</strong>
+              <span>Trip</span><strong>{form.tripType === "round-trip" ? "Round trip" : form.tripType === "airport-transfer" ? "Airport transfer" : "One way"}</strong>
               <span>Date &amp; time</span><strong>{form.pickupDate} · {form.pickupTime}</strong>
               <span>Distance</span><strong>{form.distanceKm || 0} km{form.tripType === "round-trip" ? " each way" : ""}</strong>
               <span>Vehicle</span><strong>{selectedCab?.model || "Select a cab"}</strong>
-              <span>Base + distance</span><strong>{selectedCab ? inr.format(fareSubtotal) : "--"}</strong>
+              <span>Base + distance + driver</span><strong>{selectedCab ? inr.format(fareSubtotal) : "--"}</strong>
               <span>Government tax ({selectedCab?.taxPercent ?? 0}%)</span><strong>{selectedCab ? inr.format(governmentTax) : "--"}</strong>
             </div>
             <div className={styles.fareRow}>

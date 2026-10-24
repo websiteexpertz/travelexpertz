@@ -164,7 +164,7 @@ export default function Header({
             </Link>
 
             {/* Desktop Navigation */}
-            <nav aria-label="Primary" className="hidden md:flex gap-6 pl-8">
+            <nav aria-label="Primary" className="hidden xl:flex gap-6 pl-8">
               {navItems.map((item) => {
                 const isActive = currentPage === item.key;
 
@@ -342,7 +342,7 @@ export default function Header({
 
             {/* Mobile Hamburger Menu Button */}
             <button
-              className="md:hidden ml-auto p-2 flex items-center justify-center"
+              className="xl:hidden ml-auto p-2 flex items-center justify-center"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="Toggle menu"
               style={{
@@ -425,7 +425,7 @@ export default function Header({
 
       {/* Mobile Menu Overlay */}
       <div
-        className="md:hidden"
+        className="xl:hidden"
         style={{
           position: "fixed",
           inset: 0,
@@ -442,7 +442,7 @@ export default function Header({
 
       {/* Mobile Menu */}
       <div
-        className="md:hidden"
+        className="xl:hidden"
         style={{
           position: "fixed",
           top: "64px",
@@ -653,7 +653,7 @@ export default function Header({
           }
         }
 
-        @media (min-width: 768px) {
+        @media (min-width: 1280px) {
           .desktop-auth-buttons {
             display: flex !important;
           }

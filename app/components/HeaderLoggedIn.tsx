@@ -106,7 +106,7 @@ export default function HeaderLoggedIn({
             </Link>
 
             {/* Desktop Navigation */}
-            <nav aria-label="Primary" className="hidden md:flex gap-6 pl-8">
+            <nav aria-label="Primary" className="hidden xl:flex gap-6 pl-8">
               {navItems.map((item) => {
                 const isActive = currentPage === item.key;
 
@@ -355,6 +355,27 @@ export default function HeaderLoggedIn({
                         My Bookings
                       </Link>
                       <Link
+                        href="/user/cab-bookings"
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          padding: "0.75rem 1rem",
+                          color: "var(--primary)",
+                          textDecoration: "none",
+                          fontSize: "0.9rem",
+                          transition: "background-color 0.2s ease",
+                          borderRight: "1px solid var(--border-200)",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = "#f3f4f6";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = "transparent";
+                        }}
+                      >
+                        Cab bookings
+                      </Link>
+                      <Link
                         href="/user/wishlist"
                         style={{
                           display: "flex",
@@ -426,7 +447,7 @@ export default function HeaderLoggedIn({
 
             {/* Mobile Hamburger Menu Button */}
             <button
-              className="md:hidden ml-auto p-2 flex items-center justify-center"
+              className="xl:hidden ml-auto p-2 flex items-center justify-center"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="Toggle menu"
               style={{
@@ -504,7 +525,7 @@ export default function HeaderLoggedIn({
 
       {/* Mobile Menu Overlay */}
       <div
-        className="md:hidden"
+        className="xl:hidden"
         style={{
           position: "fixed",
           inset: 0,
@@ -521,7 +542,7 @@ export default function HeaderLoggedIn({
 
       {/* Mobile Menu */}
       <div
-        className="md:hidden"
+        className="xl:hidden"
         style={{
           position: "fixed",
           top: "64px",
@@ -700,6 +721,11 @@ export default function HeaderLoggedIn({
                   label: "My Bookings",
                   icon: "calendar_month",
                 },
+                {
+                  href: "/user/cab-bookings",
+                  label: "Cab bookings",
+                  icon: "directions_car",
+                },
                 { href: "/user/wishlist", label: "Wishlist", icon: "favorite" },
                 {
                   href: "/user/transactions",
@@ -803,7 +829,7 @@ export default function HeaderLoggedIn({
           }
         }
 
-        @media (min-width: 768px) {
+        @media (min-width: 1280px) {
           .desktop-user-actions {
             display: flex !important;
           }

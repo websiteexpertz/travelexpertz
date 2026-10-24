@@ -397,13 +397,12 @@ header nav {
   justify-content: center;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1280px) {
   header nav {
     display: flex;
   }
   
-  /* Force hide hamburger menu on tablet and above */
-  header button.md\:hidden {
+  header button.xl\:hidden {
     display: none !important;
   }
 }

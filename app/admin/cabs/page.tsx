@@ -15,7 +15,9 @@ interface Cab {
   seats?: number;
   baseFare?: number;
   perKmRate?: number;
+  driverAllowance?: number;
   taxPercent?: number;
+  rating?: number | null;
   luggageCapacity?: number;
   driverName?: string;
   driverPhone?: string;
@@ -31,7 +33,9 @@ interface CabFormData {
   seats: number;
   baseFare: number;
   perKmRate: number;
+  driverAllowance: number;
   taxPercent: number;
+  rating: number;
   luggageCapacity: number;
   driverName: string;
   driverPhone: string;
@@ -47,7 +51,9 @@ const emptyCabForm: CabFormData = {
   seats: 4,
   baseFare: 500,
   perKmRate: 18,
+  driverAllowance: 0,
   taxPercent: 0,
+  rating: 0,
   luggageCapacity: 2,
   driverName: "",
   driverPhone: "",
@@ -130,9 +136,11 @@ export default function AdminCabsPage() {
       assignedDriver: cab.assignedDriver || "",
       status: cab.status as CabStatus,
       seats: Number(cab.seats) || 4,
-      baseFare: Number(cab.baseFare) || 500,
-      perKmRate: Number(cab.perKmRate) || 18,
+      baseFare: Number(cab.baseFare ?? 500),
+      perKmRate: Number(cab.perKmRate ?? 18),
+      driverAllowance: Number(cab.driverAllowance) || 0,
       taxPercent: Number(cab.taxPercent) || 0,
+      rating: Number(cab.rating) || 0,
       luggageCapacity: cab.luggageCapacity === undefined ? 2 : Number(cab.luggageCapacity),
       driverName: cab.driverName || cab.assignedDriver || "",
       driverPhone: cab.driverPhone || "",
@@ -469,7 +477,9 @@ export default function AdminCabsPage() {
                       </td>
                       <td style={cellStyle}>{cab.seats || 4} seats<br />{cab.luggageCapacity ?? 2} bags</td>
                       <td style={cellStyle}>
-                        ₹{cab.baseFare || 500} + ₹{cab.perKmRate || 18}/km<br />Tax {cab.taxPercent ?? 0}%
+                        ₹{cab.baseFare ?? 500} + ₹{cab.perKmRate ?? 18}/km<br />
+                        Driver ₹{cab.driverAllowance || 0} · Tax {cab.taxPercent ?? 0}%<br />
+                        {cab.rating ? `Rating ${cab.rating.toFixed(1)} / 5` : "Not rated"}
                       </td>
                       <td style={cellStyle}>
                         <span
@@ -695,6 +705,28 @@ export default function AdminCabsPage() {
                   max={10000}
                   value={formData.perKmRate}
                   onChange={(event) => setFormData({ ...formData, perKmRate: Number(event.target.value) })}
+                  style={formInputStyle}
+                />
+              </CabField>
+              <CabField label="Driver allowance per trip (INR)" required>
+                <input
+                  required
+                  type="number"
+                  min={0}
+                  max={100000}
+                  value={formData.driverAllowance}
+                  onChange={(event) => setFormData({ ...formData, driverAllowance: Number(event.target.value) })}
+                  style={formInputStyle}
+                />
+              </CabField>
+              <CabField label="Customer rating (0 = not rated)">
+                <input
+                  type="number"
+                  min={0}
+                  max={5}
+                  step="0.1"
+                  value={formData.rating}
+                  onChange={(event) => setFormData({ ...formData, rating: Number(event.target.value) })}
                   style={formInputStyle}
                 />
               </CabField>

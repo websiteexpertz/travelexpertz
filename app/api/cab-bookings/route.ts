@@ -1,6 +1,7 @@
 import { ObjectId } from "mongodb";
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { getUserFromRequest } from "@/lib/middleware/auth";
 
 const MAX_BOOKING_DAYS_AHEAD = 365;
 
@@ -40,8 +41,8 @@ export async function POST(request: NextRequest) {
     if (!Number.isFinite(distanceKm) || distanceKm < 1 || distanceKm > 5000) {
       return NextResponse.json({ error: "Enter a trip distance between 1 and 5,000 km." }, { status: 400 });
     }
-    if (body.tripType !== "one-way" && body.tripType !== "round-trip") {
-      return NextResponse.json({ error: "Choose one-way or round-trip." }, { status: 400 });
+    if (!["one-way", "round-trip", "airport-transfer"].includes(body.tripType)) {
+      return NextResponse.json({ error: "Choose one-way, round trip, or airport transfer." }, { status: 400 });
     }
 
     const pickupAt = new Date(`${body.pickupDate}T${body.pickupTime}:00`);
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Return date is required for a round trip." }, { status: 400 });
       }
       returnAt = new Date(`${body.returnDate}T${body.returnTime || body.pickupTime}:00`);
-      if (Number.isNaN(returnAt.getTime()) || returnAt <= pickupAt) {
+      if (Number.isNaN(returnAt.getTime()) || returnAt <= pickupAt || returnAt > maximumDate) {
         return NextResponse.json({ error: "Return time must be after pickup time." }, { status: 400 });
       }
     }
@@ -87,11 +88,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `This vehicle can carry up to ${luggageCapacity} luggage bags.` }, { status: 400 });
     }
 
-    const baseFare = Math.max(0, Number(cab.baseFare) || 500);
-    const perKmRate = Math.max(0, Number(cab.perKmRate) || 18);
+    const baseFare = Math.max(0, Number(cab.baseFare ?? 500) || 0);
+    const perKmRate = Math.max(0, Number(cab.perKmRate ?? 18) || 0);
+    const driverAllowance = Math.max(0, Number(cab.driverAllowance) || 0);
     const taxPercent = Math.min(100, Math.max(0, Number(cab.taxPercent) || 0));
     const fareDistanceKm = distanceKm * (body.tripType === "round-trip" ? 2 : 1);
-    const fareSubtotal = Math.round(baseFare + fareDistanceKm * perKmRate);
+    const fareSubtotal = Math.round(baseFare + fareDistanceKm * perKmRate + driverAllowance);
     const governmentTax = Math.round(fareSubtotal * taxPercent / 100);
     const estimatedFare = fareSubtotal + governmentTax;
     const serviceEndAt = returnAt || new Date(pickupAt.getTime() + Math.max(2, distanceKm / 35) * 60 * 60 * 1000);
@@ -108,6 +110,7 @@ export async function POST(request: NextRequest) {
       );
     }
     const bookingReference = `CAB-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+    const authenticatedUser = getUserFromRequest(request);
 
     const booking = {
       bookingReference,
@@ -131,6 +134,7 @@ export async function POST(request: NextRequest) {
       distanceKm,
       fareBase: baseFare,
       farePerKm: perKmRate,
+      driverAllowance,
       fareSubtotal,
       governmentTaxPercent: taxPercent,
       governmentTax,
@@ -140,6 +144,9 @@ export async function POST(request: NextRequest) {
       phone: body.phone.trim(),
       email,
       notes: typeof body.notes === "string" ? body.notes.trim().slice(0, 1000) : "",
+      ...(authenticatedUser?.userId && ObjectId.isValid(authenticatedUser.userId)
+        ? { userId: new ObjectId(authenticatedUser.userId) }
+        : {}),
       status: "pending",
       paymentStatus: "unpaid",
       createdAt: new Date(),
