@@ -8,6 +8,8 @@ type CabStatus = "Available" | "On Trip" | "Maintenance";
 interface Cab {
   _id: string;
   model: string;
+  fuelType?: string;
+  color?: string;
   licensePlate: string;
   category: string;
   assignedDriver?: string | null;
@@ -26,6 +28,8 @@ interface Cab {
 
 interface CabFormData {
   model: string;
+  fuelType: string;
+  color: string;
   licensePlate: string;
   category: string;
   assignedDriver: string;
@@ -44,6 +48,8 @@ interface CabFormData {
 
 const emptyCabForm: CabFormData = {
   model: "",
+  fuelType: "",
+  color: "",
   licensePlate: "",
   category: "",
   assignedDriver: "",
@@ -131,6 +137,8 @@ export default function AdminCabsPage() {
     setEditingCab(cab);
     setFormData({
       model: cab.model || "",
+      fuelType: cab.fuelType || "",
+      color: cab.color || "",
       licensePlate: cab.licensePlate || "",
       category: cab.category || "",
       assignedDriver: cab.assignedDriver || "",
@@ -426,9 +434,10 @@ export default function AdminCabsPage() {
               <thead>
                 <tr style={{ background: "#f8f9fa", borderBottom: "1px solid #dee2e6" }}>
                   {[
-                    "Vehicle",
+                    "Car model",
                     "License plate",
-                    "Category",
+                    "Car type",
+                    "Fuel / color",
                     "Assigned driver",
                     "Capacity",
                     "Rates",
@@ -470,6 +479,7 @@ export default function AdminCabsPage() {
                         {cab.licensePlate || "-"}
                       </td>
                       <td style={cellStyle}>{cab.category || "-"}</td>
+                      <td style={cellStyle}>{cab.fuelType || "Not specified"}<br /><span style={{ color: "#64748b" }}>{cab.color || "Color not specified"}</span></td>
                       <td style={cellStyle}>
                         <strong>{cab.driverName || cab.assignedDriver || "Unassigned"}</strong>
                         {cab.driverPhone && <><br /><span>{cab.driverPhone}</span></>}
@@ -594,7 +604,7 @@ export default function AdminCabsPage() {
               </button>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: "0.9rem" }}>
-              <CabField label="Vehicle model" required>
+              <CabField label="Car model" required>
                 <input
                   required
                   maxLength={100}
@@ -603,6 +613,37 @@ export default function AdminCabsPage() {
                   placeholder="e.g. Toyota Innova Crysta"
                   style={formInputStyle}
                 />
+              </CabField>
+              <CabField label="Fuel type" required={!editingCab || Boolean(editingCab.fuelType)}>
+                <select
+                  required={!editingCab || Boolean(editingCab.fuelType)}
+                  value={formData.fuelType}
+                  onChange={(event) => setFormData({ ...formData, fuelType: event.target.value })}
+                  style={formInputStyle}
+                >
+                  <option value="">Select fuel type</option>
+                  <option value="Petrol">Petrol</option>
+                  <option value="Diesel">Diesel</option>
+                  <option value="CNG">CNG</option>
+                  <option value="Electric">Electric</option>
+                  <option value="Hybrid">Hybrid</option>
+                </select>
+              </CabField>
+              <CabField label="Car color" required={!editingCab || Boolean(editingCab.color)}>
+                <input
+                  required={!editingCab || Boolean(editingCab.color)}
+                  list="cab-color-options"
+                  maxLength={40}
+                  value={formData.color}
+                  onChange={(event) => setFormData({ ...formData, color: event.target.value })}
+                  placeholder="e.g. White, Silver, Midnight blue"
+                  style={formInputStyle}
+                />
+                <datalist id="cab-color-options">
+                  {["White", "Black", "Silver", "Grey", "Red", "Blue", "Green", "Brown"].map((color) => (
+                    <option key={color} value={color} />
+                  ))}
+                </datalist>
               </CabField>
               <CabField label="License plate" required>
                 <input
@@ -614,15 +655,21 @@ export default function AdminCabsPage() {
                   style={formInputStyle}
                 />
               </CabField>
-              <CabField label="Category" required>
+              <CabField label="Car type" required>
                 <input
                   required
+                  list="cab-type-options"
                   maxLength={60}
                   value={formData.category}
                   onChange={(event) => setFormData({ ...formData, category: event.target.value })}
-                  placeholder="e.g. SUV, Sedan, Tempo Traveller"
+                  placeholder="Select or enter a car type"
                   style={formInputStyle}
                 />
+                <datalist id="cab-type-options">
+                  {["Hatchback", "Sedan", "SUV", "MUV", "Luxury", "Tempo Traveller"].map((type) => (
+                    <option key={type} value={type} />
+                  ))}
+                </datalist>
               </CabField>
               <CabField label="Driver name">
                 <input

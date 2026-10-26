@@ -10,6 +10,8 @@ type Cab = {
   _id: string;
   model: string;
   category: string;
+  fuelType: string;
+  color: string;
   seats: number;
   luggageCapacity: number;
   baseFare: number;
@@ -83,9 +85,11 @@ export default function CabsPage() {
   const [fleetError, setFleetError] = useState("");
   const [form, setForm] = useState<BookingForm>(initialForm);
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [fuelTypeFilter, setFuelTypeFilter] = useState("all");
+  const [colorFilter, setColorFilter] = useState("all");
+  const [modelFilter, setModelFilter] = useState("all");
   const [seatFilter, setSeatFilter] = useState("all");
   const [maxFare, setMaxFare] = useState("");
-  const [availabilityFilter, setAvailabilityFilter] = useState<"available" | "all" | "unavailable">("available");
   const [sortBy, setSortBy] = useState<"price" | "rating" | "duration">("price");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
@@ -101,6 +105,9 @@ export default function CabsPage() {
   } | null>(null);
 
   const categories = useMemo(() => [...new Set(cabs.map((cab) => cab.category).filter(Boolean))].sort(), [cabs]);
+  const fuelTypes = useMemo(() => [...new Set(cabs.map((cab) => cab.fuelType).filter(Boolean))].sort(), [cabs]);
+  const colors = useMemo(() => [...new Set(cabs.map((cab) => cab.color).filter(Boolean))].sort(), [cabs]);
+  const carModels = useMemo(() => [...new Set(cabs.map((cab) => cab.model).filter(Boolean))].sort(), [cabs]);
 
   const matchingCabs = useMemo(() => {
     const fareLimit = maxFare.trim() ? Number(maxFare) : Number.POSITIVE_INFINITY;
@@ -108,12 +115,12 @@ export default function CabsPage() {
       .filter((cab) => {
         const matchesCapacity = cab.seats >= form.passengers && cab.luggageCapacity >= form.luggage;
         const matchesCategory = categoryFilter === "all" || cab.category === categoryFilter;
+        const matchesFuelType = fuelTypeFilter === "all" || cab.fuelType.toLocaleLowerCase() === fuelTypeFilter.toLocaleLowerCase();
+        const matchesColor = colorFilter === "all" || cab.color.toLocaleLowerCase() === colorFilter.toLocaleLowerCase();
+        const matchesModel = modelFilter === "all" || cab.model.toLocaleLowerCase() === modelFilter.toLocaleLowerCase();
         const matchesSeats = seatFilter === "all" || cab.seats >= Number(seatFilter);
         const matchesPrice = getCabPricing(cab, form.distanceKm, form.tripType).total <= fareLimit;
-        const matchesAvailability =
-          availabilityFilter === "all" ||
-          (availabilityFilter === "available" ? cab.isAvailable : !cab.isAvailable);
-        return matchesCapacity && matchesCategory && matchesSeats && matchesPrice && matchesAvailability;
+        return matchesCapacity && matchesCategory && matchesFuelType && matchesColor && matchesModel && matchesSeats && matchesPrice;
       })
       .sort((first, second) => {
         if (sortBy === "rating") return (second.rating ?? -1) - (first.rating ?? -1);
@@ -121,7 +128,7 @@ export default function CabsPage() {
         return getCabPricing(first, form.distanceKm, form.tripType).total
           - getCabPricing(second, form.distanceKm, form.tripType).total;
       });
-  }, [availabilityFilter, categoryFilter, cabs, form.distanceKm, form.luggage, form.passengers, form.tripType, maxFare, seatFilter, sortBy]);
+  }, [categoryFilter, colorFilter, cabs, form.distanceKm, form.luggage, form.passengers, form.tripType, fuelTypeFilter, maxFare, modelFilter, seatFilter, sortBy]);
 
   const selectedCab = hasSearched
     ? matchingCabs.find((cab) => cab._id === form.cabId && cab.isAvailable)
@@ -180,7 +187,6 @@ export default function CabsPage() {
       const query = new URLSearchParams({
         startAt: pickupAt.toISOString(),
         endAt: serviceEndAt.toISOString(),
-        includeUnavailable: "true",
       });
       const response = await fetch(`/api/cabs?${query}`, { cache: "no-store" });
       const data = await response.json();
@@ -386,10 +392,28 @@ export default function CabsPage() {
               {hasSearched && (
                 <>
                 <div className={styles.resultTools} aria-label="Cab filters and sorting">
-                  <label className={styles.filterField}>Category
+                  <label className={styles.filterField}>Car type
                     <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
-                      <option value="all">All vehicle types</option>
+                      <option value="all">All car types</option>
                       {categories.map((category) => <option key={category} value={category}>{category}</option>)}
+                    </select>
+                  </label>
+                  <label className={styles.filterField}>Fuel type
+                    <select value={fuelTypeFilter} onChange={(event) => setFuelTypeFilter(event.target.value)}>
+                      <option value="all">All fuel types</option>
+                      {fuelTypes.map((fuelType) => <option key={fuelType} value={fuelType}>{fuelType}</option>)}
+                    </select>
+                  </label>
+                  <label className={styles.filterField}>Car color
+                    <select value={colorFilter} onChange={(event) => setColorFilter(event.target.value)}>
+                      <option value="all">All colors</option>
+                      {colors.map((color) => <option key={color} value={color}>{color}</option>)}
+                    </select>
+                  </label>
+                  <label className={styles.filterField}>Car model
+                    <select value={modelFilter} onChange={(event) => setModelFilter(event.target.value)}>
+                      <option value="all">All models</option>
+                      {carModels.map((model) => <option key={model} value={model}>{model}</option>)}
                     </select>
                   </label>
                   <label className={styles.filterField}>Minimum seats
@@ -402,13 +426,6 @@ export default function CabsPage() {
                   </label>
                   <label className={styles.filterField}>Maximum total fare
                     <input type="number" min={0} placeholder="No limit" value={maxFare} onChange={(event) => setMaxFare(event.target.value)} />
-                  </label>
-                  <label className={styles.filterField}>Availability
-                    <select value={availabilityFilter} onChange={(event) => setAvailabilityFilter(event.target.value as typeof availabilityFilter)}>
-                      <option value="available">Available for this time</option>
-                      <option value="all">All fleet</option>
-                      <option value="unavailable">Unavailable</option>
-                    </select>
                   </label>
                   <label className={styles.filterField}>Sort by
                     <select value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)}>
@@ -450,6 +467,9 @@ export default function CabsPage() {
                             </span>
                           </div>
                           <div className={styles.vehicleSpecs}>
+                            <span><span className="material-symbols-outlined">local_gas_station</span>{cab.fuelType || "Fuel not specified"}</span>
+                            <span><span className="material-symbols-outlined">palette</span>{cab.color || "Color not specified"}</span>
+                            <span><span className="material-symbols-outlined">category</span>{cab.category}</span>
                             <span><span className="material-symbols-outlined">group</span>{cab.seats} seats</span>
                             <span><span className="material-symbols-outlined">luggage</span>{cab.luggageCapacity} bags</span>
                             <span><span className="material-symbols-outlined">route</span>{form.distanceKm} km</span>

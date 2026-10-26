@@ -3,9 +3,12 @@ import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/db";
 
 type CabStatus = "Available" | "On Trip" | "Maintenance";
+const fuelTypes = ["Petrol", "Diesel", "CNG", "Electric", "Hybrid"] as const;
 
 interface CabInput {
   model?: unknown;
+  fuelType?: unknown;
+  color?: unknown;
   licensePlate?: unknown;
   category?: unknown;
   assignedDriver?: unknown;
@@ -41,8 +44,10 @@ function isAdminRequest(request: NextRequest): boolean {
   }
 }
 
-function normalizeCab(input: CabInput) {
+function normalizeCab(input: CabInput, requireVehicleDetails: boolean) {
   const model = typeof input.model === "string" ? input.model.trim() : "";
+  const fuelType = typeof input.fuelType === "string" ? input.fuelType.trim() : "";
+  const color = typeof input.color === "string" ? input.color.trim() : "";
   const licensePlate =
     typeof input.licensePlate === "string"
       ? input.licensePlate.trim().toUpperCase()
@@ -66,6 +71,18 @@ function normalizeCab(input: CabInput) {
 
   if (!model || !licensePlate || !category) {
     return { error: "Model, license plate, and category are required." };
+  }
+  if (model.length > 100 || licensePlate.length > 20 || category.length > 60) {
+    return { error: "Car model, registration number, or car type exceeds the allowed length." };
+  }
+  if (requireVehicleDetails && (!fuelType || !color)) {
+    return { error: "Fuel type and car color are required." };
+  }
+  if (fuelType && !fuelTypes.includes(fuelType as (typeof fuelTypes)[number])) {
+    return { error: "Choose a valid fuel type." };
+  }
+  if (color.length > 40) {
+    return { error: "Car color must be 40 characters or fewer." };
   }
   if (!["Available", "On Trip", "Maintenance"].includes(String(status))) {
     return { error: "Choose a valid operational status." };
@@ -98,6 +115,8 @@ function normalizeCab(input: CabInput) {
   return {
     value: {
       model,
+      ...(fuelType ? { fuelType } : {}),
+      ...(color ? { color } : {}),
       licensePlate,
       category,
       assignedDriver,
@@ -128,7 +147,11 @@ export async function GET(request: NextRequest) {
   try {
     const db = await getDb();
     const cabs = await db.collection("cabs").find({}).sort({ createdAt: -1 }).toArray();
-    return NextResponse.json(cabs);
+    return NextResponse.json(cabs.map((cab) => ({
+      ...cab,
+      fuelType: typeof cab.fuelType === "string" ? cab.fuelType : "",
+      color: typeof cab.color === "string" ? cab.color : "",
+    })));
   } catch (error) {
     console.error("Error fetching cab fleet:", error);
     return NextResponse.json({ error: "Failed to fetch cab fleet." }, { status: 500 });
@@ -141,7 +164,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const normalized = normalizeCab((await request.json()) as CabInput);
+    const normalized = normalizeCab((await request.json()) as CabInput, true);
     if ("error" in normalized) {
       return NextResponse.json({ error: normalized.error }, { status: 400 });
     }
@@ -179,7 +202,7 @@ export async function PUT(request: NextRequest) {
   }
 
   try {
-    const normalized = normalizeCab((await request.json()) as CabInput);
+    const normalized = normalizeCab((await request.json()) as CabInput, false);
     if ("error" in normalized) {
       return NextResponse.json({ error: normalized.error }, { status: 400 });
     }

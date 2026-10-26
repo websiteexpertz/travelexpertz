@@ -117,6 +117,8 @@ export async function POST(request: NextRequest) {
       cabId: cab._id,
       vehicleModel: cab.model,
       vehicleCategory: cab.category,
+      vehicleFuelType: typeof cab.fuelType === "string" ? cab.fuelType : "",
+      vehicleColor: typeof cab.color === "string" ? cab.color : "",
       seats,
       luggageCapacity,
       driverName: cab.driverName || cab.assignedDriver || "",

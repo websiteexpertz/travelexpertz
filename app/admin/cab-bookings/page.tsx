@@ -7,6 +7,8 @@ interface CabBooking {
   bookingReference: string;
   vehicleModel: string;
   vehicleCategory: string;
+  vehicleFuelType?: string;
+  vehicleColor?: string;
   pickupLocation: string;
   dropoffLocation: string;
   pickupAt: string;
@@ -132,7 +134,7 @@ export default function AdminCabBookingsPage() {
                   return (
                     <tr key={booking._id} style={{ borderBottom: "1px solid #e2e8f0" }}>
                       <td style={cellStyle}><strong>{booking.bookingReference}</strong><br />{booking.fullName}<br /><a href={`mailto:${booking.email}`}>{booking.email}</a><br /><a href={`tel:${booking.phone}`}>{booking.phone}</a></td>
-                      <td style={cellStyle}>{booking.vehicleModel}<br /><span style={{ color: "#64748b" }}>{booking.vehicleCategory}</span>{booking.driverName && <><br /><strong>Driver: {booking.driverName}</strong></>}{booking.driverPhone && <><br /><a href={`tel:${booking.driverPhone}`}>{booking.driverPhone}</a></>}</td>
+                      <td style={cellStyle}>{booking.vehicleModel}<br /><span style={{ color: "#64748b" }}>{booking.vehicleCategory}{booking.vehicleFuelType ? ` · ${booking.vehicleFuelType}` : ""}{booking.vehicleColor ? ` · ${booking.vehicleColor}` : ""}</span>{booking.driverName && <><br /><strong>Driver: {booking.driverName}</strong></>}{booking.driverPhone && <><br /><a href={`tel:${booking.driverPhone}`}>{booking.driverPhone}</a></>}</td>
                       <td style={cellStyle}>{booking.pickupLocation}<br /><span style={{ color: "#64748b" }}>to</span><br />{booking.dropoffLocation}<br /><span style={{ color: "#64748b" }}>{booking.tripType}</span></td>
                       <td style={cellStyle}>{new Date(booking.pickupAt).toLocaleString()}<br />{booking.returnAt ? `Return: ${new Date(booking.returnAt).toLocaleString()}` : ""}</td>
                       <td style={cellStyle}>{booking.passengers} passengers<br />{booking.luggage} bags</td>

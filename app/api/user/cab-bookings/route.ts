@@ -22,6 +22,8 @@ export async function GET(request: NextRequest) {
       bookingReference: booking.bookingReference,
       vehicleModel: booking.vehicleModel,
       vehicleCategory: booking.vehicleCategory,
+      vehicleFuelType: booking.vehicleFuelType || "",
+      vehicleColor: booking.vehicleColor || "",
       pickupLocation: booking.pickupLocation,
       dropoffLocation: booking.dropoffLocation,
       pickupAt: booking.pickupAt,

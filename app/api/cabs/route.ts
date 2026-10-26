@@ -4,10 +4,9 @@ import { getDb } from "@/lib/db";
 export async function GET(request: NextRequest) {
   try {
     const db = await getDb();
-    const includeUnavailable = request.nextUrl.searchParams.get("includeUnavailable") === "true";
     const cabs = await db
       .collection("cabs")
-      .find(includeUnavailable ? {} : { status: "Available" })
+      .find({ status: "Available" })
       .sort({ category: 1, model: 1 })
       .toArray();
     const startAtValue = request.nextUrl.searchParams.get("startAt");
@@ -38,6 +37,8 @@ export async function GET(request: NextRequest) {
         _id: cab._id.toString(),
         model: cab.model,
         category: cab.category,
+        fuelType: typeof cab.fuelType === "string" ? cab.fuelType : "",
+        color: typeof cab.color === "string" ? cab.color : "",
         seats: Number(cab.seats) || 4,
         luggageCapacity: Number.isInteger(Number(cab.luggageCapacity))
           ? Number(cab.luggageCapacity)

@@ -10,6 +10,8 @@ interface CabBooking {
   bookingReference: string;
   vehicleModel: string;
   vehicleCategory: string;
+  vehicleFuelType?: string;
+  vehicleColor?: string;
   pickupLocation: string;
   dropoffLocation: string;
   pickupAt: string;
@@ -113,7 +115,7 @@ export default function CabBookingsPage() {
                   <div>
                     <span className={styles.historyReference}>{booking.bookingReference}</span>
                     <h2>{booking.vehicleModel}</h2>
-                    <p>{booking.vehicleCategory} <span aria-hidden="true">·</span> {booking.tripType.replace("-", " ")}</p>
+                    <p>{booking.vehicleCategory}{booking.vehicleFuelType ? ` · ${booking.vehicleFuelType}` : ""}{booking.vehicleColor ? ` · ${booking.vehicleColor}` : ""} <span aria-hidden="true">·</span> {booking.tripType.replace("-", " ")}</p>
                   </div>
                   <span className={`${styles.bookingStatus} ${styles[`status${booking.status[0].toUpperCase()}${booking.status.slice(1)}`]}`}>
                     {booking.status}
