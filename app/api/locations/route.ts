@@ -4,6 +4,146 @@ import { MongoClient, ObjectId } from "mongodb";
 const MONGODB_URI = process.env.MONGODB_URI || "";
 const MONGODB_DB = process.env.MONGODB_DB || "travelexpertz";
 
+type PhotonFeature = {
+  properties?: {
+    osm_id?: number;
+    osm_type?: string;
+    osm_value?: string;
+    name?: string;
+    locality?: string;
+    district?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+  };
+};
+
+type LocationRecord = {
+  _id: ObjectId;
+  name: string;
+  active?: boolean;
+  source?: string;
+  type?: string;
+  state?: string;
+  location?: string;
+  city?: string;
+  stateName?: string;
+  cityName?: string;
+  hotelDestinationId?: ObjectId;
+  hotelId?: ObjectId;
+};
+
+type LocationEntry = Omit<LocationRecord, "_id"> & {
+  _id: ObjectId | string;
+  country?: string;
+  displayName?: string;
+};
+
+type DestinationRecord = {
+  _id: ObjectId;
+  stateName?: string;
+  cityName?: string;
+};
+
+type HotelRecord = {
+  _id: ObjectId;
+  name?: string;
+  location?: string;
+  city?: string;
+  state?: string;
+  active?: boolean;
+};
+
+async function searchPhotonLocations(search: string) {
+  const url = new URL("https://photon.komoot.io/api/");
+  url.searchParams.set("q", search);
+  url.searchParams.set("limit", "30");
+  url.searchParams.set("lang", "en");
+  url.searchParams.set("lat", "22.5");
+  url.searchParams.set("lon", "79");
+  url.searchParams.set("zoom", "4");
+  url.searchParams.set("bbox", "68.1,6.5,97.4,37.1");
+
+  const response = await fetch(url, {
+    headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(4000),
+    next: { revalidate: 300 },
+  });
+  if (!response.ok) {
+    throw new Error(`Location provider returned ${response.status}`);
+  }
+
+  const data = (await response.json()) as { features?: PhotonFeature[] };
+  const searchLower = search.trim().toLocaleLowerCase();
+  const seen = new Set<string>();
+  const results = (data.features ?? [])
+    .map((feature) => feature.properties)
+    .filter(
+      (
+        location,
+      ): location is NonNullable<PhotonFeature["properties"]> & {
+        name: string;
+        country: string;
+      } =>
+        Boolean(
+          location?.name &&
+            location.country?.toLocaleLowerCase() === "india",
+        ),
+    )
+    .map((location) => {
+      const context = [
+        location.locality,
+        location.city,
+        location.district,
+        location.state,
+        location.country,
+      ]
+        .filter(
+          (part, index, parts): part is string =>
+            Boolean(part) &&
+            part?.toLocaleLowerCase() !== location.name.toLocaleLowerCase() &&
+            parts.findIndex(
+              (candidate) =>
+                candidate?.toLocaleLowerCase() === part?.toLocaleLowerCase(),
+            ) === index,
+        )
+        .slice(0, 3);
+      const displayName = [location.name, ...context].join(", ");
+      const nameLower = location.name.toLocaleLowerCase();
+
+      return {
+        suggestion: {
+          _id: `osm:${location.osm_type ?? "place"}:${location.osm_id ?? displayName}`,
+          name: location.name,
+          displayName,
+          location: context.join(", "),
+          city: location.city ?? location.district ?? "",
+          state: location.state ?? "",
+          country: location.country,
+          source: "photon",
+          type: "location",
+        },
+        score:
+          nameLower === searchLower
+            ? 0
+            : nameLower.startsWith(searchLower)
+              ? 1
+              : 2,
+      };
+    })
+    .sort((first, second) => first.score - second.score)
+    .filter((result) => {
+      const key = result.suggestion.displayName.toLocaleLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 15)
+    .map((result) => result.suggestion);
+
+  return results;
+}
+
 // Levenshtein distance for spell correction
 function getLevenshteinDistance(str1: string, str2: string): number {
   const matrix: number[][] = [];
@@ -35,17 +175,55 @@ function getLevenshteinDistance(str1: string, str2: string): number {
 
 export async function GET(request: NextRequest) {
   let client: MongoClient | null = null;
+  let search = "";
+  let providerLocations: Awaited<ReturnType<typeof searchPhotonLocations>> = [];
+  let providerError: string | null = null;
+  let providerPromise: Promise<void> | null = null;
   try {
+    const { searchParams } = new URL(request.url);
+    search = searchParams.get("search")?.toLowerCase() || "";
+    const id = searchParams.get("id");
+    const providerOnly = searchParams.get("source") === "photon";
+
+    if (search.trim()) {
+      providerPromise = searchPhotonLocations(search)
+        .then((locations) => {
+          providerLocations = locations;
+        })
+        .catch((error) => {
+          providerError =
+            error instanceof Error ? error.message : String(error);
+          console.error("Location provider search failed:", providerError);
+        });
+    }
+
+    if (providerOnly) {
+      if (providerPromise) await providerPromise;
+      if (providerError) {
+        return NextResponse.json(
+          { error: "Location suggestions are temporarily unavailable." },
+          { status: 502 },
+        );
+      }
+      return NextResponse.json(providerLocations);
+    }
+
     if (!MONGODB_URI) {
+      if (search.trim()) {
+        if (providerPromise) await providerPromise;
+        if (providerError) {
+          return NextResponse.json(
+            { error: "Location suggestions are temporarily unavailable." },
+            { status: 502 },
+          );
+        }
+        return NextResponse.json(providerLocations);
+      }
       return NextResponse.json(
         { error: "Database not configured", locations: [] },
         { status: 503 }
       );
     }
-
-    const { searchParams } = new URL(request.url);
-    const search = searchParams.get("search")?.toLowerCase() || "";
-    const id = searchParams.get("id");
 
     client = new MongoClient(MONGODB_URI);
     await client.connect();
@@ -54,7 +232,7 @@ export async function GET(request: NextRequest) {
     
     // If ID is provided, fetch single location
     if (id) {
-      const locationsCollection = db.collection("locations");
+      const locationsCollection = db.collection<LocationRecord>("locations");
       const location = await locationsCollection.findOne({
         _id: new ObjectId(id),
       });
@@ -67,28 +245,42 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch from both sources: hotel_destination_states (where admins add states/cities) and hotel_destinations (legacy)
-    const locationsCollection = db.collection("locations");
-    const hotelDestinationStatesCollection = db.collection("hotel_destination_states");
-    const hotelDestinationsCollection = db.collection("hotel_destinations");
-    const hotelsCollection = db.collection("hotels");
+    const locationsCollection = db.collection<LocationRecord>("locations");
+    const hotelDestinationStatesCollection =
+      db.collection<DestinationRecord>("hotel_destination_states");
+    const hotelDestinationsCollection =
+      db.collection<DestinationRecord>("hotel_destinations");
+    const hotelsCollection = db.collection<HotelRecord>("hotels");
 
     // Fetch all collections in parallel for faster performance
     const [explicitLocations, hotelDestinationStates, hotelDestinations, hotels] = await Promise.all([
       locationsCollection
         .find({ active: { $ne: false } })
-        .project({ name: 1, _id: 1, active: 1, source: 1, type: 1 })
+        .project<LocationRecord>({
+          name: 1,
+          _id: 1,
+          active: 1,
+          source: 1,
+          type: 1,
+        })
         .toArray(),
       hotelDestinationStatesCollection
         .find({})
-        .project({ stateName: 1, cityName: 1, _id: 1 })
+        .project<DestinationRecord>({ stateName: 1, cityName: 1, _id: 1 })
         .toArray(),
       hotelDestinationsCollection
         .find({})
-        .project({ stateName: 1, cityName: 1, _id: 1 })
+        .project<DestinationRecord>({ stateName: 1, cityName: 1, _id: 1 })
         .toArray(),
       hotelsCollection
         .find({ active: { $ne: false } })
-        .project({ name: 1, location: 1, city: 1, state: 1, _id: 1 })
+        .project<HotelRecord>({
+          name: 1,
+          location: 1,
+          city: 1,
+          state: 1,
+          _id: 1,
+        })
         .toArray(),
     ]);
 
@@ -97,9 +289,9 @@ export async function GET(request: NextRequest) {
     console.log("Total active hotels:", hotels.length);
 
     // Get unique states AND cities from both sources
-    const statesMap = new Map<string, any>();
-    const citiesMap = new Map<string, any>();
-    const hotelNamesMap = new Map<string, any>();
+    const statesMap = new Map<string, LocationEntry>();
+    const citiesMap = new Map<string, LocationEntry>();
+    const hotelNamesMap = new Map<string, LocationEntry>();
 
     // Process hotel_destination_states (this is the primary source from "Manage States & Cities")
     for (const dest of hotelDestinationStates) {
@@ -193,8 +385,10 @@ export async function GET(request: NextRequest) {
     console.log("Hotel names:", hotelNameLocations.length);
 
     // Merge: prioritize explicit locations but add states, cities, and hotels not already present
-    const existingNames = new Set(explicitLocations.map((l: any) => l.name.toLowerCase()));
-    const mergedLocations = [...explicitLocations];
+    const existingNames = new Set(
+      explicitLocations.map((location) => location.name.toLowerCase()),
+    );
+    const mergedLocations: LocationEntry[] = [...explicitLocations];
 
     // Add states
     for (const stateLoc of hotelStateLocations) {
@@ -228,7 +422,7 @@ export async function GET(request: NextRequest) {
     if (search) {
       const searchLower = search.toLowerCase();
       const searchLen = searchLower.length;
-      const results: any[] = [];
+      const results: Array<LocationEntry & { score: number }> = [];
       
       // Stage 1: Exact matches and starts-with (fastest)
       for (const loc of locations) {
@@ -252,8 +446,8 @@ export async function GET(request: NextRequest) {
       }
 
       // Stage 3: Fuzzy match with Levenshtein only if needed (expensive, minimal use)
-      if (results.length < 15) {
-        const fuzzyMatches: any[] = [];
+      if (results.length < 15 && searchLower.length >= 3) {
+        const fuzzyMatches: Array<LocationEntry & { score: number }> = [];
         for (const loc of locations) {
           const locNameLower = loc.name.toLowerCase();
           // Check if already added
@@ -273,7 +467,30 @@ export async function GET(request: NextRequest) {
       locations = results
         .sort((a, b) => a.score - b.score)
         .slice(0, 15)
-        .map(({ score, ...loc }) => loc); // Remove score before returning
+        .map((result) => {
+          const { score, ...location } = result;
+          void score;
+          return location;
+        }); // Remove score before returning
+
+      if (providerPromise) await providerPromise;
+      if (providerError && locations.length === 0) {
+        return NextResponse.json(
+          { error: "Location suggestions are temporarily unavailable." },
+          { status: 502 },
+        );
+      }
+
+      const seen = new Set<string>();
+      locations = [...providerLocations, ...locations]
+        .filter((location) => {
+          const key = `${location.name}|${location.city ?? ""}|${location.state ?? ""}`
+            .toLocaleLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        })
+        .slice(0, 15);
     }
 
     console.log("Returning locations count:", locations.length);
@@ -281,6 +498,16 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("Error fetching locations:", errorMessage);
+    if (providerPromise) await providerPromise;
+    if (search.trim() && providerLocations.length > 0) {
+      return NextResponse.json(providerLocations);
+    }
+    if (search.trim() && providerError) {
+      return NextResponse.json(
+        { error: "Location suggestions are temporarily unavailable." },
+        { status: 502 },
+      );
+    }
     return NextResponse.json(
       { error: "Failed to fetch locations", details: errorMessage, locations: [] },
       { status: 500 }
@@ -357,7 +584,9 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Location ID required" }, { status: 400 });
     }
 
-    const { id: _id1, _id: _id2, ...updateData } = body;
+    const updateData = { ...body };
+    delete updateData.id;
+    delete updateData._id;
 
     client = new MongoClient(MONGODB_URI);
     await client.connect();

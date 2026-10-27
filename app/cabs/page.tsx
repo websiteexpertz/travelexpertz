@@ -10,6 +10,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import Header from "../components/Header";
+import LocationDropdown from "../components/LocationDropdown";
 import styles from "./cabs.module.css";
 
 type Cab = {
@@ -604,19 +605,19 @@ export default function CabsPage() {
                       : "Pick-up location"
                   }
                   icon="radio_button_checked"
+                  controlId="cab-pickup-location"
                 >
-                  <input
+                  <LocationDropdown
+                    value={form.pickupLocation}
+                    onChange={(value) => updateForm("pickupLocation", value)}
+                    inputId="cab-pickup-location"
+                    providerOnly
                     required
                     maxLength={180}
-                    autoComplete="street-address"
                     placeholder={
                       form.tripType === "airport-transfer"
                         ? "Airport, city or terminal"
                         : "City, address or landmark"
-                    }
-                    value={form.pickupLocation}
-                    onChange={(e) =>
-                      updateForm("pickupLocation", e.target.value)
                     }
                   />
                 </Field>
@@ -628,18 +629,19 @@ export default function CabsPage() {
                       : "Drop-off location"
                   }
                   icon="location_on"
+                  controlId="cab-dropoff-location"
                 >
-                  <input
+                  <LocationDropdown
+                    value={form.dropoffLocation}
+                    onChange={(value) => updateForm("dropoffLocation", value)}
+                    inputId="cab-dropoff-location"
+                    providerOnly
                     required
                     maxLength={180}
                     placeholder={
                       form.tripType === "airport-transfer"
                         ? "Airport, city or terminal"
                         : "Where are you going?"
-                    }
-                    value={form.dropoffLocation}
-                    onChange={(e) =>
-                      updateForm("dropoffLocation", e.target.value)
                     }
                   />
                 </Field>
@@ -1300,20 +1302,37 @@ function Field({
   label,
   icon,
   children,
+  controlId,
 }: {
   label: string;
   icon: string;
   children: React.ReactNode;
+  controlId?: string;
 }) {
+  const contents = (
+    <div className={styles.fieldControl}>
+      <span className="material-symbols-outlined" aria-hidden="true">
+        {icon}
+      </span>
+      {children}
+    </div>
+  );
+
+  if (controlId) {
+    return (
+      <div className={styles.field}>
+        <label className={styles.fieldLabel} htmlFor={controlId}>
+          {label}
+        </label>
+        {contents}
+      </div>
+    );
+  }
+
   return (
     <label className={styles.field}>
       <span className={styles.fieldLabel}>{label}</span>
-      <span className={styles.fieldControl}>
-        <span className="material-symbols-outlined" aria-hidden="true">
-          {icon}
-        </span>
-        {children}
-      </span>
+      {contents}
     </label>
   );
 }

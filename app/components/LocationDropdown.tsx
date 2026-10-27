@@ -1,13 +1,19 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
+import styles from "./LocationDropdown.module.css";
 
 interface Location {
   _id: string;
   name: string;
+  displayName?: string;
   destinationId?: string;
-  type?: "state" | "city" | "hotel";
+  type?: "state" | "city" | "hotel" | "location";
   location?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  source?: string;
 }
 
 interface LocationDropdownProps {
@@ -16,6 +22,10 @@ interface LocationDropdownProps {
   placeholder?: string;
   className?: string;
   transparent?: boolean;
+  inputId?: string;
+  required?: boolean;
+  maxLength?: number;
+  providerOnly?: boolean;
 }
 
 export const LocationDropdown: React.FC<LocationDropdownProps> = ({
@@ -24,29 +34,29 @@ export const LocationDropdown: React.FC<LocationDropdownProps> = ({
   placeholder = "Select or type a location",
   className = "",
   transparent = false,
+  inputId,
+  required = false,
+  maxLength,
+  providerOnly = false,
 }) => {
+  const generatedId = useId();
+  const id = inputId ?? `location-${generatedId}`;
+  const listboxId = `${id}-suggestions`;
   const [locations, setLocations] = useState<Location[]>([]);
-  const [filteredLocations, setFilteredLocations] = useState<Location[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [inputValue, setInputValue] = useState(value);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Fetch locations on mount
-  useEffect(() => {
-    fetchLocations();
-  }, []);
-
-  // Update input when value prop changes
   useEffect(() => {
     setInputValue(value);
   }, [value]);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handlePointerDown = (event: PointerEvent) => {
       if (
         dropdownRef.current &&
         !dropdownRef.current.contains(event.target as Node)
@@ -55,268 +65,223 @@ export const LocationDropdown: React.FC<LocationDropdownProps> = ({
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, []);
 
-  const fetchLocations = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/locations");
-      if (res.ok) {
-        const data = await res.json();
-        const locationArray = Array.isArray(data) ? data : [];
-        console.log("Locations loaded:", locationArray.length, locationArray);
-        setLocations(locationArray);
-        setFilteredLocations(locationArray);
-      } else {
-        console.error(
-          "Failed to fetch locations: ",
-          res.status,
-          await res.text(),
-        );
-      }
-    } catch (error) {
-      console.error("Failed to fetch locations:", error);
-    } finally {
+  useEffect(() => {
+    const query = inputValue.trim();
+    if (!isOpen || !query) {
+      setLocations([]);
       setLoading(false);
-    }
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setInputValue(val);
-    setHighlightedIndex(-1);
-
-    if (!val.trim()) {
-      // Don't show dropdown when input is empty
-      setFilteredLocations([]);
-      setIsOpen(false);
+      setError("");
       return;
     }
 
-    // Fetch with optimized search (partial matching + spell correction)
-    searchLocations(val);
-  };
-
-  const searchLocations = async (searchTerm: string) => {
-    try {
-      const res = await fetch(
-        `/api/locations?search=${encodeURIComponent(searchTerm)}`,
-      );
-      if (res.ok) {
-        const data = await res.json();
-        setFilteredLocations(Array.isArray(data) ? data : []);
-      }
-    } catch (error) {
-      console.error("Search error:", error);
-    }
-    setIsOpen(true);
-  };
-
-  const handleSelectLocation = (location: Location) => {
-    setInputValue(location.name);
-    onChange(location.name);
-    setIsOpen(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!isOpen) {
-      if (e.key === "ArrowDown") {
-        setIsOpen(true);
-      }
-      return;
-    }
-
-    switch (e.key) {
-      case "ArrowDown":
-        e.preventDefault();
-        setHighlightedIndex((prev) =>
-          prev < filteredLocations.length - 1 ? prev + 1 : 0,
+    const controller = new AbortController();
+    setLoading(true);
+    setError("");
+    const timeout = window.setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `/api/locations?search=${encodeURIComponent(query)}${providerOnly ? "&source=photon" : ""}`,
+          { signal: controller.signal },
         );
-        break;
-      case "ArrowUp":
-        e.preventDefault();
-        setHighlightedIndex((prev) =>
-          prev > 0 ? prev - 1 : filteredLocations.length - 1,
-        );
-        break;
-      case "Enter":
-        e.preventDefault();
-        if (
-          highlightedIndex >= 0 &&
-          highlightedIndex < filteredLocations.length
-        ) {
-          handleSelectLocation(filteredLocations[highlightedIndex]);
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(
+            typeof data.error === "string"
+              ? data.error
+              : "Location suggestions could not be loaded.",
+          );
         }
-        break;
-      case "Escape":
-        e.preventDefault();
+        setLocations(Array.isArray(data) ? data : []);
+      } catch (fetchError) {
+        if (controller.signal.aborted) return;
+        setLocations([]);
+        setError(
+          fetchError instanceof Error
+            ? fetchError.message
+            : "Location suggestions could not be loaded.",
+        );
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }, 180);
+
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [inputValue, isOpen, providerOnly]);
+
+  useEffect(() => {
+    if (highlightedIndex < 0) return;
+    document
+      .getElementById(`${listboxId}-option-${highlightedIndex}`)
+      ?.scrollIntoView({ block: "nearest" });
+  }, [highlightedIndex, listboxId]);
+
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const nextValue = event.target.value;
+    setInputValue(nextValue);
+    setHighlightedIndex(-1);
+    setIsOpen(Boolean(nextValue.trim()));
+    onChange(nextValue);
+  };
+
+  const selectLocation = (location: Location) => {
+    const selectedValue = location.displayName || location.name;
+    setInputValue(selectedValue);
+    onChange(selectedValue);
+    setIsOpen(false);
+    setHighlightedIndex(-1);
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Escape") {
+      if (isOpen) {
+        event.preventDefault();
         setIsOpen(false);
-        break;
+        setHighlightedIndex(-1);
+      }
+      return;
+    }
+
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      if (!isOpen) {
+        setIsOpen(true);
+        return;
+      }
+      if (locations.length === 0) return;
+      setHighlightedIndex((current) => {
+        if (event.key === "ArrowDown") {
+          return current < locations.length - 1 ? current + 1 : 0;
+        }
+        return current > 0 ? current - 1 : locations.length - 1;
+      });
+      return;
+    }
+
+    if (event.key === "Enter" && isOpen) {
+      if (highlightedIndex >= 0 && locations[highlightedIndex]) {
+        event.preventDefault();
+        selectLocation(locations[highlightedIndex]);
+      } else if (loading || locations.length > 0) {
+        event.preventDefault();
+      }
     }
   };
 
-  const handleFocus = () => {
-    // Only show dropdown if there's already text
-    if (inputValue.trim()) {
-      setIsOpen(true);
-    }
-  };
+  const getContext = (location: Location) =>
+    location.location ||
+    [location.city, location.state, location.country]
+      .filter(Boolean)
+      .join(", ");
 
   return (
     <div
       ref={dropdownRef}
-      style={{
-        position: "relative",
-        width: "100%",
-        display: "flex",
-        alignItems: "center",
-      }}
-      className="location-dropdown-wrapper"
+      className={`${styles.wrapper} location-dropdown-wrapper${isOpen ? ` ${styles.open}` : ""}`}
     >
       <input
         ref={inputRef}
+        id={id}
         type="text"
         value={inputValue}
+        required={required}
+        maxLength={maxLength}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
-        onFocus={handleFocus}
-        placeholder={placeholder}
-        className={className}
-        style={{
-          width: "100%",
-          padding: transparent ? "0" : "0.75rem 1rem",
-          borderRadius: transparent ? "0" : "8px",
-          border: transparent ? "none" : "2px solid #e5e7eb",
-          fontSize: "1rem",
-          transition: "all 0.2s ease",
-          background: transparent ? "transparent" : "#fff",
-          outline: "none",
-          color: "#1f2937",
+        onFocus={() => {
+          if (inputValue.trim()) setIsOpen(true);
         }}
+        placeholder={placeholder}
+        className={`${styles.input} ${className}${transparent ? ` ${styles.transparent}` : ""}`}
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={isOpen}
+        aria-controls={listboxId}
+        aria-activedescendant={
+          highlightedIndex >= 0
+            ? `${listboxId}-option-${highlightedIndex}`
+            : undefined
+        }
         autoComplete="off"
       />
 
       {isOpen && (
         <div
-          style={{
-            position: "absolute",
-            top: "100%",
-            left: 0,
-            right: 0,
-            marginTop: "0.5rem",
-            background: "#fff",
-            border: "1px solid #e5e7eb",
-            borderRadius: "8px",
-            boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-            zIndex: 10000,
-            maxHeight: "320px",
-            overflowY: "auto" as const,
-            minWidth: "280px",
-          }}
+          className={styles.popover}
         >
-          {loading ? (
-            <div
-              style={{
-                padding: "1.25rem",
-                textAlign: "center",
-                color: "#9ca3af",
-              }}
-            >
-              <div style={{ fontSize: "0.9rem", fontWeight: 500 }}>
-                Searching locations...
+          <div
+            id={listboxId}
+            className={styles.suggestions}
+            role="listbox"
+            aria-busy={loading}
+            aria-label="Location suggestions"
+          >
+            {loading ? (
+              <div className={styles.message} role="status">
+                <span className={styles.spinner} aria-hidden="true" />
+                Searching real locations...
               </div>
-            </div>
-          ) : filteredLocations.length === 0 ? (
-            <div style={{ padding: "1.25rem", textAlign: "center" }}>
-              {locations.length === 0 ? (
-                <div style={{ color: "#6b7280", fontSize: "0.9rem" }}>
-                  <div style={{ fontWeight: 500, marginBottom: "0.5rem" }}>
-                    No locations available
-                  </div>
-                  <div style={{ fontSize: "0.8rem", color: "#9ca3af" }}>
-                    Add states and cities in admin panel to see them here
-                  </div>
-                </div>
-              ) : (
-                <div
-                  style={{
-                    color: "#9ca3af",
-                    fontSize: "0.9rem",
-                    fontWeight: 500,
-                  }}
+            ) : error ? (
+              <div className={styles.message} role="status">
+                {error} You can continue with the location you entered.
+              </div>
+            ) : locations.length === 0 ? (
+              <div className={styles.message} role="status">
+                No matching locations found.
+              </div>
+            ) : (
+              locations.map((location, index) => (
+                <button
+                  key={location._id}
+                  id={`${listboxId}-option-${index}`}
+                  type="button"
+                  tabIndex={-1}
+                  className={`${styles.option}${highlightedIndex === index ? ` ${styles.highlighted}` : ""}`}
+                  role="option"
+                  aria-selected={highlightedIndex === index}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => selectLocation(location)}
+                  onMouseEnter={() => setHighlightedIndex(index)}
                 >
-                  No matching locations found
-                </div>
-              )}
-            </div>
-          ) : (
-            filteredLocations.map((location, index) => (
-              <div
-                key={location._id}
-                onClick={() => handleSelectLocation(location)}
-                style={{
-                  padding: "0.875rem 1rem",
-                  cursor: "pointer",
-                  background: highlightedIndex === index ? "#f0fdf4" : "#fff",
-                  borderBottom:
-                    index < filteredLocations.length - 1
-                      ? "1px solid #f3f4f6"
-                      : "none",
-                  transition: "all 0.15s ease",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-                onMouseEnter={() => setHighlightedIndex(index)}
-                onMouseLeave={() => setHighlightedIndex(-1)}
-              >
-                <div>
-                  <div
-                    style={{
-                      fontWeight: 600,
-                      color: "#1f2937",
-                      fontSize: "0.95rem",
-                    }}
-                  >
-                    {location.name}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "0.75rem",
-                      color: "#9ca3af",
-                      marginTop: "0.25rem",
-                    }}
-                  >
-                    {location.type === "state"
-                      ? "📍 State"
-                      : location.type === "city"
-                        ? "🏙️ City"
-                        : location.type === "hotel"
-                          ? "🏨 Hotel"
-                          : ""}
-                  </div>
-                  {location.type === "hotel" && (
-                    <div
-                      style={{
-                        fontSize: "0.7rem",
-                        color: "#6b7280",
-                        marginTop: "0.3rem",
-                      }}
-                    >
-                      {(location as any).location ||
-                        ((location as any).city && (location as any).state
-                          ? `${(location as any).city}, ${(location as any).state}`
-                          : (location as any).city || "")}
-                    </div>
+                  <span className={styles.optionIcon} aria-hidden="true">
+                    <span className="material-symbols-outlined">
+                      location_on
+                    </span>
+                  </span>
+                  <span className={styles.optionText}>
+                    <span className={styles.optionName}>{location.name}</span>
+                    {getContext(location) && (
+                      <span className={styles.optionContext}>
+                        {getContext(location)}
+                      </span>
+                    )}
+                  </span>
+                  {highlightedIndex === index && (
+                    <span className={styles.optionHint} aria-hidden="true">
+                      Enter
+                    </span>
                   )}
-                </div>
-                {highlightedIndex === index && (
-                  <div style={{ color: "#059669", fontSize: "1.1rem" }}>→</div>
-                )}
-              </div>
-            ))
+                </button>
+              ))
+            )}
+          </div>
+          {locations.some((location) => location.source === "photon") && (
+            <div className={styles.attribution}>
+              Location data ©{" "}
+              <a
+                href="https://www.openstreetmap.org/copyright"
+                target="_blank"
+                rel="noreferrer"
+              >
+                OpenStreetMap contributors
+              </a>
+            </div>
           )}
         </div>
       )}
