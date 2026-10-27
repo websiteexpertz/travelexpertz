@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { FormEvent } from "react";
+import type { ChangeEvent, FormEvent } from "react";
+import Image from "next/image";
 
 type CabStatus = "Available" | "On Trip" | "Maintenance";
 
@@ -24,6 +25,7 @@ interface Cab {
   driverName?: string;
   driverPhone?: string;
   driverLicense?: string;
+  imageUrl?: string;
 }
 
 interface CabFormData {
@@ -44,6 +46,7 @@ interface CabFormData {
   driverName: string;
   driverPhone: string;
   driverLicense: string;
+  imageUrl: string;
 }
 
 const emptyCabForm: CabFormData = {
@@ -64,6 +67,7 @@ const emptyCabForm: CabFormData = {
   driverName: "",
   driverPhone: "",
   driverLicense: "",
+  imageUrl: "",
 };
 
 const statusStyles: Record<CabStatus, { background: string; color: string }> = {
@@ -93,6 +97,7 @@ export default function AdminCabsPage() {
   const [formData, setFormData] = useState<CabFormData>(emptyCabForm);
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const fetchCabs = useCallback(async () => {
     setLoading(true);
@@ -153,6 +158,7 @@ export default function AdminCabsPage() {
       driverName: cab.driverName || cab.assignedDriver || "",
       driverPhone: cab.driverPhone || "",
       driverLicense: cab.driverLicense || "",
+      imageUrl: cab.imageUrl || "",
     });
     setFormError("");
     setFormOpen(true);
@@ -160,6 +166,10 @@ export default function AdminCabsPage() {
 
   const handleSaveCab = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!editingCab && !formData.imageUrl) {
+      setFormError("Upload a photo of this vehicle before saving.");
+      return;
+    }
     setSaving(true);
     setFormError("");
     try {
@@ -186,6 +196,47 @@ export default function AdminCabsPage() {
       );
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleVehicleImageUpload = async (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setFormError("Choose a JPG, PNG, or WebP car photo.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setFormError("Car photos must be 5 MB or smaller.");
+      return;
+    }
+
+    setUploadingImage(true);
+    setFormError("");
+    try {
+      const uploadData = new FormData();
+      uploadData.append("file", file);
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        credentials: "include",
+        body: uploadData,
+      });
+      const result = await response.json();
+      if (!response.ok || typeof result.url !== "string") {
+        throw new Error(result.error || "Could not upload the car photo.");
+      }
+      setFormData((current) => ({ ...current, imageUrl: result.url }));
+    } catch (uploadError) {
+      setFormError(
+        uploadError instanceof Error
+          ? uploadError.message
+          : "Could not upload the car photo.",
+      );
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -603,6 +654,38 @@ export default function AdminCabsPage() {
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
+            <CabField label="Car photo" required={!editingCab || !formData.imageUrl}>
+              <div style={{ display: "grid", gap: "0.65rem" }}>
+                {formData.imageUrl && (
+                  <Image
+                    src={formData.imageUrl}
+                    alt={`${formData.model || "Vehicle"} photo preview`}
+                    width={240}
+                    height={135}
+                    unoptimized
+                    style={{
+                      width: "min(100%, 240px)",
+                      height: "135px",
+                      objectFit: "cover",
+                      borderRadius: "0.5rem",
+                      border: "1px solid #e2e8f0",
+                    }}
+                  />
+                )}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  disabled={uploadingImage || saving}
+                  onChange={(event) => void handleVehicleImageUpload(event)}
+                  aria-label="Upload car photo"
+                  style={formInputStyle}
+                />
+                <small style={{ color: "#64748b" }}>
+                  JPG, PNG, or WebP, up to 5 MB.{" "}
+                  {uploadingImage ? "Uploading photo..." : ""}
+                </small>
+              </div>
+            </CabField>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: "0.9rem" }}>
               <CabField label="Car model" required>
                 <input
@@ -799,8 +882,8 @@ export default function AdminCabsPage() {
               <button type="button" disabled={saving} onClick={() => setFormOpen(false)} style={secondaryButtonStyle}>
                 Cancel
               </button>
-              <button type="submit" disabled={saving} style={primaryButtonStyle}>
-                {saving ? "Saving..." : editingCab ? "Save changes" : "Add vehicle"}
+              <button type="submit" disabled={saving || uploadingImage} style={primaryButtonStyle}>
+                {uploadingImage ? "Uploading photo..." : saving ? "Saving..." : editingCab ? "Save changes" : "Add vehicle"}
               </button>
             </div>
           </form>

@@ -23,6 +23,7 @@ interface CabInput {
   driverName?: unknown;
   driverPhone?: unknown;
   driverLicense?: unknown;
+  imageUrl?: unknown;
 }
 
 function isAdminRequest(request: NextRequest): boolean {
@@ -68,6 +69,7 @@ function normalizeCab(input: CabInput, requireVehicleDetails: boolean) {
   const driverName = typeof input.driverName === "string" ? input.driverName.trim() : "";
   const driverPhone = typeof input.driverPhone === "string" ? input.driverPhone.trim() : "";
   const driverLicense = typeof input.driverLicense === "string" ? input.driverLicense.trim() : "";
+  const imageUrl = typeof input.imageUrl === "string" ? input.imageUrl.trim() : "";
 
   if (!model || !licensePlate || !category) {
     return { error: "Model, license plate, and category are required." };
@@ -77,6 +79,16 @@ function normalizeCab(input: CabInput, requireVehicleDetails: boolean) {
   }
   if (requireVehicleDetails && (!fuelType || !color)) {
     return { error: "Fuel type and car color are required." };
+  }
+  if (
+    imageUrl &&
+    (imageUrl.length > 100 ||
+      !/^\/api\/files\/[a-f\d]{24}$/i.test(imageUrl))
+  ) {
+    return { error: "Upload a valid vehicle photo." };
+  }
+  if (requireVehicleDetails && !imageUrl) {
+    return { error: "Upload a photo of this vehicle." };
   }
   if (fuelType && !fuelTypes.includes(fuelType as (typeof fuelTypes)[number])) {
     return { error: "Choose a valid fuel type." };
@@ -131,6 +143,7 @@ function normalizeCab(input: CabInput, requireVehicleDetails: boolean) {
       driverName,
       driverPhone,
       driverLicense,
+      ...(imageUrl ? { imageUrl } : {}),
     },
   };
 }

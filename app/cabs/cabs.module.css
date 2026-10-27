@@ -3523,14 +3523,67 @@
   scroll-margin-top: 110px;
 }
 
+.passengerDetailsSection {
+  scroll-margin-top: 110px;
+}
+
+.selectedCabSummary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 18px;
+  padding: 11px 13px;
+  border: 1px solid #dfe9df;
+  border-radius: 9px;
+  background: #f7faf4;
+}
+
+.selectedCabImage {
+  position: relative;
+  width: 68px;
+  height: 52px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: 6px;
+  background: #e8eee8;
+}
+
+.selectedCabImage img {
+  object-fit: cover;
+}
+
+.selectedCabInfo {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.selectedCabInfo span,
+.selectedCabInfo small {
+  color: #78877e;
+  font-size: 0.68rem;
+}
+
+.selectedCabInfo strong {
+  overflow: hidden;
+  color: #203d32;
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selectedCabFare {
+  margin-left: auto;
+  color: #28664f;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
 .tripSummary {
   position: sticky;
   top: 92px;
   z-index: 6;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px 18px;
+  display: block;
   margin: 0 0 20px;
   padding: 14px 16px;
   border: 1px solid #dfe9df;
@@ -3540,95 +3593,9 @@
   backdrop-filter: blur(12px);
 }
 
-.tripSummaryRoute {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 12px;
-}
-
-.tripSummaryLocation {
-  display: grid;
-  min-width: 0;
-  gap: 4px;
-}
-
-.tripSummaryLocation > span {
-  color: #78877e;
-  font-size: 0.65rem;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.tripSummaryLocation strong {
-  overflow: hidden;
-  color: #203d32;
-  font-size: 0.8rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.tripSummaryArrow {
-  flex: 0 0 auto;
-  color: #56836c;
-  font-size: 1rem;
-}
-
-.tripSummaryTimes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 15px;
-  grid-column: 1;
-  color: #53675c;
-  font-size: 0.7rem;
-}
-
-.tripSummaryTimes > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.tripSummaryTimes :global(.material-symbols-outlined) {
-  color: #528069;
-  font-size: 0.98rem;
-}
-
-.editTripButton {
-  display: inline-flex;
-  min-height: 36px;
-  grid-column: 2;
-  grid-row: 1 / span 2;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 0 11px;
-  border: 1px solid #d6e4d8;
-  border-radius: 7px;
-  background: #f7faf4;
-  color: #28664f;
-  font: inherit;
-  font-size: 0.73rem;
-  font-weight: 800;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.editTripButton:hover {
-  border-color: #aac7b0;
-  background: #edf5e9;
-}
-
-.editTripButton :global(.material-symbols-outlined) {
-  font-size: 1rem;
-}
-
 .tripEditPanel {
   display: grid;
-  grid-column: 1 / -1;
   gap: 13px;
-  padding-top: 13px;
-  border-top: 1px solid #e8eee8;
 }
 
 .tripEditHeading {
@@ -3659,7 +3626,7 @@
 
 .tripEditGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -3734,63 +3701,37 @@
     scroll-margin-top: 92px;
   }
 
+  .passengerDetailsSection {
+    scroll-margin-top: 92px;
+  }
+
   .tripSummary {
-    top: 78px;
-    gap: 9px 10px;
+    position: static;
     padding: 12px;
     border-radius: 10px;
   }
 
-  .tripSummaryRoute {
-    gap: 8px;
-  }
-
-  .tripSummaryLocation strong {
-    font-size: 0.72rem;
-  }
-
-  .tripSummaryTimes {
-    gap: 5px 10px;
-    font-size: 0.66rem;
+  .tripEditGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 480px) {
   .tripSummary {
-    top: 72px;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 8px;
     margin-bottom: 15px;
     padding: 10px;
   }
 
-  .tripSummaryRoute {
-    gap: 6px;
-  }
-
-  .tripSummaryLocation > span {
-    font-size: 0.58rem;
-  }
-
-  .tripSummaryLocation strong {
-    font-size: 0.68rem;
-  }
-
-  .tripSummaryTimes {
-    grid-column: 1 / -1;
-    font-size: 0.63rem;
-  }
-
-  .editTripButton {
-    grid-column: 2;
-    grid-row: 1;
-    min-height: 33px;
-    padding: 0 8px;
-    font-size: 0.67rem;
-  }
-
   .tripEditGrid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tripEditActions {
+    flex-direction: column-reverse;
+  }
+
+  .tripEditActions button {
+    width: 100%;
   }
 
   .resultsError {

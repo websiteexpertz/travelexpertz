@@ -17,6 +17,7 @@ type Cab = {
   _id: string;
   model: string;
   category: string;
+  imageUrl: string;
   fuelType: string;
   color: string;
   seats: number;
@@ -124,7 +125,13 @@ export default function CabsPage() {
   const [tripDraft, setTripDraft] = useState<EditableTripDetails | null>(null);
   const [tripEditError, setTripEditError] = useState("");
   const [scrollRequest, setScrollRequest] = useState(0);
+  const [passengerScrollRequest, setPassengerScrollRequest] = useState(0);
   const resultsSectionRef = useRef<HTMLElement>(null);
+  const passengerDetailsRef = useRef<HTMLElement>(null);
+  const fullNameInputRef = useRef<HTMLInputElement>(null);
+  const phoneInputRef = useRef<HTMLInputElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const handledPassengerScrollRequestRef = useRef(0);
   const searchRequestRef = useRef(0);
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
   const [fuelTypeFilter, setFuelTypeFilter] = useState<string[]>([]);
@@ -243,6 +250,15 @@ export default function CabsPage() {
   const fareSubtotal = selectedPricing?.fareSubtotal ?? 0;
   const governmentTax = selectedPricing?.governmentTax ?? 0;
   const estimatedFare = selectedPricing?.total ?? 0;
+  const tripDetailsChanged =
+    tripDraft !== null &&
+    (tripDraft.pickupLocation !== form.pickupLocation ||
+      tripDraft.dropoffLocation !== form.dropoffLocation ||
+      tripDraft.pickupDate !== form.pickupDate ||
+      tripDraft.pickupTime !== form.pickupTime ||
+      tripDraft.returnDate !== form.returnDate ||
+      tripDraft.returnTime !== form.returnTime ||
+      tripDraft.tripType !== form.tripType);
 
   useEffect(() => {
     if (
@@ -266,6 +282,39 @@ export default function CabsPage() {
       });
     }
   }, [scrollRequest]);
+
+  useEffect(() => {
+    if (
+      passengerScrollRequest <= handledPassengerScrollRequestRef.current ||
+      !passengerDetailsRef.current
+    ) {
+      return;
+    }
+    handledPassengerScrollRequestRef.current = passengerScrollRequest;
+    const section = passengerDetailsRef.current;
+    const bounds = section.getBoundingClientRect();
+    const headerOffset = window.innerWidth <= 760 ? 96 : 112;
+    const fullyVisible =
+      bounds.top >= headerOffset && bounds.bottom <= window.innerHeight;
+    if (!fullyVisible) {
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    const focusTimer = window.setTimeout(
+      () => {
+        const firstEmptyInput = [
+          fullNameInputRef.current,
+          phoneInputRef.current,
+          emailInputRef.current,
+        ].find((input) => input && !input.value.trim());
+        (firstEmptyInput ?? fullNameInputRef.current)?.focus({
+          preventScroll: true,
+        });
+      },
+      fullyVisible ? 0 : 500,
+    );
+    return () => window.clearTimeout(focusTimer);
+  }, [form.cabId, passengerScrollRequest]);
 
   const updateForm = <K extends keyof BookingForm>(
     key: K,
@@ -292,6 +341,11 @@ export default function CabsPage() {
       setFleetError("");
       setHasSearched(false);
     }
+  };
+
+  const selectCab = (cabId: string) => {
+    if (form.cabId !== cabId) updateForm("cabId", cabId);
+    setPassengerScrollRequest((current) => current + 1);
   };
 
   const swapRoute = () => {
@@ -433,6 +487,15 @@ export default function CabsPage() {
       if (requestId !== searchRequestRef.current) return false;
       setForm(searchFormWithRoute);
       setCabs(Array.isArray(data) ? data : []);
+      setTripDraft({
+        tripType: searchFormWithRoute.tripType,
+        pickupLocation: searchFormWithRoute.pickupLocation,
+        dropoffLocation: searchFormWithRoute.dropoffLocation,
+        pickupDate: searchFormWithRoute.pickupDate,
+        pickupTime: searchFormWithRoute.pickupTime,
+        returnDate: searchFormWithRoute.returnDate,
+        returnTime: searchFormWithRoute.returnTime,
+      });
       setHasSearched(true);
       setScrollRequest((current) => current + 1);
       return true;
@@ -452,33 +515,20 @@ export default function CabsPage() {
     }
   };
 
-  const beginTripEdit = () => {
-    const {
-      tripType,
-      pickupLocation,
-      dropoffLocation,
-      pickupDate,
-      pickupTime,
-      returnDate,
-      returnTime,
-    } = form;
-    setTripDraft({
-      tripType,
-      pickupLocation,
-      dropoffLocation,
-      pickupDate,
-      pickupTime,
-      returnDate,
-      returnTime,
-    });
-    setTripEditError("");
-  };
-
   const updateTripDraft = <K extends keyof EditableTripDetails>(
     key: K,
     value: EditableTripDetails[K],
   ) => {
-    setTripDraft((current) => (current ? { ...current, [key]: value } : current));
+    setTripDraft((current) => ({
+      tripType: current?.tripType ?? form.tripType,
+      pickupLocation: current?.pickupLocation ?? form.pickupLocation,
+      dropoffLocation: current?.dropoffLocation ?? form.dropoffLocation,
+      pickupDate: current?.pickupDate ?? form.pickupDate,
+      pickupTime: current?.pickupTime ?? form.pickupTime,
+      returnDate: current?.returnDate ?? form.returnDate,
+      returnTime: current?.returnTime ?? form.returnTime,
+      [key]: value,
+    }));
     setTripEditError("");
   };
 
@@ -489,9 +539,7 @@ export default function CabsPage() {
       keepResultsVisible: true,
       editing: true,
     });
-    if (saved) {
-      setTripDraft(null);
-    }
+    return saved;
   };
 
   const cancelTripEdit = () => {
@@ -501,7 +549,15 @@ export default function CabsPage() {
     }
     setFleetError("");
     setFormError("");
-    setTripDraft(null);
+    setTripDraft({
+      tripType: form.tripType,
+      pickupLocation: form.pickupLocation,
+      dropoffLocation: form.dropoffLocation,
+      pickupDate: form.pickupDate,
+      pickupTime: form.pickupTime,
+      returnDate: form.returnDate,
+      returnTime: form.returnTime,
+    });
     setTripEditError("");
   };
 
@@ -937,170 +993,131 @@ export default function CabsPage() {
               {hasSearched && (
                 <>
                   <div className={styles.tripSummary}>
-                    <div className={styles.tripSummaryRoute}>
-                      <div className={styles.tripSummaryLocation}>
-                        <span>Pick-up</span>
-                        <strong>{form.pickupLocation}</strong>
-                      </div>
-                      <span className={styles.tripSummaryArrow} aria-hidden="true">
-                        →
-                      </span>
-                      <div className={styles.tripSummaryLocation}>
-                        <span>Drop-off</span>
-                        <strong>{form.dropoffLocation}</strong>
-                      </div>
-                    </div>
-                    <div className={styles.tripSummaryTimes}>
-                      <span>
-                        <span className="material-symbols-outlined" aria-hidden="true">
-                          schedule
-                        </span>
-                        {new Date(`${form.pickupDate}T00:00:00`).toLocaleDateString(
-                          "en-IN",
-                          { day: "numeric", month: "short", year: "numeric" },
-                        )}{" "}
-                        · {form.pickupTime}
-                      </span>
-                      {form.tripType === "round-trip" && (
+                    <div className={styles.tripEditPanel}>
+                      <div className={styles.tripEditHeading}>
+                        <strong>Your trip</strong>
                         <span>
-                          <span className="material-symbols-outlined" aria-hidden="true">
-                            event_repeat
-                          </span>
-                          Return{" "}
-                          {new Date(`${form.returnDate}T00:00:00`).toLocaleDateString(
-                            "en-IN",
-                            { day: "numeric", month: "short", year: "numeric" },
-                          )}{" "}
-                          · {form.returnTime}
+                          Change your locations or schedule here; cab results
+                          refresh when you update the search.
                         </span>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      className={styles.editTripButton}
-                      onClick={tripDraft ? cancelTripEdit : beginTripEdit}
-                      aria-expanded={Boolean(tripDraft)}
-                    >
-                      <span className="material-symbols-outlined" aria-hidden="true">
-                        {tripDraft ? "close" : "edit"}
-                      </span>
-                      {tripDraft ? "Close editor" : "Edit trip"}
-                    </button>
-                    {tripDraft && (
-                      <div className={styles.tripEditPanel}>
-                        <div className={styles.tripEditHeading}>
-                          <strong>Edit your trip</strong>
-                          <span>Search again to refresh available cabs.</span>
+                      </div>
+                      <fieldset
+                        className={styles.tripEditFieldset}
+                        disabled={loadingCabs}
+                      >
+                        <div className={styles.tripEditGrid}>
+                          <Field
+                            label="Pick-up"
+                            icon="radio_button_checked"
+                            controlId="edit-cab-pickup-location"
+                          >
+                            <LocationDropdown
+                              value={
+                                tripDraft?.pickupLocation ?? form.pickupLocation
+                              }
+                              onChange={(value) =>
+                                updateTripDraft("pickupLocation", value)
+                              }
+                              inputId="edit-cab-pickup-location"
+                              providerOnly
+                              required
+                              maxLength={180}
+                              placeholder="City, address or landmark"
+                            />
+                          </Field>
+                          <Field
+                            label="Drop-off"
+                            icon="location_on"
+                            controlId="edit-cab-dropoff-location"
+                          >
+                            <LocationDropdown
+                              value={
+                                tripDraft?.dropoffLocation ?? form.dropoffLocation
+                              }
+                              onChange={(value) =>
+                                updateTripDraft("dropoffLocation", value)
+                              }
+                              inputId="edit-cab-dropoff-location"
+                              providerOnly
+                              required
+                              maxLength={180}
+                              placeholder="Where are you going?"
+                            />
+                          </Field>
+                          <Field label="Pick-up date" icon="calendar_month">
+                            <input
+                              type="date"
+                              min={localDate()}
+                              max={localDate(365)}
+                              value={tripDraft?.pickupDate ?? form.pickupDate}
+                              onChange={(event) =>
+                                updateTripDraft("pickupDate", event.target.value)
+                              }
+                            />
+                          </Field>
+                          <Field label="Pick-up time" icon="schedule">
+                            <input
+                              type="time"
+                              value={tripDraft?.pickupTime ?? form.pickupTime}
+                              onChange={(event) =>
+                                updateTripDraft("pickupTime", event.target.value)
+                              }
+                            />
+                          </Field>
+                          {(tripDraft?.tripType ?? form.tripType) ===
+                            "round-trip" && (
+                            <>
+                              <Field label="Return date" icon="event_repeat">
+                                <input
+                                  type="date"
+                                  min={tripDraft?.pickupDate ?? form.pickupDate}
+                                  max={localDate(365)}
+                                  value={tripDraft?.returnDate ?? form.returnDate}
+                                  onChange={(event) =>
+                                    updateTripDraft("returnDate", event.target.value)
+                                  }
+                                />
+                              </Field>
+                              <Field label="Return time" icon="schedule">
+                                <input
+                                  type="time"
+                                  value={tripDraft?.returnTime ?? form.returnTime}
+                                  onChange={(event) =>
+                                    updateTripDraft("returnTime", event.target.value)
+                                  }
+                                />
+                              </Field>
+                            </>
+                          )}
                         </div>
-                        <div className={styles.tripEditActions}>
+                      </fieldset>
+                      <div className={styles.tripEditActions}>
+                        {tripDetailsChanged && (
                           <button
                             type="button"
                             className={styles.cancelTripEdit}
                             onClick={cancelTripEdit}
                           >
-                            Cancel
+                            Discard changes
                           </button>
-                          <button
-                            type="button"
-                            className={styles.saveTripEdit}
-                            onClick={() => void saveTripEdit()}
-                            disabled={loadingCabs}
-                          >
-                            {loadingCabs ? "Updating cabs..." : "Save changes"}
-                          </button>
-                        </div>
-                        <fieldset
-                          className={styles.tripEditFieldset}
-                          disabled={loadingCabs}
-                        >
-                          <div className={styles.tripEditGrid}>
-                            <Field
-                              label="Pickup location"
-                              icon="radio_button_checked"
-                              controlId="edit-cab-pickup-location"
-                            >
-                              <LocationDropdown
-                                value={tripDraft.pickupLocation}
-                                onChange={(value) =>
-                                  updateTripDraft("pickupLocation", value)
-                                }
-                                inputId="edit-cab-pickup-location"
-                                providerOnly
-                                required
-                                maxLength={180}
-                                placeholder="City, address or landmark"
-                              />
-                            </Field>
-                            <Field
-                              label="Drop-off location"
-                              icon="location_on"
-                              controlId="edit-cab-dropoff-location"
-                            >
-                              <LocationDropdown
-                                value={tripDraft.dropoffLocation}
-                                onChange={(value) =>
-                                  updateTripDraft("dropoffLocation", value)
-                                }
-                                inputId="edit-cab-dropoff-location"
-                                providerOnly
-                                required
-                                maxLength={180}
-                                placeholder="Where are you going?"
-                              />
-                            </Field>
-                            <Field label="Pick-up date" icon="calendar_month">
-                              <input
-                                type="date"
-                                min={localDate()}
-                                max={localDate(365)}
-                                value={tripDraft.pickupDate}
-                                onChange={(event) =>
-                                  updateTripDraft("pickupDate", event.target.value)
-                                }
-                              />
-                            </Field>
-                            <Field label="Pick-up time" icon="schedule">
-                              <input
-                                type="time"
-                                value={tripDraft.pickupTime}
-                                onChange={(event) =>
-                                  updateTripDraft("pickupTime", event.target.value)
-                                }
-                              />
-                            </Field>
-                            {tripDraft.tripType === "round-trip" && (
-                              <>
-                                <Field label="Return date" icon="event_repeat">
-                                  <input
-                                    type="date"
-                                    min={tripDraft.pickupDate}
-                                    max={localDate(365)}
-                                    value={tripDraft.returnDate}
-                                    onChange={(event) =>
-                                      updateTripDraft("returnDate", event.target.value)
-                                    }
-                                  />
-                                </Field>
-                                <Field label="Return time" icon="schedule">
-                                  <input
-                                    type="time"
-                                    value={tripDraft.returnTime}
-                                    onChange={(event) =>
-                                      updateTripDraft("returnTime", event.target.value)
-                                    }
-                                  />
-                                </Field>
-                              </>
-                            )}
-                          </div>
-                        </fieldset>
-                        {tripEditError && (
-                          <p className={styles.errorState} role="alert">
-                            {tripEditError}
-                          </p>
                         )}
+                        <button
+                          type="button"
+                          className={styles.saveTripEdit}
+                          onClick={() => void saveTripEdit()}
+                          disabled={loadingCabs || !tripDetailsChanged}
+                        >
+                          {loadingCabs
+                            ? "Updating cabs..."
+                            : "Update available cabs"}
+                        </button>
                       </div>
-                    )}
+                      {tripEditError && (
+                        <p className={styles.errorState} role="alert">
+                          {tripEditError}
+                        </p>
+                      )}
+                    </div>
                   </div>
                   {loadingCabs ? (
                     <p className={styles.inlineState} role="status">
@@ -1112,7 +1129,7 @@ export default function CabsPage() {
                       <button
                         type="button"
                         onClick={() =>
-                          void (tripDraft
+                          void (tripDetailsChanged
                             ? saveTripEdit()
                             : searchCabs(form, { keepResultsVisible: true }))
                         }
@@ -1349,7 +1366,7 @@ export default function CabsPage() {
                               >
                                 <div className={styles.vehicleImage}>
                                   <Image
-                                    src="/cab.png"
+                                    src={cab.imageUrl || "/cab.png"}
                                     alt={`${cab.category} ${cab.model}`}
                                     fill
                                     sizes="(max-width: 760px) 100vw, 240px"
@@ -1482,7 +1499,7 @@ export default function CabsPage() {
                                       type="button"
                                       disabled={!cab.isAvailable}
                                       onClick={() =>
-                                        updateForm("cabId", cab._id)
+                                        selectCab(cab._id)
                                       }
                                     >
                                       {!cab.isAvailable
@@ -1528,17 +1545,42 @@ export default function CabsPage() {
             </section>
 
             {selectedCab && (
-              <section className={styles.section}>
+              <section
+                ref={passengerDetailsRef}
+                className={`${styles.section} ${styles.passengerDetailsSection}`}
+                id="passenger-details"
+              >
                 <div className={styles.sectionHeading}>
                   <span className={styles.stepNumber}>03</span>
                   <div>
-                    <h2>Your details</h2>
+                    <h2>Passenger details</h2>
                     <p>We’ll use these to confirm your booking.</p>
                   </div>
+                </div>
+                <div className={styles.selectedCabSummary} aria-live="polite">
+                  <div className={styles.selectedCabImage}>
+                    <Image
+                      src={selectedCab.imageUrl || "/cab.png"}
+                      alt=""
+                      fill
+                      sizes="72px"
+                    />
+                  </div>
+                  <div className={styles.selectedCabInfo}>
+                    <span>{selectedCab.category}</span>
+                    <strong>{selectedCab.model}</strong>
+                    <small>
+                      {selectedCab.seats} seats · {form.distanceKm} km
+                    </small>
+                  </div>
+                  <strong className={styles.selectedCabFare}>
+                    {inr.format(estimatedFare)}
+                  </strong>
                 </div>
                 <div className={styles.formGrid}>
                   <Field label="Full name" icon="person">
                     <input
+                      ref={fullNameInputRef}
                       required
                       maxLength={100}
                       autoComplete="name"
@@ -1549,6 +1591,7 @@ export default function CabsPage() {
                   </Field>
                   <Field label="Mobile number" icon="call">
                     <input
+                      ref={phoneInputRef}
                       required
                       type="tel"
                       maxLength={30}
@@ -1560,6 +1603,7 @@ export default function CabsPage() {
                   </Field>
                   <Field label="Email address" icon="mail">
                     <input
+                      ref={emailInputRef}
                       required
                       type="email"
                       maxLength={254}

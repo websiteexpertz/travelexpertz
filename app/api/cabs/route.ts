@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
         _id: cab._id.toString(),
         model: cab.model,
         category: cab.category,
+        imageUrl: typeof cab.imageUrl === "string" ? cab.imageUrl : "",
         fuelType: typeof cab.fuelType === "string" ? cab.fuelType : "",
         color: typeof cab.color === "string" ? cab.color : "",
         seats: Number(cab.seats) || 4,
