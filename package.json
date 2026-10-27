@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed:india-locations": "node scripts/seed-india-locations.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
