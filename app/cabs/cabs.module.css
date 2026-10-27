@@ -3221,6 +3221,11 @@
     #fafcf9;
 }
 
+.routeFields .field:focus-within {
+  position: relative;
+  z-index: 20;
+}
+
 .routeFields .fieldControl {
   min-height: 56px;
   border-color: #e0e8df;
