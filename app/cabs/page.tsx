@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -40,6 +40,7 @@ type BookingForm = {
   passengers: number;
   luggage: number;
   distanceKm: number;
+  routeDurationMinutes: number;
   cabId: string;
   fullName: string;
   phone: string;
@@ -54,6 +55,17 @@ function localDate(offsetDays = 0) {
   return local.toISOString().slice(0, 10);
 }
 
+type EditableTripDetails = Pick<
+  BookingForm,
+  | "tripType"
+  | "pickupLocation"
+  | "dropoffLocation"
+  | "pickupDate"
+  | "pickupTime"
+  | "returnDate"
+  | "returnTime"
+>;
+
 const initialForm: BookingForm = {
   tripType: "one-way",
   pickupLocation: "",
@@ -64,7 +76,8 @@ const initialForm: BookingForm = {
   returnTime: "18:00",
   passengers: 1,
   luggage: 1,
-  distanceKm: 25,
+  distanceKm: 0,
+  routeDurationMinutes: 0,
   cabId: "",
   fullName: "",
   phone: "",
@@ -108,6 +121,11 @@ export default function CabsPage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [fleetError, setFleetError] = useState("");
   const [form, setForm] = useState<BookingForm>(initialForm);
+  const [tripDraft, setTripDraft] = useState<EditableTripDetails | null>(null);
+  const [tripEditError, setTripEditError] = useState("");
+  const [scrollRequest, setScrollRequest] = useState(0);
+  const resultsSectionRef = useRef<HTMLElement>(null);
+  const searchRequestRef = useRef(0);
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
   const [fuelTypeFilter, setFuelTypeFilter] = useState<string[]>([]);
   const [modelFilter, setModelFilter] = useState<string[]>([]);
@@ -236,6 +254,19 @@ export default function CabsPage() {
     }
   }, [form.cabId, hasSearched, matchingCabs]);
 
+  useEffect(() => {
+    if (!scrollRequest || !resultsSectionRef.current) return;
+    const resultsBounds = resultsSectionRef.current.getBoundingClientRect();
+    const alreadyViewingResults =
+      resultsBounds.top < window.innerHeight * 0.55 && resultsBounds.bottom > 110;
+    if (!alreadyViewingResults) {
+      resultsSectionRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+  }, [scrollRequest]);
+
   const updateForm = <K extends keyof BookingForm>(
     key: K,
     value: BookingForm[K],
@@ -254,9 +285,11 @@ export default function CabsPage() {
         "returnTime",
         "passengers",
         "luggage",
-        "distanceKm",
       ].includes(key)
     ) {
+      searchRequestRef.current += 1;
+      setLoadingCabs(false);
+      setFleetError("");
       setHasSearched(false);
     }
   };
@@ -281,53 +314,114 @@ export default function CabsPage() {
     setMaxFare("");
   };
 
-  const searchCabs = async () => {
+  const searchCabs = async (
+    searchForm: BookingForm = form,
+    options: { keepResultsVisible?: boolean; editing?: boolean } = {},
+  ) => {
+    const requestId = ++searchRequestRef.current;
     setFleetError("");
     setFormError("");
-    const pickupAt = new Date(`${form.pickupDate}T${form.pickupTime}:00`);
+    setTripEditError("");
+    const pickupAt = new Date(
+      `${searchForm.pickupDate}T${searchForm.pickupTime}:00`,
+    );
     const maximumDate = new Date();
     maximumDate.setDate(maximumDate.getDate() + 365);
-    if (!form.pickupLocation.trim() || !form.dropoffLocation.trim()) {
-      setFormError("Enter both pickup and drop-off locations.");
-      return;
+    let validationError = "";
+    if (!searchForm.pickupLocation.trim() || !searchForm.dropoffLocation.trim()) {
+      validationError = "Enter both pickup and drop-off locations.";
     }
-    if (
-      !Number.isFinite(form.distanceKm) ||
-      form.distanceKm < 1 ||
-      form.distanceKm > 5000
-    ) {
-      setFormError("Enter a trip distance between 1 and 5,000 km.");
-      return;
-    }
-    if (
+    if (!validationError && (
       Number.isNaN(pickupAt.getTime()) ||
       pickupAt <= new Date() ||
       pickupAt > maximumDate
-    ) {
-      setFormError("Choose a future pickup time within the next year.");
-      return;
+    )) {
+      validationError = "Choose a future pickup time within the next year.";
     }
 
-    let serviceEndAt = new Date(
-      pickupAt.getTime() + Math.max(2, form.distanceKm / 35) * 60 * 60 * 1000,
-    );
-    if (form.tripType === "round-trip") {
-      serviceEndAt = new Date(`${form.returnDate}T${form.returnTime}:00`);
+    let serviceEndAt: Date;
+    if (!validationError && searchForm.tripType === "round-trip") {
+      serviceEndAt = new Date(
+        `${searchForm.returnDate}T${searchForm.returnTime}:00`,
+      );
       if (
         Number.isNaN(serviceEndAt.getTime()) ||
         serviceEndAt <= pickupAt ||
         serviceEndAt > maximumDate
       ) {
-        setFormError(
-          "Choose a return time after pickup and within the next year.",
-        );
-        return;
+        validationError =
+          "Choose a return time after pickup and within the next year.";
       }
+    }
+    if (searchForm.tripType !== "round-trip") {
+      serviceEndAt = new Date(pickupAt);
+    }
+    if (validationError) {
+      setFormError(validationError);
+      if (options.editing) setTripEditError(validationError);
+      return false;
     }
 
     setLoadingCabs(true);
-    setHasSearched(false);
+    if (!options.keepResultsVisible) {
+      setCabs([]);
+      setHasSearched(false);
+    }
     try {
+      const routeResponse = await fetch("/api/cab-route", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pickupLocation: searchForm.pickupLocation,
+          dropoffLocation: searchForm.dropoffLocation,
+        }),
+      });
+      const routePayload: unknown = await routeResponse.json();
+      if (!routePayload || typeof routePayload !== "object") {
+        throw new Error("Could not calculate the route.");
+      }
+      const routeData = routePayload as Record<string, unknown>;
+      if (!routeResponse.ok) {
+        throw new Error(
+          typeof routeData.error === "string"
+            ? routeData.error
+            : "Could not calculate the route.",
+        );
+      }
+      if (requestId !== searchRequestRef.current) return false;
+      const searchFormWithRoute = {
+        ...searchForm,
+        distanceKm:
+          typeof routeData.distanceKm === "number"
+            ? routeData.distanceKm
+            : Number.NaN,
+        routeDurationMinutes:
+          typeof routeData.durationMinutes === "number"
+            ? routeData.durationMinutes
+            : Number.NaN,
+      };
+      if (
+        !Number.isFinite(searchFormWithRoute.distanceKm) ||
+        searchFormWithRoute.distanceKm < 1 ||
+        searchFormWithRoute.distanceKm > 5000 ||
+        !Number.isFinite(searchFormWithRoute.routeDurationMinutes) ||
+        searchFormWithRoute.routeDurationMinutes < 1
+      ) {
+        throw new Error("Could not calculate a valid driving route.");
+      }
+      serviceEndAt =
+        searchForm.tripType === "round-trip"
+          ? new Date(`${searchForm.returnDate}T${searchForm.returnTime}:00`)
+          : new Date(
+              pickupAt.getTime() +
+                Math.max(
+                  2,
+                  searchFormWithRoute.routeDurationMinutes / 60,
+                ) *
+                  60 *
+                  60 *
+                  1000,
+            );
       const query = new URLSearchParams({
         startAt: pickupAt.toISOString(),
         endAt: serviceEndAt.toISOString(),
@@ -336,15 +430,79 @@ export default function CabsPage() {
       const data = await response.json();
       if (!response.ok)
         throw new Error(data.error || "Could not load vehicles.");
+      if (requestId !== searchRequestRef.current) return false;
+      setForm(searchFormWithRoute);
       setCabs(Array.isArray(data) ? data : []);
       setHasSearched(true);
+      setScrollRequest((current) => current + 1);
+      return true;
     } catch (error) {
+      if (requestId !== searchRequestRef.current) return false;
       setFleetError(
         error instanceof Error ? error.message : "Could not load vehicles.",
       );
+      if (options.editing) {
+        setTripEditError(
+          error instanceof Error ? error.message : "Could not load vehicles.",
+        );
+      }
+      return false;
     } finally {
+      if (requestId === searchRequestRef.current) setLoadingCabs(false);
+    }
+  };
+
+  const beginTripEdit = () => {
+    const {
+      tripType,
+      pickupLocation,
+      dropoffLocation,
+      pickupDate,
+      pickupTime,
+      returnDate,
+      returnTime,
+    } = form;
+    setTripDraft({
+      tripType,
+      pickupLocation,
+      dropoffLocation,
+      pickupDate,
+      pickupTime,
+      returnDate,
+      returnTime,
+    });
+    setTripEditError("");
+  };
+
+  const updateTripDraft = <K extends keyof EditableTripDetails>(
+    key: K,
+    value: EditableTripDetails[K],
+  ) => {
+    setTripDraft((current) => (current ? { ...current, [key]: value } : current));
+    setTripEditError("");
+  };
+
+  const saveTripEdit = async () => {
+    if (!tripDraft) return;
+    const updatedForm = { ...form, ...tripDraft, cabId: "" };
+    const saved = await searchCabs(updatedForm, {
+      keepResultsVisible: true,
+      editing: true,
+    });
+    if (saved) {
+      setTripDraft(null);
+    }
+  };
+
+  const cancelTripEdit = () => {
+    if (loadingCabs) {
+      searchRequestRef.current += 1;
       setLoadingCabs(false);
     }
+    setFleetError("");
+    setFormError("");
+    setTripDraft(null);
+    setTripEditError("");
   };
 
   const submitBooking = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -701,18 +859,6 @@ export default function CabsPage() {
                     </Field>
                   </>
                 )}
-                <Field label="Estimated distance (km)" icon="route">
-                  <input
-                    required
-                    type="number"
-                    min={1}
-                    max={5000}
-                    value={form.distanceKm}
-                    onChange={(e) =>
-                      updateForm("distanceKm", Number(e.target.value))
-                    }
-                  />
-                </Field>
                 <Field label="Passengers" icon="group">
                   <select
                     value={form.passengers}
@@ -747,12 +893,17 @@ export default function CabsPage() {
                 </Field>
               </div>
               <p className={styles.distanceHelp}>
-                Enter the approximate road distance. Travel time is estimated at
-                an average of 35 km/h.
+                Road distance and fare are calculated automatically from your
+                pickup and drop-off locations.
               </p>
               {formError && (
                 <p className={styles.errorState} role="alert">
                   {formError}
+                </p>
+              )}
+              {fleetError && !hasSearched && (
+                <p className={styles.errorState} role="alert">
+                  {fleetError} Try searching again when you’re ready.
                 </p>
               )}
               <button
@@ -771,7 +922,11 @@ export default function CabsPage() {
               </button>
             </section>
 
-            <section className={styles.section}>
+            <section
+              ref={resultsSectionRef}
+              className={`${styles.section} ${styles.resultsSection}`}
+              id="available-cabs"
+            >
               <div className={styles.sectionHeading}>
                 <span className={styles.stepNumber}>02</span>
                 <div>
@@ -781,6 +936,192 @@ export default function CabsPage() {
               </div>
               {hasSearched && (
                 <>
+                  <div className={styles.tripSummary}>
+                    <div className={styles.tripSummaryRoute}>
+                      <div className={styles.tripSummaryLocation}>
+                        <span>Pick-up</span>
+                        <strong>{form.pickupLocation}</strong>
+                      </div>
+                      <span className={styles.tripSummaryArrow} aria-hidden="true">
+                        →
+                      </span>
+                      <div className={styles.tripSummaryLocation}>
+                        <span>Drop-off</span>
+                        <strong>{form.dropoffLocation}</strong>
+                      </div>
+                    </div>
+                    <div className={styles.tripSummaryTimes}>
+                      <span>
+                        <span className="material-symbols-outlined" aria-hidden="true">
+                          schedule
+                        </span>
+                        {new Date(`${form.pickupDate}T00:00:00`).toLocaleDateString(
+                          "en-IN",
+                          { day: "numeric", month: "short", year: "numeric" },
+                        )}{" "}
+                        · {form.pickupTime}
+                      </span>
+                      {form.tripType === "round-trip" && (
+                        <span>
+                          <span className="material-symbols-outlined" aria-hidden="true">
+                            event_repeat
+                          </span>
+                          Return{" "}
+                          {new Date(`${form.returnDate}T00:00:00`).toLocaleDateString(
+                            "en-IN",
+                            { day: "numeric", month: "short", year: "numeric" },
+                          )}{" "}
+                          · {form.returnTime}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.editTripButton}
+                      onClick={tripDraft ? cancelTripEdit : beginTripEdit}
+                      aria-expanded={Boolean(tripDraft)}
+                    >
+                      <span className="material-symbols-outlined" aria-hidden="true">
+                        {tripDraft ? "close" : "edit"}
+                      </span>
+                      {tripDraft ? "Close editor" : "Edit trip"}
+                    </button>
+                    {tripDraft && (
+                      <div className={styles.tripEditPanel}>
+                        <div className={styles.tripEditHeading}>
+                          <strong>Edit your trip</strong>
+                          <span>Search again to refresh available cabs.</span>
+                        </div>
+                        <div className={styles.tripEditActions}>
+                          <button
+                            type="button"
+                            className={styles.cancelTripEdit}
+                            onClick={cancelTripEdit}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.saveTripEdit}
+                            onClick={() => void saveTripEdit()}
+                            disabled={loadingCabs}
+                          >
+                            {loadingCabs ? "Updating cabs..." : "Save changes"}
+                          </button>
+                        </div>
+                        <fieldset
+                          className={styles.tripEditFieldset}
+                          disabled={loadingCabs}
+                        >
+                          <div className={styles.tripEditGrid}>
+                            <Field
+                              label="Pickup location"
+                              icon="radio_button_checked"
+                              controlId="edit-cab-pickup-location"
+                            >
+                              <LocationDropdown
+                                value={tripDraft.pickupLocation}
+                                onChange={(value) =>
+                                  updateTripDraft("pickupLocation", value)
+                                }
+                                inputId="edit-cab-pickup-location"
+                                providerOnly
+                                required
+                                maxLength={180}
+                                placeholder="City, address or landmark"
+                              />
+                            </Field>
+                            <Field
+                              label="Drop-off location"
+                              icon="location_on"
+                              controlId="edit-cab-dropoff-location"
+                            >
+                              <LocationDropdown
+                                value={tripDraft.dropoffLocation}
+                                onChange={(value) =>
+                                  updateTripDraft("dropoffLocation", value)
+                                }
+                                inputId="edit-cab-dropoff-location"
+                                providerOnly
+                                required
+                                maxLength={180}
+                                placeholder="Where are you going?"
+                              />
+                            </Field>
+                            <Field label="Pick-up date" icon="calendar_month">
+                              <input
+                                type="date"
+                                min={localDate()}
+                                max={localDate(365)}
+                                value={tripDraft.pickupDate}
+                                onChange={(event) =>
+                                  updateTripDraft("pickupDate", event.target.value)
+                                }
+                              />
+                            </Field>
+                            <Field label="Pick-up time" icon="schedule">
+                              <input
+                                type="time"
+                                value={tripDraft.pickupTime}
+                                onChange={(event) =>
+                                  updateTripDraft("pickupTime", event.target.value)
+                                }
+                              />
+                            </Field>
+                            {tripDraft.tripType === "round-trip" && (
+                              <>
+                                <Field label="Return date" icon="event_repeat">
+                                  <input
+                                    type="date"
+                                    min={tripDraft.pickupDate}
+                                    max={localDate(365)}
+                                    value={tripDraft.returnDate}
+                                    onChange={(event) =>
+                                      updateTripDraft("returnDate", event.target.value)
+                                    }
+                                  />
+                                </Field>
+                                <Field label="Return time" icon="schedule">
+                                  <input
+                                    type="time"
+                                    value={tripDraft.returnTime}
+                                    onChange={(event) =>
+                                      updateTripDraft("returnTime", event.target.value)
+                                    }
+                                  />
+                                </Field>
+                              </>
+                            )}
+                          </div>
+                        </fieldset>
+                        {tripEditError && (
+                          <p className={styles.errorState} role="alert">
+                            {tripEditError}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {loadingCabs ? (
+                    <p className={styles.inlineState} role="status">
+                      Refreshing cab availability for your updated trip...
+                    </p>
+                  ) : fleetError ? (
+                    <div className={styles.resultsError} role="alert">
+                      <p>{fleetError}</p>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void (tripDraft
+                            ? saveTripEdit()
+                            : searchCabs(form, { keepResultsVisible: true }))
+                        }
+                      >
+                        Retry search
+                      </button>
+                    </div>
+                  ) : (
+                    <>
                   <div className={styles.resultsHeader} aria-live="polite">
                     <div>
                       <p className={styles.resultsEyebrow}>Your options</p>
@@ -982,8 +1323,9 @@ export default function CabsPage() {
                       )}
                       {matchingCabs.length === 0 ? (
                         <p className={styles.inlineState}>
-                          No vehicles match this journey and your filters.
-                          Adjust your filters or try another pickup time.
+                          {cabs.length === 0
+                            ? "No cabs are available for this trip time. Try another pickup time or edit your trip."
+                            : "No vehicles match this journey and your filters. Adjust your filters or try another pickup time."}
                         </p>
                       ) : (
                         <div className={styles.vehicleList}>
@@ -993,9 +1335,13 @@ export default function CabsPage() {
                               form.distanceKm,
                               form.tripType,
                             );
-                            const durationHours =
-                              Math.ceil(form.distanceKm / 35) *
+                            const durationMinutes =
+                              form.routeDurationMinutes *
                               (form.tripType === "round-trip" ? 2 : 1);
+                            const durationHours = Math.floor(
+                              durationMinutes / 60,
+                            );
+                            const remainingMinutes = durationMinutes % 60;
                             return (
                               <article
                                 key={cab._id}
@@ -1079,8 +1425,11 @@ export default function CabsPage() {
                                       <span className="material-symbols-outlined">
                                         schedule
                                       </span>
-                                      ~{durationHours} hr
-                                      {durationHours === 1 ? "" : "s"}
+                                      ~
+                                      {durationHours > 0
+                                        ? `${durationHours} hr${durationHours === 1 ? "" : "s"} `
+                                        : ""}
+                                      {remainingMinutes} min
                                     </span>
                                     <span>
                                       <span className="material-symbols-outlined">
@@ -1099,7 +1448,9 @@ export default function CabsPage() {
                                       </strong>
                                     </span>
                                     <span>
-                                      Distance{" "}
+                                      Distance (
+                                      {pricing.fareDistanceKm.toFixed(1)} km ×{" "}
+                                      {inr.format(cab.perKmRate)}/km){" "}
                                       <strong>
                                         {inr.format(
                                           pricing.fareDistanceKm *
@@ -1149,6 +1500,8 @@ export default function CabsPage() {
                       )}
                     </div>
                   </div>
+                    </>
+                  )}
                 </>
               )}
               {!hasSearched &&
@@ -1157,9 +1510,15 @@ export default function CabsPage() {
                     Finding available vehicles...
                   </p>
                 ) : fleetError ? (
-                  <p className={styles.errorState} role="alert">
-                    {fleetError}
-                  </p>
+                  <div className={styles.resultsError} role="alert">
+                    <p>{fleetError}</p>
+                    <button
+                      type="button"
+                      onClick={() => void searchCabs(form)}
+                    >
+                      Retry search
+                    </button>
+                  </div>
                 ) : (
                   <p className={styles.inlineState}>
                     Enter your journey details, then search to see vehicles
@@ -1259,7 +1618,9 @@ export default function CabsPage() {
               </strong>
               <span>Distance</span>
               <strong>
-                {form.distanceKm || 0} km
+                {form.distanceKm
+                  ? `${form.distanceKm} km`
+                  : "Calculated during search"}
                 {form.tripType === "round-trip" ? " each way" : ""}
               </strong>
               <span>Vehicle</span>

@@ -3518,3 +3518,283 @@
     font-size: 0.66rem;
   }
 }
+
+.resultsSection {
+  scroll-margin-top: 110px;
+}
+
+.tripSummary {
+  position: sticky;
+  top: 92px;
+  z-index: 6;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px 18px;
+  margin: 0 0 20px;
+  padding: 14px 16px;
+  border: 1px solid #dfe9df;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 8px 22px rgba(24, 58, 42, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+.tripSummaryRoute {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.tripSummaryLocation {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.tripSummaryLocation > span {
+  color: #78877e;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.tripSummaryLocation strong {
+  overflow: hidden;
+  color: #203d32;
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tripSummaryArrow {
+  flex: 0 0 auto;
+  color: #56836c;
+  font-size: 1rem;
+}
+
+.tripSummaryTimes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 15px;
+  grid-column: 1;
+  color: #53675c;
+  font-size: 0.7rem;
+}
+
+.tripSummaryTimes > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.tripSummaryTimes :global(.material-symbols-outlined) {
+  color: #528069;
+  font-size: 0.98rem;
+}
+
+.editTripButton {
+  display: inline-flex;
+  min-height: 36px;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 11px;
+  border: 1px solid #d6e4d8;
+  border-radius: 7px;
+  background: #f7faf4;
+  color: #28664f;
+  font: inherit;
+  font-size: 0.73rem;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.editTripButton:hover {
+  border-color: #aac7b0;
+  background: #edf5e9;
+}
+
+.editTripButton :global(.material-symbols-outlined) {
+  font-size: 1rem;
+}
+
+.tripEditPanel {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 13px;
+  padding-top: 13px;
+  border-top: 1px solid #e8eee8;
+}
+
+.tripEditHeading {
+  display: grid;
+  gap: 3px;
+}
+
+.tripEditHeading strong {
+  color: #203d32;
+  font-size: 0.86rem;
+}
+
+.tripEditHeading span {
+  color: #78877e;
+  font-size: 0.7rem;
+}
+
+.tripEditFieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.tripEditFieldset:disabled {
+  opacity: 0.72;
+}
+
+.tripEditGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.tripEditGrid .fieldControl {
+  min-height: 44px;
+}
+
+.tripEditGrid .fieldControl input {
+  min-height: 42px;
+}
+
+.tripEditActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+}
+
+.tripEditActions button,
+.resultsError button {
+  min-height: 37px;
+  padding: 0 13px;
+  border: 1px solid #d6e4d8;
+  border-radius: 7px;
+  background: #fff;
+  color: #426153;
+  font: inherit;
+  font-size: 0.73rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.tripEditActions .saveTripEdit {
+  border-color: #28664f;
+  background: #28664f;
+  color: #fff;
+}
+
+.tripEditActions .saveTripEdit:hover:not(:disabled) {
+  background: #1e503d;
+}
+
+.tripEditActions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.resultsError {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid #efd4cc;
+  border-radius: 8px;
+  background: #fff8f5;
+  color: #8d3f2d;
+  font-size: 0.8rem;
+}
+
+.resultsError p {
+  margin: 0;
+}
+
+.resultsError button {
+  flex: 0 0 auto;
+  border-color: #e8c2b6;
+  color: #8d3f2d;
+}
+
+@media (max-width: 760px) {
+  .resultsSection {
+    scroll-margin-top: 92px;
+  }
+
+  .tripSummary {
+    top: 78px;
+    gap: 9px 10px;
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  .tripSummaryRoute {
+    gap: 8px;
+  }
+
+  .tripSummaryLocation strong {
+    font-size: 0.72rem;
+  }
+
+  .tripSummaryTimes {
+    gap: 5px 10px;
+    font-size: 0.66rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .tripSummary {
+    top: 72px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    margin-bottom: 15px;
+    padding: 10px;
+  }
+
+  .tripSummaryRoute {
+    gap: 6px;
+  }
+
+  .tripSummaryLocation > span {
+    font-size: 0.58rem;
+  }
+
+  .tripSummaryLocation strong {
+    font-size: 0.68rem;
+  }
+
+  .tripSummaryTimes {
+    grid-column: 1 / -1;
+    font-size: 0.63rem;
+  }
+
+  .editTripButton {
+    grid-column: 2;
+    grid-row: 1;
+    min-height: 33px;
+    padding: 0 8px;
+    font-size: 0.67rem;
+  }
+
+  .tripEditGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .resultsError {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

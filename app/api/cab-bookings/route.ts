@@ -2,6 +2,7 @@ import { ObjectId } from "mongodb";
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getUserFromRequest } from "@/lib/middleware/auth";
+import { calculateCabRoute } from "@/lib/cabRoute";
 
 const MAX_BOOKING_DAYS_AHEAD = 365;
 
@@ -31,15 +32,11 @@ export async function POST(request: NextRequest) {
     }
     const passengers = Number(body.passengers);
     const luggage = Number(body.luggage);
-    const distanceKm = Number(body.distanceKm);
     if (!Number.isInteger(passengers) || passengers < 1 || passengers > 20) {
       return NextResponse.json({ error: "Passenger count must be between 1 and 20." }, { status: 400 });
     }
     if (!Number.isInteger(luggage) || luggage < 0 || luggage > 20) {
       return NextResponse.json({ error: "Luggage count must be between 0 and 20." }, { status: 400 });
-    }
-    if (!Number.isFinite(distanceKm) || distanceKm < 1 || distanceKm > 5000) {
-      return NextResponse.json({ error: "Enter a trip distance between 1 and 5,000 km." }, { status: 400 });
     }
     if (!["one-way", "round-trip", "airport-transfer"].includes(body.tripType)) {
       return NextResponse.json({ error: "Choose one-way, round trip, or airport transfer." }, { status: 400 });
@@ -67,6 +64,19 @@ export async function POST(request: NextRequest) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
     }
+
+    let route: Awaited<ReturnType<typeof calculateCabRoute>>;
+    try {
+      route = await calculateCabRoute(
+        body.pickupLocation.trim(),
+        body.dropoffLocation.trim(),
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Could not calculate the route.";
+      return NextResponse.json({ error: message }, { status: 502 });
+    }
+    const distanceKm = route.distanceKm;
 
     const db = await getDb();
     const cab = await db.collection("cabs").findOne({
@@ -96,7 +106,12 @@ export async function POST(request: NextRequest) {
     const fareSubtotal = Math.round(baseFare + fareDistanceKm * perKmRate + driverAllowance);
     const governmentTax = Math.round(fareSubtotal * taxPercent / 100);
     const estimatedFare = fareSubtotal + governmentTax;
-    const serviceEndAt = returnAt || new Date(pickupAt.getTime() + Math.max(2, distanceKm / 35) * 60 * 60 * 1000);
+    const serviceEndAt =
+      returnAt ||
+      new Date(
+        pickupAt.getTime() +
+          Math.max(2, route.durationMinutes / 60) * 60 * 60 * 1000,
+      );
     const conflict = await db.collection("cabBookings").findOne({
       cabId: cab._id,
       status: { $in: ["pending", "confirmed"] },

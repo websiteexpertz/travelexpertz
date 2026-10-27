@@ -197,6 +197,9 @@ export const LocationDropdown: React.FC<LocationDropdownProps> = ({
         onFocus={() => {
           if (inputValue.trim()) setIsOpen(true);
         }}
+        onBlur={() => {
+          window.setTimeout(() => setIsOpen(false), 100);
+        }}
         placeholder={placeholder}
         className={`${styles.input} ${className}${transparent ? ` ${styles.transparent}` : ""}`}
         role="combobox"
