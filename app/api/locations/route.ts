@@ -57,7 +57,7 @@ type HotelRecord = {
 async function searchPhotonLocations(search: string) {
   const url = new URL("https://photon.komoot.io/api/");
   url.searchParams.set("q", search);
-  url.searchParams.set("limit", "30");
+  url.searchParams.set("limit", "15");
   url.searchParams.set("lang", "en");
   url.searchParams.set("lat", "22.5");
   url.searchParams.set("lon", "79");

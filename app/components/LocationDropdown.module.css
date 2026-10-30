@@ -137,6 +137,24 @@
   font-size: 0.68rem;
 }
 
+.cabVariant .option:hover,
+.cabVariant .highlighted {
+  background: #f1f5e9;
+}
+
+.cabVariant .option:focus-visible {
+  outline-color: #24745e;
+}
+
+.cabVariant .optionIcon {
+  background: #edf3e6;
+  color: #24745e;
+}
+
+.cabVariant .spinner {
+  border-top-color: #24745e;
+}
+
 .message {
   display: flex;
   min-height: 54px;

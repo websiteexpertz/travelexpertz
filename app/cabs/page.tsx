@@ -6,8 +6,10 @@ import Link from "next/link";
 import {
   ArrowLeftRight,
   ArrowRight,
+  ChevronDown,
   RotateCcw,
   SlidersHorizontal,
+  X,
 } from "lucide-react";
 import Header from "../components/Header";
 import LocationDropdown from "../components/LocationDropdown";
@@ -127,10 +129,13 @@ export default function CabsPage() {
   const [scrollRequest, setScrollRequest] = useState(0);
   const [passengerScrollRequest, setPassengerScrollRequest] = useState(0);
   const resultsSectionRef = useRef<HTMLElement>(null);
+  const tripSummarySentinelRef = useRef<HTMLSpanElement>(null);
+  const tripSummaryRef = useRef<HTMLDivElement>(null);
   const passengerDetailsRef = useRef<HTMLElement>(null);
   const fullNameInputRef = useRef<HTMLInputElement>(null);
   const phoneInputRef = useRef<HTMLInputElement>(null);
   const emailInputRef = useRef<HTMLInputElement>(null);
+  const reviewConfirmRef = useRef<HTMLButtonElement>(null);
   const handledPassengerScrollRequestRef = useRef(0);
   const searchRequestRef = useRef(0);
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
@@ -139,10 +144,14 @@ export default function CabsPage() {
   const [seatFilter, setSeatFilter] = useState("all");
   const [maxFare, setMaxFare] = useState("");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  const [sortBy, setSortBy] = useState<"price" | "rating" | "duration">(
-    "price",
-  );
+  const [sortBy, setSortBy] = useState<
+    "recommended" | "price" | "rating" | "duration"
+  >("recommended");
   const [submitting, setSubmitting] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [summaryExpanded, setSummaryExpanded] = useState(false);
+  const [tripSummarySticky, setTripSummarySticky] = useState(false);
+  const [tripSummaryHeight, setTripSummaryHeight] = useState(0);
   const [formError, setFormError] = useState("");
   const [confirmation, setConfirmation] = useState<{
     bookingReference: string;
@@ -219,6 +228,13 @@ export default function CabsPage() {
         );
       })
       .sort((first, second) => {
+        if (sortBy === "recommended") {
+          if (first.isAvailable !== second.isAvailable)
+            return first.isAvailable ? -1 : 1;
+          const ratingDifference =
+            (second.rating ?? -1) - (first.rating ?? -1);
+          if (ratingDifference !== 0) return ratingDifference;
+        }
         if (sortBy === "rating")
           return (second.rating ?? -1) - (first.rating ?? -1);
         if (sortBy === "duration") return 0;
@@ -247,9 +263,19 @@ export default function CabsPage() {
   const selectedPricing = selectedCab
     ? getCabPricing(selectedCab, form.distanceKm, form.tripType)
     : null;
-  const fareSubtotal = selectedPricing?.fareSubtotal ?? 0;
+  const distanceCharge = selectedCab && selectedPricing
+    ? selectedPricing.fareDistanceKm * selectedCab.perKmRate
+    : 0;
   const governmentTax = selectedPricing?.governmentTax ?? 0;
   const estimatedFare = selectedPricing?.total ?? 0;
+  const canSearch = Boolean(
+    form.pickupLocation.trim() &&
+      form.dropoffLocation.trim() &&
+      form.pickupDate &&
+      form.pickupTime &&
+      (form.tripType !== "round-trip" ||
+        (form.returnDate && form.returnTime)),
+  );
   const tripDetailsChanged =
     tripDraft !== null &&
     (tripDraft.pickupLocation !== form.pickupLocation ||
@@ -282,6 +308,39 @@ export default function CabsPage() {
       });
     }
   }, [scrollRequest]);
+
+  useEffect(() => {
+    if (!hasSearched || !tripSummarySentinelRef.current) {
+      setTripSummarySticky(false);
+      return;
+    }
+
+    const sentinel = tripSummarySentinelRef.current;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setTripSummarySticky(
+          !entry.isIntersecting && entry.boundingClientRect.top < 72,
+        );
+      },
+      { rootMargin: "-72px 0px 0px 0px" },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasSearched]);
+
+  useEffect(() => {
+    if (!tripSummaryRef.current) return;
+
+    const summary = tripSummaryRef.current;
+    const updateHeight = () => {
+      setTripSummaryHeight(summary.offsetHeight + 20);
+    };
+    updateHeight();
+
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(summary);
+    return () => observer.disconnect();
+  }, [hasSearched, form.tripType]);
 
   useEffect(() => {
     if (
@@ -561,12 +620,22 @@ export default function CabsPage() {
     setTripEditError("");
   };
 
-  const submitBooking = async (event: React.FormEvent<HTMLFormElement>) => {
+  const submitBooking = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!hasSearched || !selectedCab) {
       setFormError(
         "Search for an available cab and select it before requesting your ride.",
       );
+      return;
+    }
+    setFormError("");
+    setReviewOpen(true);
+  };
+
+  const confirmBooking = async () => {
+    if (!hasSearched || !selectedCab) {
+      setReviewOpen(false);
+      setFormError("Choose an available cab before confirming your request.");
       return;
     }
     setSubmitting(true);
@@ -580,6 +649,7 @@ export default function CabsPage() {
       const data = await response.json();
       if (!response.ok)
         throw new Error(data.error || "Could not submit your request.");
+      setReviewOpen(false);
       setConfirmation({
         ...data,
         pickupLocation: form.pickupLocation,
@@ -600,9 +670,41 @@ export default function CabsPage() {
     }
   };
 
+  useEffect(() => {
+    if (!reviewOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !submitting) setReviewOpen(false);
+      if (event.key !== "Tab") return;
+      const dialog = document.querySelector<HTMLElement>(
+        '[role="dialog"][aria-labelledby="cab-review-title"]',
+      );
+      const focusable = dialog?.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), input:not(:disabled), [href], [tabindex]:not([tabindex="-1"])',
+      );
+      if (!focusable?.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    reviewConfirmRef.current?.focus();
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [reviewOpen, submitting]);
+
   if (confirmation) {
     return (
-      <>
+      <div className={styles.pageShell}>
         <Header currentPage="cabs" solidHeader />
         <main className={styles.confirmationPage}>
           <div className={styles.confirmationMark} aria-hidden="true">
@@ -647,32 +749,34 @@ export default function CabsPage() {
             Make another booking
           </button>
         </main>
-      </>
+      </div>
     );
   }
 
   return (
-    <>
+    <div className={styles.pageShell}>
       <Header currentPage="cabs" solidHeader />
       <main className={styles.page}>
         <section className={styles.intro}>
           <div className={styles.introCopy}>
             <p className={styles.eyebrow}>
-              <span /> Your journey, your way
+              <span /> Premium transportation
             </p>
             <h1>
-              Good journeys
-              <br />
-              start <em>here.</em>
+              Your journey deserves <em>a better ride.</em>
             </h1>
             <p>
-              From a quick airport run to the long road out of town, find the
-              right ride for the way you travel.
+              Thoughtful airport transfers, city rides, and outstation journeys,
+              with the details handled before you go.
             </p>
             <div className={styles.trustLine}>
               <span>
-                <span className="material-symbols-outlined">verified_user</span>
+                <span className="material-symbols-outlined">payments</span>
                 Transparent pricing
+              </span>
+              <span>
+                <span className="material-symbols-outlined">verified_user</span>
+                Verified vehicles
               </span>
               <span>
                 <span className="material-symbols-outlined">support_agent</span>
@@ -693,8 +797,8 @@ export default function CabsPage() {
           </div>
           <div className={styles.heroImage}>
             <Image
-              src="/cab.png"
-              alt="City cab ready for your journey"
+              src="/cab-luxury.jpg"
+              alt="Black luxury sedan travelling on an open road"
               fill
               priority
               sizes="(max-width: 760px) 100vw, 50vw"
@@ -704,7 +808,7 @@ export default function CabsPage() {
                 route
               </span>
               <div>
-                <strong>Made for the miles ahead</strong>
+                <strong>Arrive in comfort</strong>
                 <small>One-way, return &amp; airport rides</small>
               </div>
             </div>
@@ -729,7 +833,7 @@ export default function CabsPage() {
               directions_car
             </span>
             <div>
-              <strong>Rides for every route</strong>
+              <strong>Vehicles for every route</strong>
               <small>City trips, airport &amp; beyond</small>
             </div>
           </div>
@@ -738,7 +842,7 @@ export default function CabsPage() {
               support_agent
             </span>
             <div>
-              <strong>Here when you need us</strong>
+              <strong>Dedicated trip support</strong>
               <small>Personal booking assistance</small>
             </div>
           </div>
@@ -747,7 +851,7 @@ export default function CabsPage() {
               event_available
             </span>
             <div>
-              <strong>Plan ahead with ease</strong>
+              <strong>Flexible scheduling</strong>
               <small>Schedule up to a year ahead</small>
             </div>
           </div>
@@ -826,6 +930,7 @@ export default function CabsPage() {
                     onChange={(value) => updateForm("pickupLocation", value)}
                     inputId="cab-pickup-location"
                     providerOnly
+                    variant="cab"
                     required
                     maxLength={180}
                     placeholder={
@@ -850,6 +955,7 @@ export default function CabsPage() {
                     onChange={(value) => updateForm("dropoffLocation", value)}
                     inputId="cab-dropoff-location"
                     providerOnly
+                    variant="cab"
                     required
                     maxLength={180}
                     placeholder={
@@ -966,7 +1072,7 @@ export default function CabsPage() {
                 className={styles.searchButton}
                 type="button"
                 onClick={() => void searchCabs()}
-                disabled={loadingCabs}
+                disabled={loadingCabs || !canSearch}
               >
                 <span className="material-symbols-outlined" aria-hidden="true">
                   search
@@ -992,137 +1098,174 @@ export default function CabsPage() {
               </div>
               {hasSearched && (
                 <>
-                  <div className={styles.tripSummary}>
-                    <div className={styles.tripEditPanel}>
-                      <div className={styles.tripEditHeading}>
-                        <strong>Your trip</strong>
-                        <span>
-                          Change your locations or schedule here; cab results
-                          refresh when you update the search.
-                        </span>
-                      </div>
-                      <fieldset
-                        className={styles.tripEditFieldset}
-                        disabled={loadingCabs}
-                      >
-                        <div className={styles.tripEditGrid}>
-                          <Field
-                            label="Pick-up"
-                            icon="radio_button_checked"
-                            controlId="edit-cab-pickup-location"
-                          >
-                            <LocationDropdown
-                              value={
-                                tripDraft?.pickupLocation ?? form.pickupLocation
-                              }
-                              onChange={(value) =>
-                                updateTripDraft("pickupLocation", value)
-                              }
-                              inputId="edit-cab-pickup-location"
-                              providerOnly
-                              required
-                              maxLength={180}
-                              placeholder="City, address or landmark"
-                            />
-                          </Field>
-                          <Field
-                            label="Drop-off"
-                            icon="location_on"
-                            controlId="edit-cab-dropoff-location"
-                          >
-                            <LocationDropdown
-                              value={
-                                tripDraft?.dropoffLocation ?? form.dropoffLocation
-                              }
-                              onChange={(value) =>
-                                updateTripDraft("dropoffLocation", value)
-                              }
-                              inputId="edit-cab-dropoff-location"
-                              providerOnly
-                              required
-                              maxLength={180}
-                              placeholder="Where are you going?"
-                            />
-                          </Field>
-                          <Field label="Pick-up date" icon="calendar_month">
-                            <input
-                              type="date"
-                              min={localDate()}
-                              max={localDate(365)}
-                              value={tripDraft?.pickupDate ?? form.pickupDate}
-                              onChange={(event) =>
-                                updateTripDraft("pickupDate", event.target.value)
-                              }
-                            />
-                          </Field>
-                          <Field label="Pick-up time" icon="schedule">
-                            <input
-                              type="time"
-                              value={tripDraft?.pickupTime ?? form.pickupTime}
-                              onChange={(event) =>
-                                updateTripDraft("pickupTime", event.target.value)
-                              }
-                            />
-                          </Field>
-                          {(tripDraft?.tripType ?? form.tripType) ===
-                            "round-trip" && (
-                            <>
-                              <Field label="Return date" icon="event_repeat">
-                                <input
-                                  type="date"
-                                  min={tripDraft?.pickupDate ?? form.pickupDate}
-                                  max={localDate(365)}
-                                  value={tripDraft?.returnDate ?? form.returnDate}
-                                  onChange={(event) =>
-                                    updateTripDraft("returnDate", event.target.value)
-                                  }
-                                />
-                              </Field>
-                              <Field label="Return time" icon="schedule">
-                                <input
-                                  type="time"
-                                  value={tripDraft?.returnTime ?? form.returnTime}
-                                  onChange={(event) =>
-                                    updateTripDraft("returnTime", event.target.value)
-                                  }
-                                />
-                              </Field>
-                            </>
-                          )}
+                  <div
+                    className={styles.tripSummarySlot}
+                    style={
+                      tripSummarySticky
+                        ? { minHeight: `${tripSummaryHeight}px` }
+                        : undefined
+                    }
+                  >
+                    <span
+                      ref={tripSummarySentinelRef}
+                      className={styles.tripSummarySentinel}
+                      aria-hidden="true"
+                    />
+                    <div
+                      ref={tripSummaryRef}
+                      className={`${styles.tripSummary}${tripSummarySticky ? ` ${styles.tripSummarySticky}` : ""}`}
+                    >
+                      <div className={styles.tripEditPanel}>
+                        <div className={styles.tripEditHeading}>
+                          <strong>Your trip</strong>
+                          <span>
+                            Change your locations or schedule here; cab results
+                            refresh when you update the search.
+                          </span>
                         </div>
-                      </fieldset>
-                      <div className={styles.tripEditActions}>
-                        {tripDetailsChanged && (
+                        <fieldset
+                          className={styles.tripEditFieldset}
+                          disabled={loadingCabs}
+                        >
+                          <div className={styles.tripEditGrid}>
+                            <Field
+                              label="Pick-up"
+                              icon="radio_button_checked"
+                              controlId="edit-cab-pickup-location"
+                            >
+                              <LocationDropdown
+                                value={
+                                  tripDraft?.pickupLocation ??
+                                  form.pickupLocation
+                                }
+                                onChange={(value) =>
+                                  updateTripDraft("pickupLocation", value)
+                                }
+                                inputId="edit-cab-pickup-location"
+                                providerOnly
+                                variant="cab"
+                                required
+                                maxLength={180}
+                                placeholder="City, address or landmark"
+                              />
+                            </Field>
+                            <Field
+                              label="Drop-off"
+                              icon="location_on"
+                              controlId="edit-cab-dropoff-location"
+                            >
+                              <LocationDropdown
+                                value={
+                                  tripDraft?.dropoffLocation ??
+                                  form.dropoffLocation
+                                }
+                                onChange={(value) =>
+                                  updateTripDraft("dropoffLocation", value)
+                                }
+                                inputId="edit-cab-dropoff-location"
+                                providerOnly
+                                variant="cab"
+                                required
+                                maxLength={180}
+                                placeholder="Where are you going?"
+                              />
+                            </Field>
+                            <Field label="Pick-up date" icon="calendar_month">
+                              <input
+                                type="date"
+                                min={localDate()}
+                                max={localDate(365)}
+                                value={tripDraft?.pickupDate ?? form.pickupDate}
+                                onChange={(event) =>
+                                  updateTripDraft(
+                                    "pickupDate",
+                                    event.target.value,
+                                  )
+                                }
+                              />
+                            </Field>
+                            <Field label="Pick-up time" icon="schedule">
+                              <input
+                                type="time"
+                                value={tripDraft?.pickupTime ?? form.pickupTime}
+                                onChange={(event) =>
+                                  updateTripDraft(
+                                    "pickupTime",
+                                    event.target.value,
+                                  )
+                                }
+                              />
+                            </Field>
+                            {(tripDraft?.tripType ?? form.tripType) ===
+                              "round-trip" && (
+                              <>
+                                <Field label="Return date" icon="event_repeat">
+                                  <input
+                                    type="date"
+                                    min={
+                                      tripDraft?.pickupDate ?? form.pickupDate
+                                    }
+                                    max={localDate(365)}
+                                    value={
+                                      tripDraft?.returnDate ?? form.returnDate
+                                    }
+                                    onChange={(event) =>
+                                      updateTripDraft(
+                                        "returnDate",
+                                        event.target.value,
+                                      )
+                                    }
+                                  />
+                                </Field>
+                                <Field label="Return time" icon="schedule">
+                                  <input
+                                    type="time"
+                                    value={
+                                      tripDraft?.returnTime ?? form.returnTime
+                                    }
+                                    onChange={(event) =>
+                                      updateTripDraft(
+                                        "returnTime",
+                                        event.target.value,
+                                      )
+                                    }
+                                  />
+                                </Field>
+                              </>
+                            )}
+                          </div>
+                        </fieldset>
+                        <div className={styles.tripEditActions}>
+                          {tripDetailsChanged && (
+                            <button
+                              type="button"
+                              className={styles.cancelTripEdit}
+                              onClick={cancelTripEdit}
+                            >
+                              Discard changes
+                            </button>
+                          )}
                           <button
                             type="button"
-                            className={styles.cancelTripEdit}
-                            onClick={cancelTripEdit}
+                            className={styles.saveTripEdit}
+                            onClick={() => void saveTripEdit()}
+                            disabled={loadingCabs || !tripDetailsChanged}
                           >
-                            Discard changes
+                            {loadingCabs
+                              ? "Updating cabs..."
+                              : "Update available cabs"}
                           </button>
+                        </div>
+                        {tripEditError && (
+                          <p className={styles.errorState} role="alert">
+                            {tripEditError}
+                          </p>
                         )}
-                        <button
-                          type="button"
-                          className={styles.saveTripEdit}
-                          onClick={() => void saveTripEdit()}
-                          disabled={loadingCabs || !tripDetailsChanged}
-                        >
-                          {loadingCabs
-                            ? "Updating cabs..."
-                            : "Update available cabs"}
-                        </button>
                       </div>
-                      {tripEditError && (
-                        <p className={styles.errorState} role="alert">
-                          {tripEditError}
-                        </p>
-                      )}
                     </div>
                   </div>
                   {loadingCabs ? (
-                    <p className={styles.inlineState} role="status">
-                      Refreshing cab availability for your updated trip...
-                    </p>
+                    <CabLoadingSkeletons />
                   ) : fleetError ? (
                     <div className={styles.resultsError} role="alert">
                       <p>{fleetError}</p>
@@ -1304,6 +1447,16 @@ export default function CabsPage() {
                         <button
                           type="button"
                           className={
+                            sortBy === "recommended" ? styles.sortActive : ""
+                          }
+                          aria-pressed={sortBy === "recommended"}
+                          onClick={() => setSortBy("recommended")}
+                        >
+                          Recommended
+                        </button>
+                        <button
+                          type="button"
+                          className={
                             sortBy === "price" ? styles.sortActive : ""
                           }
                           aria-pressed={sortBy === "price"}
@@ -1385,7 +1538,9 @@ export default function CabsPage() {
                                         <span className={styles.matchBadge}>
                                           {sortBy === "rating"
                                             ? "Top rated"
-                                            : "Lowest estimate"}
+                                            : sortBy === "price"
+                                              ? "Lowest estimate"
+                                              : "Recommended"}
                                         </span>
                                       )}
                                       <span
@@ -1523,9 +1678,7 @@ export default function CabsPage() {
               )}
               {!hasSearched &&
                 (loadingCabs ? (
-                  <p className={styles.inlineState}>
-                    Finding available vehicles...
-                  </p>
+                  <CabLoadingSkeletons />
                 ) : fleetError ? (
                   <div className={styles.resultsError} role="alert">
                     <p>{fleetError}</p>
@@ -1626,80 +1779,271 @@ export default function CabsPage() {
             )}
           </div>
 
-          <aside className={styles.summary}>
+          <aside
+            className={`${styles.summary} ${summaryExpanded ? styles.summaryExpanded : ""}`}
+          >
             <div className={styles.summaryTop}>
-              <span className="material-symbols-outlined">receipt_long</span>
-              <div>
-                <h2>Trip estimate</h2>
-                <p>Review before sending</p>
+              <span className="material-symbols-outlined" aria-hidden="true">
+                receipt_long
+              </span>
+              <div className={styles.summaryHeading}>
+                <h2>Your trip summary</h2>
+                <p>Estimated fare, confirmed before travel</p>
+              </div>
+              <div className={styles.summaryActions}>
+                <div className={styles.summaryMiniFare}>
+                  <span>Estimated total</span>
+                  <strong>{selectedCab ? inr.format(estimatedFare) : "--"}</strong>
+                </div>
+                <p className={styles.summaryMiniNote}>No payment is required now.</p>
+                <button
+                  className={styles.summaryToggle}
+                  type="button"
+                  aria-expanded={summaryExpanded}
+                  onClick={() => setSummaryExpanded((current) => !current)}
+                >
+                  Details
+                  <ChevronDown size={15} aria-hidden="true" />
+                </button>
+                <button
+                  className={styles.submitButton}
+                  type="submit"
+                  disabled={submitting || loadingCabs || !selectedCab}
+                >
+                  Request this cab
+                  <ArrowRight size={16} aria-hidden="true" />
+                </button>
               </div>
             </div>
-            <div className={styles.summaryRoute}>
-              <span className={styles.summaryDot} />
-              <p>{form.pickupLocation || "Pick-up location"}</p>
-              <span className={styles.summaryLine} />
-              <span
-                className={`${styles.summaryDot} ${styles.destinationDot}`}
-              />
-              <p>{form.dropoffLocation || "Drop-off location"}</p>
-            </div>
-            <div className={styles.summaryDetails}>
-              <span>Trip</span>
-              <strong>
-                {form.tripType === "round-trip"
-                  ? "Round trip"
-                  : form.tripType === "airport-transfer"
-                    ? "Airport transfer"
-                    : "One way"}
-              </strong>
-              <span>Pickup</span>
-              <strong>
-                {new Date(`${form.pickupDate}T00:00:00`).toLocaleDateString(
-                  "en-IN",
-                  { day: "numeric", month: "short", year: "numeric" },
-                )}{" "}
-                · {form.pickupTime}
-              </strong>
-              <span>Distance</span>
-              <strong>
-                {form.distanceKm
-                  ? `${form.distanceKm} km`
-                  : "Calculated during search"}
-                {form.tripType === "round-trip" ? " each way" : ""}
-              </strong>
-              <span>Vehicle</span>
-              <strong>{selectedCab?.model || "Select a cab"}</strong>
-              <span>Base + distance + driver</span>
-              <strong>{selectedCab ? inr.format(fareSubtotal) : "--"}</strong>
-              <span>Government tax ({selectedCab?.taxPercent ?? 0}%)</span>
-              <strong>{selectedCab ? inr.format(governmentTax) : "--"}</strong>
-            </div>
-            <div className={styles.fareRow}>
-              <span>Estimated total</span>
-              <strong>{selectedCab ? inr.format(estimatedFare) : "--"}</strong>
-            </div>
-            <p className={styles.fareNote}>
-              Estimate uses the rate set for this vehicle. Final fare is
-              confirmed by our team before your trip.
-            </p>
-            {formError && (
-              <p className={styles.errorState} role="alert">
-                {formError}
-              </p>
-            )}
-            <button
-              className={styles.submitButton}
-              type="submit"
-              disabled={submitting || loadingCabs || !selectedCab}
+            <div
+              className={`${styles.summaryContent} ${summaryExpanded ? styles.summaryContentExpanded : ""}`}
             >
-              {submitting ? "Sending request..." : "Request this cab"}
-              <span className="material-symbols-outlined">arrow_forward</span>
-            </button>
-            <p className={styles.noCharge}>No payment is taken at this step.</p>
+              <div className={styles.summaryRoute}>
+                <span className={styles.summaryDot} />
+                <p>{form.pickupLocation || "Pick-up location"}</p>
+                <span className={styles.summaryLine} />
+                <span
+                  className={`${styles.summaryDot} ${styles.destinationDot}`}
+                />
+                <p>{form.dropoffLocation || "Drop-off location"}</p>
+              </div>
+              <div className={styles.summaryDetails}>
+                <span>Journey</span>
+                <strong>
+                  {form.tripType === "round-trip"
+                    ? "Round trip"
+                    : form.tripType === "airport-transfer"
+                      ? "Airport transfer"
+                      : "One way"}
+                </strong>
+                <span>Pickup</span>
+                <strong>
+                  {new Date(`${form.pickupDate}T00:00:00`).toLocaleDateString(
+                    "en-IN",
+                    { day: "numeric", month: "short", year: "numeric" },
+                  )}{" "}
+                  · {form.pickupTime}
+                </strong>
+                {form.tripType === "round-trip" && (
+                  <>
+                    <span>Return</span>
+                    <strong>
+                      {new Date(`${form.returnDate}T00:00:00`).toLocaleDateString(
+                        "en-IN",
+                        { day: "numeric", month: "short", year: "numeric" },
+                      )}{" "}
+                      · {form.returnTime}
+                    </strong>
+                  </>
+                )}
+                <span>Distance</span>
+                <strong>
+                  {form.distanceKm
+                    ? `${form.distanceKm} km${form.tripType === "round-trip" ? " each way" : ""}`
+                    : "Calculated during search"}
+                </strong>
+                <span>Drive time</span>
+                <strong>
+                  {form.routeDurationMinutes
+                    ? `${Math.floor(form.routeDurationMinutes / 60)}h ${form.routeDurationMinutes % 60}m${form.tripType === "round-trip" ? " each way" : ""}`
+                    : "Calculated during search"}
+                </strong>
+                <span>Vehicle</span>
+                <strong>{selectedCab?.model || "Select a cab"}</strong>
+                <span>Base fare</span>
+                <strong>{selectedCab ? inr.format(selectedCab.baseFare) : "--"}</strong>
+                <span>Distance charges</span>
+                <strong>{selectedCab ? inr.format(distanceCharge) : "--"}</strong>
+                <span>Driver allowance</span>
+                <strong>
+                  {selectedCab ? inr.format(selectedCab.driverAllowance) : "--"}
+                </strong>
+                <span>Government taxes</span>
+                <strong>{selectedCab ? inr.format(governmentTax) : "--"}</strong>
+              </div>
+              <p className={styles.fareNote}>
+                This is an estimate based on the selected vehicle’s rates.
+                Final fare and availability are confirmed by our team.
+              </p>
+              {formError && (
+                <p className={styles.errorState} role="alert">
+                  {formError}
+                </p>
+              )}
+              <p className={styles.noCharge}>
+                No payment is required at this stage.
+              </p>
+            </div>
           </aside>
         </form>
+        {reviewOpen && selectedCab && selectedPricing && (
+          <div
+            className={styles.reviewBackdrop}
+            role="presentation"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget && !submitting) {
+                setReviewOpen(false);
+              }
+            }}
+          >
+            <section
+              className={styles.reviewDialog}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="cab-review-title"
+            >
+              <div className={styles.reviewHeader}>
+                <div>
+                  <p className={styles.eyebrow}>Before we send your request</p>
+                  <h2 id="cab-review-title">Review your journey</h2>
+                </div>
+                <button
+                  className={styles.reviewClose}
+                  type="button"
+                  aria-label="Close review"
+                  disabled={submitting}
+                  onClick={() => setReviewOpen(false)}
+                >
+                  <X size={19} aria-hidden="true" />
+                </button>
+              </div>
+              <div className={styles.reviewRoute}>
+                <p><span>Pickup</span>{form.pickupLocation}</p>
+                <ArrowRight size={17} aria-hidden="true" />
+                <p><span>Drop-off</span>{form.dropoffLocation}</p>
+              </div>
+              <div className={styles.reviewVehicle}>
+                <div className={styles.reviewVehicleImage}>
+                  <Image
+                    src={selectedCab.imageUrl || "/cab.png"}
+                    alt=""
+                    fill
+                    sizes="72px"
+                  />
+                </div>
+                <div>
+                  <span>{selectedCab.category}</span>
+                  <strong>{selectedCab.model}</strong>
+                  <small>{selectedCab.seats} seats · {selectedCab.luggageCapacity} bags</small>
+                </div>
+              </div>
+              <div className={styles.reviewDetails}>
+                <span>Journey type</span>
+                <strong>
+                  {form.tripType === "round-trip"
+                    ? "Round trip"
+                    : form.tripType === "airport-transfer"
+                      ? "Airport transfer"
+                      : "One way"}
+                </strong>
+                <span>Pickup</span>
+                <strong>{form.pickupDate} · {form.pickupTime}</strong>
+                {form.tripType === "round-trip" && (
+                  <>
+                    <span>Return</span>
+                    <strong>{form.returnDate} · {form.returnTime}</strong>
+                  </>
+                )}
+                <span>Passengers and bags</span>
+                <strong>{form.passengers} passengers · {form.luggage} bags</strong>
+                <span>Estimated distance</span>
+                <strong>{form.distanceKm} km{form.tripType === "round-trip" ? " each way" : ""}</strong>
+                <span>Contact</span>
+                <strong>{form.fullName} · {form.phone}</strong>
+                <span>Email</span>
+                <strong>{form.email}</strong>
+                {form.notes.trim() && (
+                  <>
+                    <span>Trip notes</span>
+                    <strong>{form.notes}</strong>
+                  </>
+                )}
+              </div>
+              <div className={styles.reviewFare}>
+                <span>Base fare</span><strong>{inr.format(selectedCab.baseFare)}</strong>
+                <span>Distance charges</span><strong>{inr.format(distanceCharge)}</strong>
+                <span>Driver allowance</span><strong>{inr.format(selectedCab.driverAllowance)}</strong>
+                <span>Government taxes</span><strong>{inr.format(governmentTax)}</strong>
+                <span className={styles.reviewFareTotal}>Estimated total</span>
+                <strong className={styles.reviewFareTotal}>{inr.format(estimatedFare)}</strong>
+              </div>
+              {formError && (
+                <p className={styles.errorState} role="alert">{formError}</p>
+              )}
+              <div className={styles.reviewActions}>
+                <button
+                  className={styles.reviewBackButton}
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => setReviewOpen(false)}
+                >
+                  Back to details
+                </button>
+                <button
+                  ref={reviewConfirmRef}
+                  className={styles.reviewConfirmButton}
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => void confirmBooking()}
+                >
+                  {submitting ? "Sending request..." : "Confirm booking request"}
+                  {!submitting && <ArrowRight size={17} aria-hidden="true" />}
+                </button>
+              </div>
+              <p className={styles.reviewReassurance}>
+                No payment is required. Final availability and fare are confirmed by our team.
+              </p>
+            </section>
+          </div>
+        )}
       </main>
-    </>
+    </div>
+  );
+}
+
+function CabLoadingSkeletons() {
+  return (
+    <div
+      className={styles.vehicleSkeletonList}
+      role="status"
+      aria-label="Loading available vehicles"
+    >
+      {Array.from({ length: 3 }, (_, index) => (
+        <div
+          className={styles.vehicleSkeletonCard}
+          key={index}
+          aria-hidden="true"
+        >
+          <div className={styles.skeletonImage} />
+          <div className={styles.skeletonContent}>
+            <span className={styles.skeletonLine} />
+            <span className={`${styles.skeletonLine} ${styles.skeletonLineWide}`} />
+            <span className={styles.skeletonLine} />
+            <span className={`${styles.skeletonLine} ${styles.skeletonLineShort}`} />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 

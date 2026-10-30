@@ -26,6 +26,7 @@ interface LocationDropdownProps {
   required?: boolean;
   maxLength?: number;
   providerOnly?: boolean;
+  variant?: "default" | "cab";
 }
 
 export const LocationDropdown: React.FC<LocationDropdownProps> = ({
@@ -38,6 +39,7 @@ export const LocationDropdown: React.FC<LocationDropdownProps> = ({
   required = false,
   maxLength,
   providerOnly = false,
+  variant = "default",
 }) => {
   const generatedId = useId();
   const id = inputId ?? `location-${generatedId}`;
@@ -50,6 +52,7 @@ export const LocationDropdown: React.FC<LocationDropdownProps> = ({
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const locationsCacheRef = useRef(new Map<string, Location[]>());
 
   useEffect(() => {
     setInputValue(value);
@@ -71,8 +74,17 @@ export const LocationDropdown: React.FC<LocationDropdownProps> = ({
 
   useEffect(() => {
     const query = inputValue.trim();
-    if (!isOpen || !query) {
+    if (!isOpen || query.length < 2) {
       setLocations([]);
+      setLoading(false);
+      setError("");
+      return;
+    }
+
+    const cacheKey = `${providerOnly ? "provider:" : "all:"}${query.toLocaleLowerCase()}`;
+    const cachedLocations = locationsCacheRef.current.get(cacheKey);
+    if (cachedLocations) {
+      setLocations(cachedLocations);
       setLoading(false);
       setError("");
       return;
@@ -95,7 +107,13 @@ export const LocationDropdown: React.FC<LocationDropdownProps> = ({
               : "Location suggestions could not be loaded.",
           );
         }
-        setLocations(Array.isArray(data) ? data : []);
+        const results: Location[] = Array.isArray(data) ? data : [];
+        locationsCacheRef.current.set(cacheKey, results);
+        if (locationsCacheRef.current.size > 50) {
+          const oldestCacheKey = locationsCacheRef.current.keys().next().value;
+          if (oldestCacheKey) locationsCacheRef.current.delete(oldestCacheKey);
+        }
+        setLocations(results);
       } catch (fetchError) {
         if (controller.signal.aborted) return;
         setLocations([]);
@@ -107,7 +125,7 @@ export const LocationDropdown: React.FC<LocationDropdownProps> = ({
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
-    }, 180);
+    }, 100);
 
     return () => {
       window.clearTimeout(timeout);
@@ -126,7 +144,7 @@ export const LocationDropdown: React.FC<LocationDropdownProps> = ({
     const nextValue = event.target.value;
     setInputValue(nextValue);
     setHighlightedIndex(-1);
-    setIsOpen(Boolean(nextValue.trim()));
+    setIsOpen(nextValue.trim().length >= 2);
     onChange(nextValue);
   };
 
@@ -183,7 +201,7 @@ export const LocationDropdown: React.FC<LocationDropdownProps> = ({
   return (
     <div
       ref={dropdownRef}
-      className={`${styles.wrapper} location-dropdown-wrapper${isOpen ? ` ${styles.open}` : ""}`}
+      className={`${styles.wrapper} location-dropdown-wrapper${isOpen ? ` ${styles.open}` : ""}${variant === "cab" ? ` ${styles.cabVariant}` : ""}`}
     >
       <input
         ref={inputRef}
@@ -195,7 +213,7 @@ export const LocationDropdown: React.FC<LocationDropdownProps> = ({
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
         onFocus={() => {
-          if (inputValue.trim()) setIsOpen(true);
+          if (inputValue.trim().length >= 2) setIsOpen(true);
         }}
         onBlur={() => {
           window.setTimeout(() => setIsOpen(false), 100);
