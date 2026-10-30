@@ -1116,13 +1116,6 @@ export default function CabsPage() {
                       className={`${styles.tripSummary}${tripSummarySticky ? ` ${styles.tripSummarySticky}` : ""}`}
                     >
                       <div className={styles.tripEditPanel}>
-                        <div className={styles.tripEditHeading}>
-                          <strong>Your trip</strong>
-                          <span>
-                            Change your locations or schedule here; cab results
-                            refresh when you update the search.
-                          </span>
-                        </div>
                         <fieldset
                           className={styles.tripEditFieldset}
                           disabled={loadingCabs}
@@ -1523,6 +1516,9 @@ export default function CabsPage() {
                                     alt={`${cab.category} ${cab.model}`}
                                     fill
                                     sizes="(max-width: 760px) 100vw, 240px"
+                                    unoptimized={cab.imageUrl.startsWith(
+                                      "/api/files/",
+                                    )}
                                   />
                                 </div>
                                 <div className={styles.vehicleCardBody}>
@@ -1717,6 +1713,9 @@ export default function CabsPage() {
                       alt=""
                       fill
                       sizes="72px"
+                      unoptimized={selectedCab.imageUrl.startsWith(
+                        "/api/files/",
+                      )}
                     />
                   </div>
                   <div className={styles.selectedCabInfo}>
@@ -1939,6 +1938,9 @@ export default function CabsPage() {
                     alt=""
                     fill
                     sizes="72px"
+                    unoptimized={selectedCab.imageUrl.startsWith(
+                      "/api/files/",
+                    )}
                   />
                 </div>
                 <div>

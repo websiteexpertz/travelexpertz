@@ -3598,21 +3598,6 @@
   gap: 13px;
 }
 
-.tripEditHeading {
-  display: grid;
-  gap: 3px;
-}
-
-.tripEditHeading strong {
-  color: #41505e;
-  font-size: 0.86rem;
-}
-
-.tripEditHeading span {
-  color: #080f17;
-  font-size: 0.7rem;
-}
-
 .tripEditFieldset {
   min-width: 0;
   margin: 0;
@@ -4560,14 +4545,6 @@
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.97);
   box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
-}
-
-.tripEditHeading strong {
-  color: var(--luxury-forest);
-}
-
-.tripEditHeading span {
-  color: #64748b;
 }
 
 .tripEditGrid .fieldControl {
@@ -5704,9 +5681,83 @@
   left: clamp(12px, 2vw, 24px);
   width: auto;
   margin: 0;
-  padding: 12px clamp(16px, 4vw, 48px);
-  border-radius: 14px;
+  padding: 15px clamp(24px, 4vw, 52px);
+  border-radius: 9999px;
   animation: tripSummarySlideIn 220ms ease-out both;
+}
+
+.tripSummarySticky .tripEditPanel {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.tripSummarySticky .tripEditFieldset {
+  min-width: 0;
+}
+
+.tripSummarySticky .tripEditGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px 12px;
+}
+
+.tripSummarySticky .field {
+  gap: 2px;
+}
+
+.tripSummarySticky .fieldLabel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.tripSummarySticky .fieldControl {
+  min-height: 46px;
+}
+
+.tripSummarySticky .fieldControl input,
+.tripSummarySticky .fieldControl select {
+  min-height: 44px;
+}
+
+.tripSummarySticky .tripEditActions button {
+  min-height: 42px;
+  padding: 0 16px;
+  white-space: nowrap;
+}
+
+.tripSummarySticky .errorState {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 8px 10px;
+}
+
+@media (max-width: 900px) {
+  .tripSummarySticky .tripEditGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .tripSummarySticky .tripEditActions {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 640px) {
+  .tripSummarySticky .tripEditPanel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tripSummarySticky .tripEditGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tripSummarySticky .tripEditActions {
+    justify-content: flex-end;
+  }
 }
 
 @keyframes tripSummarySlideIn {
