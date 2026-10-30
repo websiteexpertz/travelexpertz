@@ -34,9 +34,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const stops = locations.stops ?? [];
+    if (
+      !Array.isArray(stops) ||
+      stops.length > 5 ||
+      stops.some(
+        (stop) =>
+          typeof stop !== "string" ||
+          !stop.trim() ||
+          stop.trim().length > 180,
+      )
+    ) {
+      return NextResponse.json(
+        { error: "Add up to five valid intermediate stops." },
+        { status: 400 },
+      );
+    }
+
     const route = await calculateCabRoute(
       locations.pickupLocation.trim(),
       locations.dropoffLocation.trim(),
+      stops.map((stop: string) => stop.trim()),
     );
     return NextResponse.json(route, {
       headers: { "Cache-Control": "no-store" },

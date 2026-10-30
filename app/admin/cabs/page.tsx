@@ -26,6 +26,7 @@ interface Cab {
   driverPhone?: string;
   driverLicense?: string;
   imageUrl?: string;
+  roofCarrierAvailable?: boolean;
 }
 
 interface CabFormData {
@@ -47,6 +48,7 @@ interface CabFormData {
   driverPhone: string;
   driverLicense: string;
   imageUrl: string;
+  roofCarrierAvailable: boolean;
 }
 
 const emptyCabForm: CabFormData = {
@@ -68,6 +70,7 @@ const emptyCabForm: CabFormData = {
   driverPhone: "",
   driverLicense: "",
   imageUrl: "",
+  roofCarrierAvailable: false,
 };
 
 const statusStyles: Record<CabStatus, { background: string; color: string }> = {
@@ -159,6 +162,7 @@ export default function AdminCabsPage() {
       driverPhone: cab.driverPhone || "",
       driverLicense: cab.driverLicense || "",
       imageUrl: cab.imageUrl || "",
+      roofCarrierAvailable: cab.roofCarrierAvailable === true,
     });
     setFormError("");
     setFormOpen(true);
@@ -815,6 +819,16 @@ export default function AdminCabsPage() {
                   onChange={(event) => setFormData({ ...formData, luggageCapacity: Number(event.target.value) })}
                   style={formInputStyle}
                 />
+              </CabField>
+              <CabField label="Roof carrier add-on">
+                <label style={{ display: "flex", minHeight: "42px", alignItems: "center", gap: "0.6rem", color: "#475569", fontSize: "0.875rem" }}>
+                  <input
+                    type="checkbox"
+                    checked={formData.roofCarrierAvailable}
+                    onChange={(event) => setFormData({ ...formData, roofCarrierAvailable: event.target.checked })}
+                  />
+                  Available for this vehicle (+₹209)
+                </label>
               </CabField>
               <CabField label="Base fare (INR)" required>
                 <input

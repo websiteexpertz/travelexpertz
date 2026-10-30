@@ -24,6 +24,7 @@ interface CabInput {
   driverPhone?: unknown;
   driverLicense?: unknown;
   imageUrl?: unknown;
+  roofCarrierAvailable?: unknown;
 }
 
 function isAdminRequest(request: NextRequest): boolean {
@@ -70,6 +71,12 @@ function normalizeCab(input: CabInput, requireVehicleDetails: boolean) {
   const driverPhone = typeof input.driverPhone === "string" ? input.driverPhone.trim() : "";
   const driverLicense = typeof input.driverLicense === "string" ? input.driverLicense.trim() : "";
   const imageUrl = typeof input.imageUrl === "string" ? input.imageUrl.trim() : "";
+  if (
+    input.roofCarrierAvailable !== undefined &&
+    typeof input.roofCarrierAvailable !== "boolean"
+  ) {
+    return { error: "Choose a valid roof carrier option." };
+  }
 
   if (!model || !licensePlate || !category) {
     return { error: "Model, license plate, and category are required." };
@@ -144,6 +151,7 @@ function normalizeCab(input: CabInput, requireVehicleDetails: boolean) {
       driverPhone,
       driverLicense,
       ...(imageUrl ? { imageUrl } : {}),
+      roofCarrierAvailable: input.roofCarrierAvailable === true,
     },
   };
 }

@@ -51,6 +51,7 @@ export async function GET(request: NextRequest) {
         rating: Number.isFinite(Number(cab.rating)) && Number(cab.rating) > 0
           ? Math.min(5, Number(cab.rating))
           : null,
+        roofCarrierAvailable: cab.roofCarrierAvailable === true,
         isAvailable: cab.status === "Available" && !bookedCabIds.has(cab._id.toString()),
       })),
       { headers: { "Cache-Control": "no-store" } },

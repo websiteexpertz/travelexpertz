@@ -144,13 +144,19 @@ async function geocodeLocation(query: string): Promise<Coordinates> {
   return { longitude: coordinates[0], latitude: coordinates[1] };
 }
 
-export async function calculateCabRoute(pickup: string, dropoff: string) {
-  const [origin, destination] = await Promise.all([
-    geocodeLocation(pickup),
-    geocodeLocation(dropoff),
-  ]);
+export async function calculateCabRoute(
+  pickup: string,
+  dropoff: string,
+  stops: string[] = [],
+) {
+  const locations = await Promise.all(
+    [pickup, ...stops, dropoff].map(geocodeLocation),
+  );
+  const routeCoordinates = locations
+    .map(({ longitude, latitude }) => `${longitude},${latitude}`)
+    .join(";");
   const url = new URL(
-    `https://router.project-osrm.org/route/v1/driving/${origin.longitude},${origin.latitude};${destination.longitude},${destination.latitude}`,
+    `https://router.project-osrm.org/route/v1/driving/${routeCoordinates}`,
   );
   url.searchParams.set("overview", "false");
   url.searchParams.set("steps", "false");

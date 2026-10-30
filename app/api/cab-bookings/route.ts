@@ -5,6 +5,7 @@ import { getUserFromRequest } from "@/lib/middleware/auth";
 import { calculateCabRoute } from "@/lib/cabRoute";
 
 const MAX_BOOKING_DAYS_AHEAD = 365;
+const ROOF_CARRIER_FARE = 209;
 
 function isValidText(value: unknown, maximumLength: number): value is string {
   return typeof value === "string" && value.trim().length > 0 && value.trim().length <= maximumLength;
@@ -41,8 +42,21 @@ export async function POST(request: NextRequest) {
     if (!["one-way", "round-trip", "airport-transfer"].includes(body.tripType)) {
       return NextResponse.json({ error: "Choose one-way, round trip, or airport transfer." }, { status: 400 });
     }
+    const stops = body.stops ?? [];
+    if (
+      !Array.isArray(stops) ||
+      stops.length > 5 ||
+      stops.some((stop: unknown) => !isValidText(stop, 180))
+    ) {
+      return NextResponse.json({ error: "Add up to five valid intermediate stops." }, { status: 400 });
+    }
+    if (body.roofCarrier !== undefined && typeof body.roofCarrier !== "boolean") {
+      return NextResponse.json({ error: "Choose a valid roof carrier option." }, { status: 400 });
+    }
 
-    const pickupAt = new Date(`${body.pickupDate}T${body.pickupTime}:00`);
+    const pickupAt = typeof body.pickupAt === "string"
+      ? new Date(body.pickupAt)
+      : new Date(`${body.pickupDate}T${body.pickupTime}:00`);
     const maximumDate = new Date();
     maximumDate.setDate(maximumDate.getDate() + MAX_BOOKING_DAYS_AHEAD);
     if (Number.isNaN(pickupAt.getTime()) || pickupAt <= new Date() || pickupAt > maximumDate) {
@@ -54,7 +68,9 @@ export async function POST(request: NextRequest) {
       if (!isValidText(body.returnDate, 10)) {
         return NextResponse.json({ error: "Return date is required for a round trip." }, { status: 400 });
       }
-      returnAt = new Date(`${body.returnDate}T${body.returnTime || body.pickupTime}:00`);
+      returnAt = typeof body.returnAt === "string"
+        ? new Date(body.returnAt)
+        : new Date(`${body.returnDate}T${body.returnTime || body.pickupTime}:00`);
       if (Number.isNaN(returnAt.getTime()) || returnAt <= pickupAt || returnAt > maximumDate) {
         return NextResponse.json({ error: "Return time must be after pickup time." }, { status: 400 });
       }
@@ -70,6 +86,7 @@ export async function POST(request: NextRequest) {
       route = await calculateCabRoute(
         body.pickupLocation.trim(),
         body.dropoffLocation.trim(),
+        stops.map((stop: string) => stop.trim()),
       );
     } catch (error) {
       const message =
@@ -85,6 +102,12 @@ export async function POST(request: NextRequest) {
     });
     if (!cab) {
       return NextResponse.json({ error: "This vehicle is no longer available. Please choose another." }, { status: 409 });
+    }
+    if (body.roofCarrier && cab.roofCarrierAvailable !== true) {
+      return NextResponse.json(
+        { error: "The roof carrier is not available for this vehicle." },
+        { status: 400 },
+      );
     }
 
     const seats = Number(cab.seats) || 4;
@@ -105,7 +128,8 @@ export async function POST(request: NextRequest) {
     const fareDistanceKm = distanceKm * (body.tripType === "round-trip" ? 2 : 1);
     const fareSubtotal = Math.round(baseFare + fareDistanceKm * perKmRate + driverAllowance);
     const governmentTax = Math.round(fareSubtotal * taxPercent / 100);
-    const estimatedFare = fareSubtotal + governmentTax;
+    const roofCarrierFare = body.roofCarrier ? ROOF_CARRIER_FARE : 0;
+    const estimatedFare = fareSubtotal + governmentTax + roofCarrierFare;
     const serviceEndAt =
       returnAt ||
       new Date(
@@ -141,6 +165,7 @@ export async function POST(request: NextRequest) {
       driverLicense: cab.driverLicense || "",
       pickupLocation: body.pickupLocation.trim(),
       dropoffLocation: body.dropoffLocation.trim(),
+      stops: stops.map((stop: string) => stop.trim()),
       pickupAt,
       returnAt,
       serviceStartAt: pickupAt,
@@ -155,6 +180,8 @@ export async function POST(request: NextRequest) {
       fareSubtotal,
       governmentTaxPercent: taxPercent,
       governmentTax,
+      roofCarrier: Boolean(body.roofCarrier),
+      roofCarrierFare,
       estimatedFare,
       fareCurrency: "INR",
       fullName: body.fullName.trim(),
@@ -176,6 +203,7 @@ export async function POST(request: NextRequest) {
         success: true,
         bookingReference,
         estimatedFare,
+        roofCarrierFare,
         message: "Your cab request is received. Our team will confirm the final fare and availability shortly.",
       },
       { status: 201 },
