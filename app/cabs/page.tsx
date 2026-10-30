@@ -802,6 +802,7 @@ export default function CabsPage() {
               fill
               priority
               sizes="(max-width: 760px) 100vw, 50vw"
+              unoptimized
             />
             <div className={styles.imageCaption}>
               <span className="material-symbols-outlined" aria-hidden="true">

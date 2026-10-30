@@ -160,6 +160,7 @@ export default function Header({
                 height={70}
                 priority
                 className="h-10 w-10 rounded-lg"
+                unoptimized
               />
             </Link>
 
