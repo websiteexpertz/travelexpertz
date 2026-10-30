@@ -35,6 +35,10 @@
   animation: capsuleEnter .2s ease-out;
 }
 
+.floatingHeading {
+  display: none;
+}
+
 @keyframes capsuleEnter {
   from {
     opacity: 0;
@@ -99,18 +103,47 @@
 }
 
 .floatingLocation {
+  position: relative;
+  display: grid;
   flex: 1 1 190px;
+  grid-template-columns: 16px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 6px;
+  row-gap: 1px;
+  align-content: center;
+  height: 54px;
+  padding: 5px 12px;
   border-color: #e2e8f0;
+}
+
+.floatingLocation > svg {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  align-self: center;
+}
+
+.floatingLocationLabel {
+  grid-column: 2;
+  color: #8491a4;
+  font-size: 8px;
+  font-weight: 750;
+  letter-spacing: .06em;
+  line-height: 1;
 }
 
 .floatingLocation > svg,
 .floatingDate > svg {
-  flex: 0 0 auto;
   color: #3978bd;
 }
 
 .floatingLocation :global(.location-dropdown-wrapper) {
+  grid-column: 2;
+  grid-row: 2;
   width: 100%;
+}
+
+.floatingLocation :global(input) {
+  min-height: 22px;
 }
 
 .floatingArrow {
@@ -1067,7 +1100,7 @@
 
 .modalBackdrop {
   position: fixed;
-  z-index: 1000;
+  z-index: 10000;
   inset: 0;
   display: grid;
   overflow-y: auto;
@@ -1488,8 +1521,24 @@
     border-radius: 18px;
   }
 
+  .floatingHeading {
+    display: grid;
+    grid-column: 1 / -1;
+    gap: 2px;
+    padding: 1px 2px 3px;
+  }
+
+  .floatingHeading strong {
+    color: #243650;
+    font-size: 13px;
+  }
+
+  .floatingHeading span {
+    color: #77869a;
+    font-size: 10px;
+  }
+
   .floatingTripType,
-  .floatingLocation,
   .floatingDate {
     width: 100%;
     min-width: 0;
@@ -1516,7 +1565,9 @@
   }
 
   .floatingLocation {
-    gap: 5px;
+    height: 54px;
+    gap: 1px 5px;
+    padding: 5px 8px;
   }
 
   .floatingLocation > svg,
@@ -1540,53 +1591,88 @@
 
   .page {
     padding-top: 72px;
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
   }
 
   .hero {
-    padding: 34px 18px 86px;
+    min-height: 225px;
+    padding: 25px 16px 76px;
   }
 
   .heroInner,
   .searchWrap,
   .resultsSection,
   .promiseRow {
-    width: min(100% - 28px, 620px);
+    width: min(100% - 24px, 620px);
+  }
+
+  .heroInner {
+    padding-inline: 3px;
+  }
+
+  .eyebrow {
+    font-size: 9px;
   }
 
   .hero h1 {
-    font-size: 34px;
+    max-width: 340px;
+    margin-top: 11px;
+    font-size: clamp(29px, 8vw, 34px);
   }
 
   .hero p {
-    font-size: 14px;
+    max-width: 350px;
+    font-size: 12px;
+    line-height: 1.5;
   }
 
   .searchWrap {
-    margin-top: -58px;
+    margin-top: -55px;
   }
 
   .searchCard {
-    padding: 17px;
-    border-radius: 16px;
+    padding: 14px 13px 15px;
+    border-radius: 17px;
+    box-shadow: 0 12px 32px rgba(28, 54, 91, .12);
+  }
+
+  .searchCompleted {
+    padding-bottom: 0;
+  }
+
+  .searchCompleted .searchActions {
+    position: static;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
   }
 
   .tripTabs {
     flex-wrap: nowrap;
     overflow-x: auto;
-    margin: 0 -3px 13px;
-    padding: 0 3px 5px;
+    margin: 0 -2px 9px;
+    padding: 0 2px 5px;
+    scrollbar-width: none;
+  }
+
+  .tripTabs::-webkit-scrollbar {
+    display: none;
   }
 
   .tripTab,
   .tripTabDisabled {
     flex: 0 0 auto;
-    min-height: 37px;
-    padding-inline: 12px;
-    font-size: 11px;
+    min-height: 36px;
+    padding-inline: 11px;
+    font-size: 10px;
   }
 
   .hourlyNote {
-    font-size: 10px;
+    margin: -5px 0 12px;
+    font-size: 9px;
+    line-height: 1.45;
   }
 
   .routeGrid {
@@ -1602,7 +1688,21 @@
 
   .locationField,
   .dateField {
-    min-height: 72px;
+    min-height: 66px;
+    gap: 6px;
+    padding: 10px 12px;
+  }
+
+  .locationField > span,
+  .dateField > span {
+    font-size: 9px;
+  }
+
+  .locationField :global(input),
+  .dateField input,
+  .dateField select {
+    min-height: 34px;
+    font-size: 13px;
   }
 
   .swapButton {
@@ -1615,12 +1715,32 @@
   }
 
   .searchActions {
+    position: fixed;
+    z-index: 99;
+    right: 12px;
+    bottom: max(10px, env(safe-area-inset-bottom));
+    left: 12px;
     align-items: stretch;
+    margin: 0;
+    padding: 10px;
+    border: 1px solid rgba(220, 229, 241, .95);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, .97);
+    box-shadow: 0 8px 26px rgba(24, 43, 69, .18);
+    backdrop-filter: blur(12px);
+  }
+
+  .addStop {
+    min-height: 44px;
+    flex: 1 1 auto;
+    padding-inline: 10px;
+    font-size: 11px;
   }
 
   .searchButton {
-    min-height: 46px;
-    padding-inline: 16px;
+    min-height: 44px;
+    flex: 1.5 1 auto;
+    padding-inline: 12px;
     font-size: 11px;
   }
 
@@ -1636,7 +1756,8 @@
   }
 
   .resultsSection {
-    padding-top: 27px;
+    padding-top: 22px;
+    padding-bottom: 32px;
   }
 
   .resultsHeading {
@@ -1646,7 +1767,7 @@
   .resultsHeading h2 {
     align-items: flex-start;
     gap: 5px;
-    font-size: 19px;
+    font-size: 17px;
   }
 
   .resultsHeading h2 svg {
@@ -1668,13 +1789,14 @@
 
   .factsRow {
     grid-template-columns: 1fr 1fr;
-    gap: 5px;
-    padding: 10px 5px;
+    gap: 4px;
+    padding: 8px 4px;
+    border-radius: 12px;
   }
 
   .factsRow > div {
-    min-height: 54px;
-    padding-inline: 7px;
+    min-height: 49px;
+    padding-inline: 6px;
   }
 
   .factsRow strong {
@@ -1691,7 +1813,7 @@
 
   .filters {
     position: fixed;
-    z-index: 1002;
+    z-index: 10002;
     top: 0;
     bottom: 0;
     left: 0;
@@ -1720,7 +1842,7 @@
 
   .drawerBackdrop {
     position: fixed;
-    z-index: 1001;
+    z-index: 10001;
     inset: 0;
     display: block;
     border: 0;
@@ -1728,7 +1850,13 @@
   }
 
   .listingToolbar {
-    min-height: 54px;
+    position: sticky;
+    z-index: 5;
+    top: 0;
+    min-height: 56px;
+    margin: 0 -2px 9px;
+    padding: 7px 2px;
+    background: #f5f7fb;
   }
 
   .listingToolbar h3 {
@@ -1769,23 +1897,29 @@
     cursor: pointer;
   }
 
+  .listingToolbar h3 {
+    margin-bottom: 2px;
+  }
+
   .cabCard {
-    grid-template-columns: 125px minmax(0, 1fr);
+    grid-template-columns: 104px minmax(0, 1fr);
+    border-radius: 13px;
   }
 
   .vehicleVisual {
-    min-height: 148px;
+    min-height: 142px;
     grid-row: span 2;
   }
 
   .vehicleTile {
-    width: calc(100% - 14px);
-    height: 97px;
+    width: calc(100% - 12px);
+    height: 91px;
+    border-radius: 13px;
   }
 
   .vehicleIllustration {
-    width: 96px;
-    min-height: 68px;
+    width: 88px;
+    min-height: 63px;
   }
 
   .fuelBadge {
@@ -1796,7 +1930,7 @@
   }
 
   .cabDetails {
-    padding: 13px 12px 6px;
+    padding: 11px 10px 5px;
   }
 
   .categoryBadge {
@@ -1805,8 +1939,8 @@
   }
 
   .cabDetails h3 {
-    margin-top: 7px;
-    font-size: 15px;
+    margin-top: 6px;
+    font-size: 14px;
   }
 
   .similarLabel {
@@ -1814,8 +1948,8 @@
   }
 
   .specs {
-    gap: 7px 10px;
-    margin-top: 10px;
+    gap: 6px 8px;
+    margin-top: 8px;
   }
 
   .specs span {
@@ -1828,7 +1962,7 @@
     align-items: center;
     justify-items: end;
     gap: 1px 5px;
-    padding: 8px 11px 12px;
+    padding: 8px 9px 10px;
     border-top: 1px solid #edf0f5;
     border-left: 0;
   }
@@ -1841,16 +1975,16 @@
 
   .cabFare > strong {
     justify-self: start;
-    font-size: 18px;
+    font-size: 17px;
   }
 
   .cabFare button {
     grid-column: 2;
     grid-row: 1 / span 2;
-    min-height: 37px;
+    min-height: 39px;
     margin: 0;
-    padding-inline: 9px;
-    font-size: 9px;
+    padding-inline: 11px;
+    font-size: 10px;
   }
 
   .modalBackdrop {
@@ -1862,7 +1996,7 @@
   .confirmationModal {
     width: 100%;
     max-height: 94vh;
-    padding: 20px 16px;
+    padding: 18px 14px calc(18px + env(safe-area-inset-bottom));
     border-radius: 18px 18px 0 0;
   }
 
@@ -1892,23 +2026,41 @@
   }
 
   .searchCard {
-    padding: 13px;
+    padding: 12px 11px 14px;
   }
 
   .searchActions {
-    gap: 8px;
+    gap: 7px;
   }
 
   .addStop {
-    padding-inline: 9px;
-    font-size: 11px;
+    padding-inline: 8px;
+    font-size: 10px;
   }
 
   .cabCard {
-    grid-template-columns: 102px minmax(0, 1fr);
+    grid-template-columns: 92px minmax(0, 1fr);
+  }
+
+  .vehicleVisual {
+    min-height: 137px;
+  }
+
+  .vehicleTile {
+    width: calc(100% - 10px);
+    height: 83px;
+  }
+
+  .vehicleIllustration {
+    width: 80px;
   }
 
   .specs span {
+    font-size: 9px;
+  }
+
+  .cabFare button {
+    padding-inline: 8px;
     font-size: 9px;
   }
 

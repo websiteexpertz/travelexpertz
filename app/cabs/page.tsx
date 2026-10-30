@@ -237,6 +237,15 @@ export default function CabsPage() {
   const shouldScrollToResultsRef = useRef(false);
 
   useEffect(() => {
+    if (!selectedCab && !confirmation && !filtersOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [selectedCab, confirmation, filtersOpen]);
+
+  useEffect(() => {
     const updateFloatingSearch = () => {
       setShowFloatingSearch(window.scrollY > 220);
     };
@@ -598,11 +607,27 @@ export default function CabsPage() {
 
   return (
     <main
-      className={`${styles.page} ${hasSearched && showFloatingSearch ? styles.capsuleVisible : ""}`}
+      className={`${styles.page} ${
+        hasSearched &&
+        showFloatingSearch &&
+        !selectedCab &&
+        !confirmation &&
+        !filtersOpen
+          ? styles.capsuleVisible
+          : ""
+      }`}
     >
       <Header currentPage="cabs" solidHeader />
-      {hasSearched && showFloatingSearch && (
+      {hasSearched &&
+        showFloatingSearch &&
+        !selectedCab &&
+        !confirmation &&
+        !filtersOpen && (
         <div className={styles.floatingSearch} aria-label="Update your cab search">
+          <div className={styles.floatingHeading}>
+            <strong>Update trip details</strong>
+            <span>Change your locations or schedule</span>
+          </div>
           <label className={styles.floatingTripType}>
             <span>TRIP</span>
             <select
@@ -622,12 +647,16 @@ export default function CabsPage() {
           </label>
           <div className={styles.floatingLocation}>
             <MapPin size={15} aria-hidden="true" />
+            <label htmlFor="cab-capsule-pickup" className={styles.floatingLocationLabel}>
+              PICK-UP
+            </label>
             <LocationDropdown
+              inputId="cab-capsule-pickup"
               value={capsuleForm.pickupLocation}
               onChange={(value) =>
                 setCapsuleForm({ ...capsuleForm, pickupLocation: value })
               }
-              placeholder="Pickup"
+              placeholder="Airport, city or terminal"
               variant="cab"
               maxLength={180}
             />
@@ -635,12 +664,16 @@ export default function CabsPage() {
           <ArrowRight className={styles.floatingArrow} size={16} aria-hidden="true" />
           <div className={styles.floatingLocation}>
             <MapPin size={15} aria-hidden="true" />
+            <label htmlFor="cab-capsule-dropoff" className={styles.floatingLocationLabel}>
+              DROP-OFF
+            </label>
             <LocationDropdown
+              inputId="cab-capsule-dropoff"
               value={capsuleForm.dropoffLocation}
               onChange={(value) =>
                 setCapsuleForm({ ...capsuleForm, dropoffLocation: value })
               }
-              placeholder="Drop-off"
+              placeholder="Airport, city or terminal"
               variant="cab"
               maxLength={180}
             />
@@ -712,7 +745,7 @@ export default function CabsPage() {
             disabled={searching}
           >
             {searching ? <span className={styles.spinner} /> : <Search size={16} />}
-            {searching ? "Updating" : "Update"}
+            {searching ? "Updating" : "Update trip"}
           </button>
           {searchError && <p className={styles.floatingError} role="alert">{searchError}</p>}
         </div>
@@ -725,7 +758,10 @@ export default function CabsPage() {
         </div>
       </section>
 
-      <section className={styles.searchWrap} aria-label="Search for a cab">
+      <section
+        className={`${styles.searchWrap} ${hasSearched ? styles.searchCompleted : ""}`}
+        aria-label="Search for a cab"
+      >
         <div className={styles.searchCard}>
           <div className={styles.tripTabs} role="tablist" aria-label="Trip type">
             {([
