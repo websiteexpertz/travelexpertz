@@ -784,18 +784,20 @@ interface PackageDetail {
     refundInfo: string;
   }[];
   refundPolicyNotes?: string;
-  customFields?: {
-    id: string;
-    section:
-      | "overview"
-      | "itinerary"
-      | "inclusions"
-      | "essentials"
-      | "policies";
-    fieldName: string;
-    fieldType: "text" | "textarea" | "list";
-    value: string | string[];
-  }[];
+  customFields?: PackageCustomField[];
+}
+
+interface PackageCustomField {
+  id: string;
+  section:
+    | "overview"
+    | "itinerary"
+    | "inclusions"
+    | "essentials"
+    | "policies";
+  fieldName: string;
+  fieldType: "text" | "textarea" | "list";
+  value: string | string[];
 }
 
 const inrFormatter = new Intl.NumberFormat("en-IN", {
@@ -881,11 +883,7 @@ export default function PackageDetails() {
           }
           if (Array.isArray(data.customFields)) {
             data.customFields = data.customFields.map(
-              (
-                field: PackageDetail["customFields"] extends (infer T)[]
-                  ? T
-                  : never,
-              ) =>
+              (field: PackageCustomField) =>
                 hasPointerListValue(field.value)
                   ? { ...field, fieldType: "list" }
                   : field,
