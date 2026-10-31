@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { load } from "@cashfreepayments/cashfree-js";
 import {
   ArrowDownUp,
   ArrowRight,
@@ -252,6 +253,34 @@ export default function CabsPage() {
     updateFloatingSearch();
     window.addEventListener("scroll", updateFloatingSearch, { passive: true });
     return () => window.removeEventListener("scroll", updateFloatingSearch);
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const bookingId = params.get("cabBookingId");
+    const orderId = params.get("order_id");
+    if (!bookingId || !orderId) return;
+
+    const verifyPayment = async () => {
+      const response = await fetch("/api/payments/cashfree/cab/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId }),
+      });
+      const data = await response.json();
+      if (response.ok && data.status === "PAID") {
+        setConfirmation({
+          bookingReference: data.bookingReference,
+          estimatedFare: Number(data.estimatedFare),
+          message: "Your payment is successful and your cab is confirmed.",
+        });
+      } else {
+        setBookingError("Payment could not be confirmed. Please contact support with your booking reference.");
+      }
+      window.history.replaceState({}, "", window.location.pathname);
+    };
+
+    void verifyPayment();
   }, []);
 
   useEffect(() => {
@@ -526,17 +555,25 @@ export default function CabsPage() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Your request could not be submitted.");
-      setConfirmation({
-        bookingReference: data.bookingReference,
-        estimatedFare: Number(data.estimatedFare),
-        message: data.message,
+      const orderResponse = await fetch("/api/payments/cashfree/cab", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId: data.bookingId }),
       });
-      setFleet((current) =>
-        current.map((cab) =>
-          cab._id === selectedCab._id ? { ...cab, isAvailable: false } : cab,
-        ),
-      );
-      setSelectedCab(null);
+      const orderData = await orderResponse.json();
+      if (!orderResponse.ok) {
+        const details = typeof orderData.details === "string" ? orderData.details : "";
+        throw new Error(details ? `${orderData.error}: ${details}` : (orderData.error || "Payment could not be initialized."));
+      }
+
+      const cashfree = await load({
+        mode: (process.env.NEXT_PUBLIC_CASHFREE_ENV === "production" ? "production" : "sandbox") as "sandbox" | "production",
+      });
+      if (!cashfree) throw new Error("Cashfree checkout could not be loaded.");
+      await cashfree.checkout({
+        paymentSessionId: orderData.paymentSessionId,
+        redirectTarget: "_self",
+      });
     } catch (error) {
       setBookingError(
         error instanceof Error ? error.message : "Your request could not be submitted.",

@@ -187,8 +187,9 @@ export async function POST(request: Request) {
       platformFee,
       totalPrice,
       bookingReference,
-      paymentStatus: "completed", // Auto-complete for demo
-      bookingStatus: body.userId ? "confirmed" : "pending", // Auto-confirm if user logged in
+      paymentStatus: body.paymentInitiated ? "pending" : "completed",
+      bookingStatus: body.paymentInitiated ? "pending" : (body.userId ? "confirmed" : "pending"),
+      paymentGateway: body.paymentInitiated ? "cashfree" : undefined,
       refundStatus: "none",
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -196,7 +197,8 @@ export async function POST(request: Request) {
 
     const result = await bookingsCollection.insertOne(booking);
 
-    // After successful booking, decrement the room availability
+    // Paid booking confirmation handles inventory separately; payment-pending bookings stay reversible.
+    if (!body.paymentInitiated) {
     try {
       const homestaysCollection = db.collection("homestays");
       const hotelsCollection = db.collection("hotels");
@@ -223,6 +225,7 @@ export async function POST(request: Request) {
     } catch (error) {
       console.error("Error updating room availability:", error);
       // Don't throw error - booking was still created successfully
+    }
     }
 
     // Send owner notification for confirmed bookings

@@ -197,10 +197,11 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date(),
     };
 
-    await db.collection("cabBookings").insertOne(booking);
+    const result = await db.collection("cabBookings").insertOne(booking);
     return NextResponse.json(
       {
         success: true,
+        bookingId: result.insertedId.toString(),
         bookingReference,
         estimatedFare,
         roofCarrierFare,

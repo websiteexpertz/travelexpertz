@@ -33,10 +33,19 @@ function BookingConfirmationContent() {
   const loadBooking = async () => {
     try {
       const bookingId = searchParams.get("bookingId");
+      const orderId = searchParams.get("order_id");
 
       if (!bookingId) {
         router.push("/");
         return;
+      }
+
+      if (orderId) {
+        await fetch("/api/payments/cashfree/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bookingId }),
+        });
       }
 
       const response = await fetch(`/api/bookings?id=${bookingId}`);

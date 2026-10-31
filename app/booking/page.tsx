@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { load } from "@cashfreepayments/cashfree-js";
 import Header from "../components/Header";
 
 interface BookingData {
@@ -200,6 +201,7 @@ function BookingPageContent() {
           guests: bookingData.guests,
           basePrice: bookingData.room.price,
           userId: userProfile._id,
+          paymentInitiated: true,
         }),
       });
 
@@ -209,10 +211,28 @@ function BookingPageContent() {
       }
 
       const booking = await response.json();
-      alert("Booking confirmed successfully!");
+      const orderResponse = await fetch("/api/payments/cashfree", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId: booking._id }),
+      });
 
-      // Redirect to my bookings
-      router.push("/user/bookings");
+      if (!orderResponse.ok) {
+        const error = await orderResponse.json();
+        throw new Error(error.error || "Failed to initialize payment");
+      }
+
+      const { paymentSessionId } = await orderResponse.json();
+      const cashfree = await load({
+        mode: (process.env.NEXT_PUBLIC_CASHFREE_ENV === "production" ? "production" : "sandbox") as "sandbox" | "production",
+      });
+
+      if (!cashfree) throw new Error("Cashfree checkout could not be loaded");
+
+      await cashfree.checkout({
+        paymentSessionId,
+        redirectTarget: "_self",
+      });
     } catch (error: any) {
       console.error("Error creating booking:", error);
       alert(error.message || "Failed to create booking");
