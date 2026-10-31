@@ -978,6 +978,38 @@ const packagesPageStyles = `
     }
   }
 
+  /* Consistent page typography */
+  .packages-page,
+  .packages-page *:not(.material-symbols-outlined) {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  .packages-page {
+    font-size: 1rem;
+    font-weight: 400;
+  }
+
+  .packages-page .carousel-card-desc,
+  .packages-page .carousel-card-detail,
+  .packages-page .category-count,
+  .packages-page .destination-name,
+  .packages-page .packages-search-item,
+  .packages-page .clear-filter-btn {
+    font-size: 0.875rem;
+  }
+
+  .packages-page .carousel-card-title,
+  .packages-page .price-amount,
+  .packages-page .packages-search-item span {
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  .packages-page .price-suffix {
+    font-size: 0.875rem;
+    font-weight: 400;
+  }
+
   /* Animations */
   @keyframes float {
     0%, 100% { transform: translateY(0px) rotate(0deg); }
@@ -1155,7 +1187,7 @@ export default function Packages() {
   }, [packagesByCategory, categories]);
 
   return (
-    <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-gray-50">
+    <div className="packages-page relative flex min-h-screen w-full flex-col overflow-x-hidden bg-gray-50">
       <style>{packagesPageStyles}</style>
       <Header currentPage="packages" isHeroPage={true} />
       <main

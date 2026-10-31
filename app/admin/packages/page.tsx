@@ -657,6 +657,20 @@ export default function AdminPackages() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const tabOrder = [
+      "basic",
+      "details",
+      "itinerary",
+      "lists",
+      "policy",
+    ] as const;
+    const currentIndex = tabOrder.indexOf(activeTab);
+
+    if (activeTab !== "policy") {
+      setActiveTab(tabOrder[currentIndex + 1]);
+      return;
+    }
+
     // Merge global form fields into customFields
     const mergedCustomFields = [...(formData.customFields || [])];
 
@@ -3234,9 +3248,16 @@ export default function AdminPackages() {
               >
                 {uploadingImage
                   ? "⏳ Uploading..."
-                  : editingId
-                    ? "💾 Update Package"
-                    : "➕ Add Package"}
+                  : activeTab !== "policy"
+                    ? {
+                        basic: "Next: Description & Gallery",
+                        details: "Next: Itinerary",
+                        itinerary: "Next: Inclusions/Exclusions",
+                        lists: "Next: Policy & Notes",
+                      }[activeTab]
+                    : editingId
+                      ? "💾 Update Package"
+                      : "➕ Add Package"}
               </button>
             </div>
           </form>

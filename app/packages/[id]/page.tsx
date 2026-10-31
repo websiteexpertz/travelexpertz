@@ -807,6 +807,28 @@ const inrFormatter = new Intl.NumberFormat("en-IN", {
 const formatInr = (value: number) =>
   inrFormatter.format(Math.max(0, Math.round(value)));
 
+const hasPointerListValue = (value: string | string[]) =>
+  Array.isArray(value) ||
+  (/\n|\r|\u2022|\u25CF|\u25C6|\u25AA/.test(value) &&
+    normalizeListValue(value).length > 1);
+
+const normalizeListValue = (value: string | string[]) => {
+  const rawItems = Array.isArray(value)
+    ? value
+    : value.split(/\n|\r|\u2022|\u25CF|\u25C6|\u25AA/);
+
+  return rawItems
+    .flatMap((item) => item.split(/\n|\r/))
+    .map((item) =>
+      item
+        .trim()
+        .replace(/^[\u2022\u25CF\u25C6\u25AA•\-*]\s*/, "")
+        .replace(/^\d+[.)]\s*/, "")
+        .trim(),
+    )
+    .filter(Boolean);
+};
+
 export default function PackageDetails() {
   const params = useParams();
   const router = useRouter();
@@ -857,6 +879,19 @@ export default function PackageDetails() {
           } else {
             console.log("No custom fields found in package data");
           }
+          if (Array.isArray(data.customFields)) {
+            data.customFields = data.customFields.map(
+              (
+                field: PackageDetail["customFields"] extends (infer T)[]
+                  ? T
+                  : never,
+              ) =>
+                hasPointerListValue(field.value)
+                  ? { ...field, fieldType: "list" }
+                  : field,
+            );
+          }
+
           setPkg(data);
         } else {
           console.error(
@@ -1196,33 +1231,8 @@ export default function PackageDetails() {
                                 gap: "0.5rem",
                               }}
                             >
-                              {(() => {
-                                // Handle both array and string with bullets
-                                let items: string[] = [];
-                                if (Array.isArray(field.value)) {
-                                  items = field.value;
-                                } else if (typeof field.value === "string") {
-                                  // Split by bullets or newlines
-                                  if (field.value.includes("•")) {
-                                    items = field.value.split("•");
-                                  } else if (field.value.includes("\n")) {
-                                    items = field.value.split("\n");
-                                  } else {
-                                    items = [field.value];
-                                  }
-                                  // Clean up items
-                                  items = items
-                                    .map((item) => item.trim())
-                                    .filter((item) => item.length > 0)
-                                    .map((item) =>
-                                      item
-                                        .replace(/^[•\-*]\s*/, "")
-                                        .replace(/^\d+\.\s*/, "")
-                                        .trim(),
-                                    )
-                                    .filter((item) => item.length > 0);
-                                }
-                                return items.map((item, idx) => (
+                              {normalizeListValue(field.value).map(
+                                (item, idx) => (
                                   <li
                                     key={idx}
                                     style={{
@@ -1244,8 +1254,8 @@ export default function PackageDetails() {
                                     </span>
                                     {item}
                                   </li>
-                                ));
-                              })()}
+                                ),
+                              )}
                             </ul>
                           ) : (
                             <p
@@ -1367,8 +1377,7 @@ export default function PackageDetails() {
                             </span>
                             {field.fieldName}
                           </h4>
-                          {field.fieldType === "list" &&
-                          Array.isArray(field.value) ? (
+                          {field.fieldType === "list" ? (
                             <ul
                               style={{
                                 listStyle: "none",
@@ -1378,29 +1387,31 @@ export default function PackageDetails() {
                                 gap: "0.5rem",
                               }}
                             >
-                              {field.value.map((item, idx) => (
-                                <li
-                                  key={idx}
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "flex-start",
-                                    gap: "0.5rem",
-                                    color: "#4b5563",
-                                    fontSize: "0.95rem",
-                                  }}
-                                >
-                                  <span
+                              {normalizeListValue(field.value).map(
+                                (item, idx) => (
+                                  <li
+                                    key={idx}
                                     style={{
-                                      color: "#10b981",
-                                      fontSize: "0.75rem",
-                                      marginTop: "0.4rem",
+                                      display: "flex",
+                                      alignItems: "flex-start",
+                                      gap: "0.5rem",
+                                      color: "#4b5563",
+                                      fontSize: "0.95rem",
                                     }}
                                   >
-                                    •
-                                  </span>
-                                  {item}
-                                </li>
-                              ))}
+                                    <span
+                                      style={{
+                                        color: "#10b981",
+                                        fontSize: "0.75rem",
+                                        marginTop: "0.4rem",
+                                      }}
+                                    >
+                                      •
+                                    </span>
+                                    {item}
+                                  </li>
+                                ),
+                              )}
                             </ul>
                           ) : (
                             <p
@@ -1583,8 +1594,7 @@ export default function PackageDetails() {
                             </span>
                             {field.fieldName}
                           </h4>
-                          {field.fieldType === "list" &&
-                          Array.isArray(field.value) ? (
+                          {field.fieldType === "list" ? (
                             <ul
                               style={{
                                 listStyle: "none",
@@ -1594,29 +1604,31 @@ export default function PackageDetails() {
                                 gap: "0.5rem",
                               }}
                             >
-                              {field.value.map((item, idx) => (
-                                <li
-                                  key={idx}
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "flex-start",
-                                    gap: "0.5rem",
-                                    color: "#4b5563",
-                                    fontSize: "0.95rem",
-                                  }}
-                                >
-                                  <span
+                              {normalizeListValue(field.value).map(
+                                (item, idx) => (
+                                  <li
+                                    key={idx}
                                     style={{
-                                      color: "#10b981",
-                                      fontSize: "0.75rem",
-                                      marginTop: "0.4rem",
+                                      display: "flex",
+                                      alignItems: "flex-start",
+                                      gap: "0.5rem",
+                                      color: "#4b5563",
+                                      fontSize: "0.95rem",
                                     }}
                                   >
-                                    •
-                                  </span>
-                                  {item}
-                                </li>
-                              ))}
+                                    <span
+                                      style={{
+                                        color: "#10b981",
+                                        fontSize: "0.75rem",
+                                        marginTop: "0.4rem",
+                                      }}
+                                    >
+                                      •
+                                    </span>
+                                    {item}
+                                  </li>
+                                ),
+                              )}
                             </ul>
                           ) : (
                             <p
@@ -1840,8 +1852,7 @@ export default function PackageDetails() {
                             </span>
                             {field.fieldName}
                           </h4>
-                          {field.fieldType === "list" &&
-                          Array.isArray(field.value) ? (
+                          {field.fieldType === "list" ? (
                             <ul
                               style={{
                                 listStyle: "none",
@@ -1851,29 +1862,31 @@ export default function PackageDetails() {
                                 gap: "0.5rem",
                               }}
                             >
-                              {field.value.map((item, idx) => (
-                                <li
-                                  key={idx}
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "flex-start",
-                                    gap: "0.5rem",
-                                    color: "#4b5563",
-                                    fontSize: "0.95rem",
-                                  }}
-                                >
-                                  <span
+                              {normalizeListValue(field.value).map(
+                                (item, idx) => (
+                                  <li
+                                    key={idx}
                                     style={{
-                                      color: "#10b981",
-                                      fontSize: "0.75rem",
-                                      marginTop: "0.4rem",
+                                      display: "flex",
+                                      alignItems: "flex-start",
+                                      gap: "0.5rem",
+                                      color: "#4b5563",
+                                      fontSize: "0.95rem",
                                     }}
                                   >
-                                    •
-                                  </span>
-                                  {item}
-                                </li>
-                              ))}
+                                    <span
+                                      style={{
+                                        color: "#10b981",
+                                        fontSize: "0.75rem",
+                                        marginTop: "0.4rem",
+                                      }}
+                                    >
+                                      •
+                                    </span>
+                                    {item}
+                                  </li>
+                                ),
+                              )}
                             </ul>
                           ) : (
                             <p
@@ -2197,8 +2210,7 @@ export default function PackageDetails() {
                             </span>
                             {field.fieldName}
                           </h4>
-                          {field.fieldType === "list" &&
-                          Array.isArray(field.value) ? (
+                          {field.fieldType === "list" ? (
                             <ul
                               style={{
                                 listStyle: "none",
@@ -2208,29 +2220,31 @@ export default function PackageDetails() {
                                 gap: "0.5rem",
                               }}
                             >
-                              {field.value.map((item, idx) => (
-                                <li
-                                  key={idx}
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "flex-start",
-                                    gap: "0.5rem",
-                                    color: "#4b5563",
-                                    fontSize: "0.95rem",
-                                  }}
-                                >
-                                  <span
+                              {normalizeListValue(field.value).map(
+                                (item, idx) => (
+                                  <li
+                                    key={idx}
                                     style={{
-                                      color: "#10b981",
-                                      fontSize: "0.75rem",
-                                      marginTop: "0.4rem",
+                                      display: "flex",
+                                      alignItems: "flex-start",
+                                      gap: "0.5rem",
+                                      color: "#4b5563",
+                                      fontSize: "0.95rem",
                                     }}
                                   >
-                                    •
-                                  </span>
-                                  {item}
-                                </li>
-                              ))}
+                                    <span
+                                      style={{
+                                        color: "#10b981",
+                                        fontSize: "0.75rem",
+                                        marginTop: "0.4rem",
+                                      }}
+                                    >
+                                      •
+                                    </span>
+                                    {item}
+                                  </li>
+                                ),
+                              )}
                             </ul>
                           ) : (
                             <p
