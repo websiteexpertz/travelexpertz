@@ -107,7 +107,10 @@ export default function HeaderLoggedIn({
             </Link>
 
             {/* Desktop Navigation */}
-            <nav aria-label="Primary" className="hidden xl:flex gap-6 pl-8">
+            <nav
+              aria-label="Primary"
+              className="hidden lg:flex travel-header-nav"
+            >
               {navItems.map((item) => {
                 const isActive = currentPage === item.key;
 
@@ -448,7 +451,7 @@ export default function HeaderLoggedIn({
 
             {/* Mobile Hamburger Menu Button */}
             <button
-              className="xl:hidden ml-auto p-2 flex items-center justify-center"
+              className="header-mobile-menu-toggle lg:hidden ml-auto p-2 flex items-center justify-center"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="Toggle menu"
               style={{
@@ -526,7 +529,7 @@ export default function HeaderLoggedIn({
 
       {/* Mobile Menu Overlay */}
       <div
-        className="xl:hidden"
+        className="lg:hidden"
         style={{
           position: "fixed",
           inset: 0,
@@ -543,7 +546,7 @@ export default function HeaderLoggedIn({
 
       {/* Mobile Menu */}
       <div
-        className="xl:hidden"
+        className="lg:hidden"
         style={{
           position: "fixed",
           top: "64px",
@@ -830,8 +833,38 @@ export default function HeaderLoggedIn({
           }
         }
 
-        @media (min-width: 1280px) {
+        @media (min-width: 1024px) {
+          .header-mobile-menu-toggle {
+            display: none !important;
+          }
+
           .desktop-user-actions {
+            display: flex !important;
+          }
+
+          .travel-header-nav {
+            flex: 1 1 auto;
+            min-width: 0;
+            margin: 0 1rem;
+            gap: 0.75rem;
+            overflow-x: auto;
+            scrollbar-width: none;
+            white-space: nowrap;
+          }
+
+          .travel-header-nav::-webkit-scrollbar {
+            display: none;
+          }
+
+          .travel-header-nav .nav-link {
+            flex: 0 0 auto;
+            font-size: 1rem !important;
+            white-space: nowrap;
+          }
+        }
+
+        @media (max-width: 1023px) {
+          .header-mobile-menu-toggle {
             display: flex !important;
           }
         }

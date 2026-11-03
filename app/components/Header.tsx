@@ -58,16 +58,11 @@ const navItems: Array<{
   { key: "luxury-properties", label: "Luxury Properties", href: "/luxury" },
   { key: "events", label: "Events", href: "/events" },
   { key: "verified", label: "TE Properties", href: "/hotels?verified=1" },
-  { key: "list-property", label: "List Your Property", href: "/owner/auth/register" },
-];
-
-const authItems: Array<{
-  key: NonNullable<HeaderProps["currentPage"]>;
-  label: string;
-  href: string;
-}> = [
-  { key: "login", label: "Login", href: "/auth/login" },
-  { key: "signup", label: "Sign Up", href: "/auth/register" },
+  {
+    key: "list-property",
+    label: "List Your Property",
+    href: "/owner/auth/register",
+  },
 ];
 
 export default function Header({
@@ -151,7 +146,7 @@ export default function Header({
         className={`${isHeroPage && !scrolled && !solidHeader ? "header-hero" : scrolled || solidHeader || !isHeroPage ? "header-scrolled" : ""} ${forceBlackText && !scrolled && !isHeroPage ? "header-black-text" : ""}`}
       >
         <div className="max-w-7xl mx-auto" style={{ position: "relative" }}>
-          <div className="flex items-center">
+          <div className="flex items-center travel-header-row">
             <Link
               href="/"
               aria-label="TravelExpertz Home"
@@ -169,7 +164,10 @@ export default function Header({
             </Link>
 
             {/* Desktop Navigation */}
-            <nav aria-label="Primary" className="hidden xl:flex gap-3 pl-5 travel-header-nav">
+            <nav
+              aria-label="Primary"
+              className="hidden lg:flex travel-header-nav"
+            >
               {navItems.map((item) => {
                 const isActive = currentPage === item.key;
 
@@ -180,9 +178,9 @@ export default function Header({
                     aria-current={isActive ? "page" : undefined}
                     className="nav-link"
                     style={{
-                      fontSize: "0.82rem",
-                      fontWeight: "500",
-                      padding: "0.5rem 0.25rem",
+                      fontSize: "0.95rem",
+                      fontWeight: "600",
+                      padding: "0.7rem 0.35rem",
                       color: isActive
                         ? "#0B6DFF"
                         : isHeroPage && !scrolled
@@ -195,7 +193,7 @@ export default function Header({
                       transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                       cursor: "pointer",
                       position: "relative",
-                      paddingBottom: "0.25rem",
+                      paddingBottom: "0.35rem",
                       borderBottom: isActive
                         ? "2px solid #0B6DFF"
                         : "2px solid transparent",
@@ -226,128 +224,15 @@ export default function Header({
               })}
             </nav>
 
-            {/* Desktop Auth Buttons */}
-            <div
-              className="desktop-auth-buttons"
-              style={{
-                display: "none",
-                alignItems: "center",
-                gap: "8px",
-                marginLeft: "auto",
-              }}
-            >
-              <Link
-                href="/auth/login"
-                className="inline-flex items-center justify-center"
-                style={{
-                  backgroundColor: "transparent",
-                  color:
-                    isHeroPage && !scrolled
-                      ? "white"
-                      : forceBlackText && !scrolled
-                        ? "#000000"
-                        : "#0B6DFF",
-                  border: `1px solid ${isHeroPage && !scrolled ? "rgba(255, 255, 255, 0.5)" : forceBlackText && !scrolled ? "#000000" : "#0B6DFF"}`,
-                  borderRadius: "12px",
-                  fontWeight: 600,
-                  fontSize: "0.95rem",
-                  cursor: "pointer",
-                  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                  padding: "12px 26px",
-                }}
-                onMouseEnter={(e) => {
-                  if (isHeroPage && !scrolled) {
-                    e.currentTarget.style.backgroundColor =
-                      "rgba(255, 255, 255, 0.15)";
-                    e.currentTarget.style.borderColor =
-                      "rgba(255, 255, 255, 0.8)";
-                  } else if (forceBlackText && !scrolled) {
-                    e.currentTarget.style.backgroundColor =
-                      "rgba(0, 0, 0, 0.05)";
-                    e.currentTarget.style.borderColor = "#000000";
-                  } else {
-                    e.currentTarget.style.backgroundColor = "#F0F7FF";
-                    e.currentTarget.style.borderColor = "#0B6DFF";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "transparent";
-                  e.currentTarget.style.borderColor =
-                    isHeroPage && !scrolled
-                      ? "rgba(255, 255, 255, 0.5)"
-                      : forceBlackText && !scrolled
-                        ? "#000000"
-                        : "#0B6DFF";
-                }}
-              >
+            <div className="desktop-auth-buttons">
+              <Link href="/auth/login" className="header-login-button">
                 LOGIN
-              </Link>
-              <Link
-                href="/auth/register"
-                className="inline-flex items-center justify-center"
-                style={{
-                  background:
-                    isHeroPage && !scrolled
-                      ? "rgba(255, 255, 255, 0.2)"
-                      : forceBlackText && !scrolled
-                        ? "#000000"
-                        : "linear-gradient(135deg, #0B6DFF, #0056D6)",
-                  color: "white",
-                  border:
-                    isHeroPage && !scrolled
-                      ? "1px solid rgba(255, 255, 255, 0.3)"
-                      : "none",
-                  borderRadius: "12px",
-                  fontWeight: 600,
-                  fontSize: "0.95rem",
-                  cursor: "pointer",
-                  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                  padding: "12px 28px",
-                  boxShadow:
-                    isHeroPage && !scrolled
-                      ? "0 4px 12px rgba(0, 0, 0, 0.1)"
-                      : forceBlackText && !scrolled
-                        ? "0 4px 12px rgba(0, 0, 0, 0.25)"
-                        : "0 4px 12px rgba(11, 109, 255, 0.25)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                  if (isHeroPage && !scrolled) {
-                    e.currentTarget.style.background =
-                      "rgba(255, 255, 255, 0.3)";
-                    e.currentTarget.style.boxShadow =
-                      "0 8px 20px rgba(0, 0, 0, 0.15)";
-                  } else if (forceBlackText && !scrolled) {
-                    e.currentTarget.style.boxShadow =
-                      "0 8px 16px rgba(0, 0, 0, 0.35)";
-                  } else {
-                    e.currentTarget.style.boxShadow =
-                      "0 8px 20px rgba(11, 109, 255, 0.35)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.background =
-                    isHeroPage && !scrolled
-                      ? "rgba(255, 255, 255, 0.2)"
-                      : forceBlackText && !scrolled
-                        ? "#000000"
-                        : "linear-gradient(135deg, #0B6DFF, #0056D6)";
-                  e.currentTarget.style.boxShadow =
-                    isHeroPage && !scrolled
-                      ? "0 4px 12px rgba(0, 0, 0, 0.1)"
-                      : forceBlackText && !scrolled
-                        ? "0 4px 12px rgba(0, 0, 0, 0.25)"
-                        : "0 4px 12px rgba(11, 109, 255, 0.25)";
-                }}
-              >
-                SIGN IN / SIGN UP
               </Link>
             </div>
 
             {/* Mobile Hamburger Menu Button */}
             <button
-              className="xl:hidden ml-auto p-2 flex items-center justify-center"
+              className="header-mobile-menu-toggle lg:hidden ml-auto p-2 flex items-center justify-center"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="Toggle menu"
               style={{
@@ -434,7 +319,7 @@ export default function Header({
         style={{
           position: "fixed",
           inset: 0,
-          top: "64px",
+          top: "76px",
           backgroundColor: "rgba(0, 0, 0, 0.4)",
           backdropFilter: "blur(4px)",
           zIndex: 9997,
@@ -450,10 +335,10 @@ export default function Header({
         className="xl:hidden"
         style={{
           position: "fixed",
-          top: "64px",
+          top: "76px",
           right: 0,
           width: "min(320px, 85vw)",
-          height: "calc(100vh - 64px)",
+          height: "calc(100vh - 76px)",
           backgroundColor: "white",
           boxShadow: "-8px 0 30px rgba(0, 0, 0, 0.15)",
           zIndex: 9998,
@@ -544,61 +429,13 @@ export default function Header({
             );
           })}
 
-          {/* Mobile Auth Buttons */}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "0.75rem",
-              padding: "1.5rem",
-              borderTop: "1px solid #f1f5f9",
-              marginTop: "1rem",
-              animation: "slideInRight 0.3s ease forwards",
-              animationDelay: "0.35s",
-              opacity: 0,
-            }}
-          >
-            <p
-              style={{
-                fontSize: "0.75rem",
-                fontWeight: 600,
-                color: "#94a3b8",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                marginBottom: "0.5rem",
-              }}
-            >
-              Account
-            </p>
+          <div className="mobile-auth-button">
             <Link
               href="/auth/login"
               onClick={() => setMobileMenuOpen(false)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "0.5rem",
-                padding: "12px 26px",
-                backgroundColor: "transparent",
-                color: "#0B6DFF",
-                border: "1px solid #0B6DFF",
-                borderRadius: "12px",
-                fontWeight: 600,
-                fontSize: "0.95rem",
-                textDecoration: "none",
-                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "#F0F7FF";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "transparent";
-              }}
+              className="header-login-button"
             >
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: "1.25rem" }}
-              >
+              <span className="material-symbols-outlined" aria-hidden="true">
                 login
               </span>
               Login
@@ -606,37 +443,9 @@ export default function Header({
             <Link
               href="/auth/register"
               onClick={() => setMobileMenuOpen(false)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "0.5rem",
-                padding: "12px 28px",
-                background: "linear-gradient(135deg, #0B6DFF, #0056D6)",
-                color: "white",
-                border: "none",
-                borderRadius: "12px",
-                fontWeight: 600,
-                fontSize: "0.95rem",
-                textDecoration: "none",
-                boxShadow: "0 4px 12px rgba(11, 109, 255, 0.25)",
-                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-2px)";
-                e.currentTarget.style.boxShadow =
-                  "0 8px 20px rgba(11, 109, 255, 0.35)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow =
-                  "0 4px 12px rgba(11, 109, 255, 0.25)";
-              }}
+              className="header-signup-button"
             >
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: "1.25rem" }}
-              >
+              <span className="material-symbols-outlined" aria-hidden="true">
                 person_add
               </span>
               Sign Up
@@ -658,9 +467,166 @@ export default function Header({
           }
         }
 
-        @media (min-width: 1280px) {
-          .desktop-auth-buttons {
+        .header-login-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          min-height: 46px;
+          padding: 11px 24px;
+          border: 1px solid #ffffff;
+          border-radius: 12px;
+          background: rgba(255, 255, 255, 0.12);
+          color: #ffffff;
+          font-size: 0.95rem;
+          font-weight: 800;
+          letter-spacing: 0.02em;
+          text-decoration: none;
+          white-space: nowrap;
+        }
+
+        .header-scrolled .header-login-button,
+        .header-black-text .header-login-button {
+          border-color: #0b6dff;
+          background: #ffffff;
+          color: #0b6dff;
+        }
+
+        .desktop-auth-buttons {
+          display: none;
+          margin-left: auto;
+          align-items: center;
+        }
+
+        .header-mobile-menu-toggle {
+          display: none !important;
+        }
+
+        .header-signup-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          min-height: 46px;
+          padding: 11px 24px;
+          border: 1px solid #0b6dff;
+          border-radius: 12px;
+          background: #0b6dff;
+          color: #ffffff;
+          font-size: 0.95rem;
+          font-weight: 800;
+          text-decoration: none;
+          white-space: nowrap;
+        }
+
+        .travel-header-nav {
+          gap: 0.55rem;
+          align-items: center;
+          justify-content: flex-start;
+          flex: 1 1 auto;
+          min-width: 0;
+          margin: 0 1rem;
+          padding-left: 0;
+          max-width: none;
+          overflow-x: auto;
+          scrollbar-width: none;
+        }
+
+        .travel-header-nav::-webkit-scrollbar {
+          display: none;
+        }
+
+        .travel-header-nav .nav-link {
+          flex: 0 0 auto;
+          padding: 0.7rem 0.35rem !important;
+          font-size: 0.95rem !important;
+          line-height: 1.2;
+          white-space: nowrap;
+        }
+
+        .mobile-auth-button {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+          padding: 1.25rem 1.5rem;
+          margin-top: 0.75rem;
+          border-top: 1px solid #f1f5f9;
+        }
+
+        .mobile-auth-button .header-login-button,
+        .mobile-auth-button .header-signup-button {
+          width: 100%;
+        }
+
+        @media (min-width: 1024px) {
+          header > div.max-w-7xl {
+            width: calc(100% - 32px);
+            max-width: none !important;
+          }
+
+          .travel-header-row {
+            position: relative;
             display: flex !important;
+            justify-content: flex-start;
+            height: 76px !important;
+          }
+
+          .travel-header-row > a {
+            justify-self: start;
+          }
+
+          .travel-header-row .travel-header-nav {
+            position: absolute;
+            left: 50%;
+            width: min(1180px, calc(100% - 220px));
+            max-width: none;
+            justify-content: center;
+            transform: translateX(-50%);
+          }
+
+          .desktop-auth-buttons {
+            display: flex;
+            flex: 0 0 auto;
+            position: absolute;
+            right: 0;
+            margin-left: auto;
+          }
+
+          .mobile-auth-button {
+            display: none;
+          }
+
+          .travel-header-nav {
+            gap: 0.35rem;
+          }
+
+          .travel-header-nav .nav-link {
+            padding-left: 0.25rem !important;
+            padding-right: 0.25rem !important;
+            font-size: 0.85rem !important;
+          }
+        }
+
+        @media (max-width: 1023px) {
+          .desktop-auth-buttons {
+            display: none !important;
+          }
+
+          .header-mobile-menu-toggle {
+            display: flex !important;
+          }
+        }
+
+        @media (min-width: 1024px) and (max-width: 1199px) {
+          .travel-header-row .travel-header-nav {
+            width: calc(100% - 220px);
+            gap: 0.25rem;
+          }
+
+          .travel-header-nav .nav-link {
+            padding-left: 0.2rem !important;
+            padding-right: 0.2rem !important;
+            font-size: 0.78rem !important;
           }
         }
       `}</style>
