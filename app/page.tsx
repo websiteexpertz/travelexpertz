@@ -15,7 +15,6 @@ import {
   ShieldCheck,
   Sparkles,
   Star,
-  Users,
 } from "lucide-react";
 import Header from "./components/Header";
 import ServiceEnquiryModal, { ServiceId } from "./components/ServiceEnquiryModal";
@@ -169,7 +168,6 @@ export default function Home() {
       location: String(data.get("location") || ""),
       checkIn: String(data.get("checkIn") || ""),
       checkOut: String(data.get("checkOut") || ""),
-      guests: String(data.get("guests") || ""),
     });
     window.location.href = `/hotels/search?${params}`;
   };
@@ -193,7 +191,6 @@ export default function Home() {
           ))}
           <div className="premium-hero-shade" />
           <div className="premium-hero-content">
-            <span className="hero-eyebrow">India&apos;s trusted travel platform</span>
             <h1 key={heroSlides[heroImageIndex].tagline}>{heroSlides[heroImageIndex].tagline}</h1>
             <p>Discover remarkable places, beautiful stays, and thoughtfully planned journeys.</p>
           </div>
@@ -204,17 +201,18 @@ export default function Home() {
             <label><span><MapPin size={17} /> Destination</span><input name="location" placeholder="Where do you want to go?" /></label>
             <label><span><CalendarDays size={17} /> Check in</span><input name="checkIn" type="date" /></label>
             <label><span><CalendarDays size={17} /> Check out</span><input name="checkOut" type="date" /></label>
-            <label><span><Users size={17} /> Travellers</span><select name="guests" defaultValue="2"><option value="1">1 traveller</option><option value="2">2 travellers</option><option value="3">3 travellers</option><option value="4">4 travellers</option><option value="5">5+ travellers</option></select></label>
             <button type="submit">Search stays <ArrowRight size={18} /></button>
           </form>
         </section>
 
         <section className="home-section" id="services">
-          <div className="section-heading"><div><span>Travel, made effortless</span><h2>Explore Our Travel Solutions</h2></div><p>One trusted team for every important part of your journey.</p></div>
+          <div className="section-heading"><div><h2>Explore Our Travel Solutions</h2><p className="section-subheading">Travel, made effortless</p><p>One trusted team for every important part of your journey.</p></div></div>
           <div className="service-grid">
             {services.map((service) => (
               <article className="service-card" key={service.id}>
-                <div className="service-card-image"><Image src={service.image} alt="" fill sizes="(max-width: 700px) 100vw, 25vw" /></div>
+                <div className="service-card-image">
+                  <img src={service.image} alt={service.title} />
+                </div>
                 <div className="service-card-body"><span className="service-kicker">{service.title}</span><h3>{service.tagline}</h3><p>{service.description}</p><button onClick={() => setActiveService(service.id)}>{service.cta}<ArrowRight size={17} /></button></div>
               </article>
             ))}
@@ -222,7 +220,7 @@ export default function Home() {
         </section>
 
         <section className="home-section">
-          <div className="section-heading"><div><span>Happenings Around India (Upcoming Events)</span><h2>Experience India. Celebrate Every Moment.</h2></div><Link href="/events">All events <ChevronRight size={18} /></Link></div>
+          <div className="section-heading"><div><h2>Experience India. Celebrate Every Moment.</h2><p className="section-subheading">Happenings Around India (Upcoming Events)</p></div><Link href="/events">All events <ChevronRight size={18} /></Link></div>
           <p className="section-description">From vibrant festivals and cultural celebrations to concerts, exhibitions, sporting events and grand celebrations, discover what is happening across India and let Travel Expertz plan your visit.</p>
           {events.length > 0 ? (
             <div className="event-grid">
@@ -262,14 +260,24 @@ export default function Home() {
 
         <section className="why-section">
           <div className="home-section">
-            <div className="section-heading"><div><span>Your Journey, Our Passion. Your Happiness, Our Priority.</span><h2>Why Choose Travel Expertz</h2></div></div>
+            <div className="section-heading"><div><h2>Why Choose Travel Expertz</h2><p className="section-subheading">Your Journey, Our Passion. Your Happiness, Our Priority.</p></div></div>
             <p className="section-description">At Travel Expertz, we believe every journey should be exciting, comfortable and memorable. From flights and hotels to holiday packages and personalized arrangements, we make travel planning simple, seamless and stress-free.</p>
-            <div className="why-grid">{whyUs.map(({ icon: Icon, title, text }) => <article key={title}><Icon size={27} /><h3>{title}</h3><p>{text}</p></article>)}</div>
+            <div className="why-marquee" aria-label="Why choose Travel Expertz">
+              <div className="why-marquee-track">
+                {[...whyUs, ...whyUs].map(({ icon: Icon, title, text }, index) => (
+                  <article className="why-card" key={`${title}-${index}`}>
+                    <Icon size={27} />
+                    <h3>{title}</h3>
+                    <p>{text}</p>
+                  </article>
+                ))}
+              </div>
+            </div>
           </div>
         </section>
 
         <section className="home-section testimonials-section">
-          <div className="section-heading"><div><span>Do not just take our word for it, hear from our travellers.</span><h2>Stories of Happy Journeys</h2></div></div>
+          <div className="section-heading"><div><h2>Stories of Happy Journeys</h2><p className="section-subheading">Do not just take our word for it, hear from our travellers.</p></div></div>
           <p className="section-description">At Travel Expertz, our greatest reward is the happiness and satisfaction of our travellers. Every journey tells a story, and every happy traveller inspires us to do better. From memorable holidays and exciting adventures to seamless bookings and personalized travel assistance, discover what our customers have to say about their experiences with us.</p>
           <div className="testimonial-grid">
             {(reviews.length ? reviews : [
@@ -283,8 +291,8 @@ export default function Home() {
         <section className="home-section database-curations">
           <div className="section-heading">
             <div>
-              <span>Go Beyond the Ordinary. Discover the Extraordinary.</span>
               <h2>Beyond Famous Destinations Lies a World of Wonders</h2>
+              <p className="section-subheading">Go Beyond the Ordinary. Discover the Extraordinary.</p>
               <strong>Uncover India&apos;s Beauty</strong>
             </div>
           </div>
@@ -304,8 +312,8 @@ export default function Home() {
         <section className="home-section database-curations">
           <div className="section-heading">
             <div>
-              <span>Specially Curated for Your Perfect Getaway.</span>
               <h2>Specially Selected Getaways</h2>
+              <p className="section-subheading">Specially Curated for Your Perfect Getaway.</p>
             </div>
             <Link href="/hotels">Explore stays <ChevronRight size={18} /></Link>
           </div>

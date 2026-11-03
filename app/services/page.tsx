@@ -122,7 +122,13 @@ export default function ServicesPage() {
   const [heroLoaded, setHeroLoaded] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [serviceHero, setServiceHero] = useState({
-    title: <>Premium Travel<br />Services</>,
+    title: (
+      <>
+        Premium Travel
+        <br />
+        Services
+      </>
+    ),
     image: "/New-images/Flights.jpg",
   });
   const cardsRef = useRef<HTMLDivElement>(null);
@@ -131,11 +137,38 @@ export default function ServicesPage() {
     setHeroLoaded(true);
     const service = new URLSearchParams(window.location.search).get("service");
     if (service === "flight") {
-      setServiceHero({ title: <>Your Wings<br />to the World</>, image: "/New-images/Flights.jpg" });
+      setServiceHero({
+        title: (
+          <>
+            Your Wings
+            <br />
+            to the World
+          </>
+        ),
+        image: "/New-images/Flights.jpg",
+      });
     } else if (service === "train") {
-      setServiceHero({ title: <>From Station to Station,<br />Memories Along the Way</>, image: "/New-images/Trains.jpg" });
+      setServiceHero({
+        title: (
+          <>
+            From Station to Station,
+            <br />
+            Memories Along the Way
+          </>
+        ),
+        image: "/New-images/Trains.jpg",
+      });
     } else if (service === "bus") {
-      setServiceHero({ title: <>Connecting Destinations,<br />Creating Memories</>, image: "/New-images/Buses.jpg" });
+      setServiceHero({
+        title: (
+          <>
+            Connecting Destinations,
+            <br />
+            Creating Memories
+          </>
+        ),
+        image: "/New-images/Buses.jpg",
+      });
     }
   }, []);
 
