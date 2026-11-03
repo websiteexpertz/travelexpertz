@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Header from "../components/Header";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 
 const ServiceBookingFormEnhanced = dynamic(
   () => import("../components/ServiceBookingFormEnhanced"),
@@ -376,14 +377,33 @@ export default function ServicesPage() {
           onMouseMove={handleMouseMove}
           style={{
             position: "relative",
-            background:
-              `linear-gradient(90deg, rgba(10,25,55,.82), rgba(10,25,55,.35)), url('${serviceHero.image}') center / cover no-repeat`,
+            background: "#0a1937",
             color: "white",
             padding: "7rem 1.5rem 5rem",
             textAlign: "center",
             overflow: "hidden",
           }}
         >
+          <Image
+            src={serviceHero.image}
+            alt=""
+            fill
+            priority
+            unoptimized
+            sizes="100vw"
+            style={{ objectFit: "cover", zIndex: 0 }}
+          />
+          <div
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              inset: 0,
+              background:
+                "linear-gradient(90deg, rgba(10,25,55,.82), rgba(10,25,55,.35))",
+              zIndex: 0,
+              pointerEvents: "none",
+            }}
+          />
           {/* Animated gradient orbs */}
           <div
             style={{
