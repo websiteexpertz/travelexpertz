@@ -120,10 +120,22 @@ export default function ServicesPage() {
   const [visibleCards, setVisibleCards] = useState<Set<number>>(new Set());
   const [heroLoaded, setHeroLoaded] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [serviceHero, setServiceHero] = useState({
+    title: <>Premium Travel<br />Services</>,
+    image: "/New-images/Flights.jpg",
+  });
   const cardsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setHeroLoaded(true);
+    const service = new URLSearchParams(window.location.search).get("service");
+    if (service === "flight") {
+      setServiceHero({ title: <>Your Wings<br />to the World</>, image: "/New-images/Flights.jpg" });
+    } else if (service === "train") {
+      setServiceHero({ title: <>From Station to Station,<br />Memories Along the Way</>, image: "/New-images/Trains.jpg" });
+    } else if (service === "bus") {
+      setServiceHero({ title: <>Connecting Destinations,<br />Creating Memories</>, image: "/New-images/Buses.jpg" });
+    }
   }, []);
 
   useEffect(() => {
@@ -365,7 +377,7 @@ export default function ServicesPage() {
           style={{
             position: "relative",
             background:
-              "linear-gradient(160deg, #1e3a8a 0%, #1d4ed8 30%, #2563eb 60%, #1e40af 100%)",
+              `linear-gradient(90deg, rgba(10,25,55,.82), rgba(10,25,55,.35)), url('${serviceHero.image}') center / cover no-repeat`,
             color: "white",
             padding: "7rem 1.5rem 5rem",
             textAlign: "center",
@@ -514,9 +526,7 @@ export default function ServicesPage() {
                 backgroundClip: "text",
               }}
             >
-              Premium Travel
-              <br />
-              Services
+              {serviceHero.title}
             </h1>
             <p
               style={{

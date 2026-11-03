@@ -6,6 +6,23 @@ html, body, #__next, #root {
   padding: 0 !important;
 }
 
+/* Expanded desktop navigation */
+.travel-header-nav {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: calc(100vw - 320px);
+  overflow-x: auto;
+  scrollbar-width: none;
+  white-space: nowrap;
+}
+.travel-header-nav::-webkit-scrollbar {
+  display: none;
+}
+.travel-header-nav a {
+  flex: 0 0 auto;
+  font-size: 0.82rem !important;
+}
+
 /* ====== HERO SECTION ANIMATIONS ====== */
 @keyframes float {
   0%, 100% {

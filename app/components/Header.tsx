@@ -42,7 +42,7 @@ interface Package {
 }
 
 const navItems: Array<{
-  key: NonNullable<HeaderProps["currentPage"]>;
+  key: string;
   label: string;
   href: string;
 }> = [
@@ -51,10 +51,14 @@ const navItems: Array<{
   { key: "homestays", label: "Homestays", href: "/homestays" },
   { key: "packages", label: "Packages", href: "/packages" },
   { key: "deals", label: "Deals", href: "/deals" },
-  { key: "luxury", label: "Luxury", href: "/luxury" },
+  { key: "flights", label: "Flights", href: "/services?service=flight" },
+  { key: "cabs", label: "Cabs", href: "/cabs" },
+  { key: "trains", label: "Trains", href: "/services?service=train" },
+  { key: "buses", label: "Buses", href: "/services?service=bus" },
+  { key: "luxury-properties", label: "Luxury Properties", href: "/luxury" },
   { key: "events", label: "Events", href: "/events" },
-  { key: "cabs", label: "Cab", href: "/cabs" },
-  { key: "verified", label: "Travel Expertz Properties", href: "/verified" },
+  { key: "verified", label: "TE Properties", href: "/hotels?verified=1" },
+  { key: "list-property", label: "List Your Property", href: "/owner/auth/register" },
 ];
 
 const authItems: Array<{
@@ -165,7 +169,7 @@ export default function Header({
             </Link>
 
             {/* Desktop Navigation */}
-            <nav aria-label="Primary" className="hidden xl:flex gap-6 pl-8">
+            <nav aria-label="Primary" className="hidden xl:flex gap-3 pl-5 travel-header-nav">
               {navItems.map((item) => {
                 const isActive = currentPage === item.key;
 
@@ -176,7 +180,7 @@ export default function Header({
                     aria-current={isActive ? "page" : undefined}
                     className="nav-link"
                     style={{
-                      fontSize: "1.05rem",
+                      fontSize: "0.82rem",
                       fontWeight: "500",
                       padding: "0.5rem 0.25rem",
                       color: isActive
@@ -228,7 +232,7 @@ export default function Header({
               style={{
                 display: "none",
                 alignItems: "center",
-                gap: "14px",
+                gap: "8px",
                 marginLeft: "auto",
               }}
             >
@@ -276,7 +280,7 @@ export default function Header({
                         : "#0B6DFF";
                 }}
               >
-                Login
+                LOGIN
               </Link>
               <Link
                 href="/auth/register"
@@ -337,7 +341,7 @@ export default function Header({
                         : "0 4px 12px rgba(11, 109, 255, 0.25)";
                 }}
               >
-                Sign Up
+                SIGN IN / SIGN UP
               </Link>
             </div>
 

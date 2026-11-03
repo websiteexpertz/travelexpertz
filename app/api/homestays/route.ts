@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
     const admin = searchParams.get("admin") === "true";
+    const handpicked = searchParams.get("handpicked") === "true";
 
     client = new MongoClient(MONGODB_URI);
     await client.connect();
@@ -78,7 +79,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Otherwise, fetch all homestays (built-in + approved owner homestays)
-    const query = admin ? {} : { active: true };
+    const query: any = admin ? {} : { active: true };
+    if (handpicked) query.isHandpicked = true;
     const homestays = await homestaysCollection
       .find(query)
       .sort({ popular: -1, createdAt: -1 })
@@ -94,6 +96,7 @@ export async function GET(request: NextRequest) {
           { propertyType: "homestay" },
           { propertyType: "Homestay" },
         ],
+        ...(handpicked ? { isHandpicked: true } : {}),
       })
       .sort({ createdAt: -1 })
       .toArray();

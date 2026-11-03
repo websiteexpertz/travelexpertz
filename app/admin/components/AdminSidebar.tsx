@@ -44,6 +44,7 @@ const menuItems: MenuItem[] = [
     label: "Hotel Destinations",
     href: "/admin/hotel-destinations",
   },
+  { icon: "terrain", label: "Explore Destinations", href: "/admin/destinations" },
   { icon: "article", label: "Blogs", href: "/admin/blogs" },
 ];
 

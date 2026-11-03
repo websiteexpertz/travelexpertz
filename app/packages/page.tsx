@@ -1202,7 +1202,7 @@ export default function Packages() {
           <div
             className="packages-hero"
             style={{
-              backgroundImage: "url('/packages-hero.jpeg')",
+              backgroundImage: "url('/New-images/Tour PAckages.jpeg')",
               backgroundSize: "cover",
               backgroundPosition: "center",
               position: "relative",
@@ -1261,7 +1261,7 @@ export default function Packages() {
                     animation: "pulse 2s ease infinite",
                   }}
                 />
-                Curated Journeys for Every Traveler
+                From Dream Destinations to Real Adventures
               </div>
 
               <h1
@@ -1279,7 +1279,7 @@ export default function Packages() {
                   textShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
                 }}
               >
-                From Planning to Paradise — We&apos;ve Got You.
+                Your Perfect Holiday, Thoughtfully Planned
               </h1>
               <p
                 style={{
@@ -1296,7 +1296,7 @@ export default function Packages() {
                   textShadow: "0 1px 4px rgba(0, 0, 0, 0.2)",
                 }}
               >
-                Curated travel experiences tailored just for you.
+                From Dream Destinations to Real Adventures
               </p>
 
               {/* Trust Indicators */}

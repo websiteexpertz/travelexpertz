@@ -224,7 +224,9 @@ function BookingPageContent() {
 
       const { paymentSessionId } = await orderResponse.json();
       const cashfree = await load({
-        mode: (process.env.NEXT_PUBLIC_CASHFREE_ENV === "production" ? "production" : "sandbox") as "sandbox" | "production",
+        mode: (process.env.NEXT_PUBLIC_CASHFREE_ENV === "production"
+          ? "production"
+          : "sandbox") as "sandbox" | "production",
       });
 
       if (!cashfree) throw new Error("Cashfree checkout could not be loaded");

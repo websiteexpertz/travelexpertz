@@ -89,7 +89,9 @@ export default function LuxuryPage() {
         {/* Hero Section */}
         <div
           style={{
-            background: "linear-gradient(135deg, #d4af37 0%, #f4e4b0 100%)",
+            backgroundImage: "linear-gradient(90deg, rgba(0,0,0,.68), rgba(0,0,0,.18)), url('/New-images/Luxury Properties.jpg')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
             padding: "4rem 2rem",
             textAlign: "center",
           }}
@@ -99,22 +101,22 @@ export default function LuxuryPage() {
               margin: "0 0 1rem",
               fontSize: "3rem",
               fontWeight: 800,
-              color: "#1a1a1a",
+              color: "#ffffff",
               textTransform: "uppercase",
               letterSpacing: "2px",
             }}
           >
-            ⭐ Luxury Collection ⭐
+            Indulge in the Art of Fine Living.
           </h1>
           <p
             style={{
               margin: 0,
               fontSize: "1.2rem",
-              color: "#2d2d2d",
+              color: "#ffffff",
               fontWeight: 500,
             }}
           >
-            Experience the finest handpicked luxury properties
+            The Finest Stays for the Finest Journeys.
           </p>
         </div>
 

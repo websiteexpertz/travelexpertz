@@ -159,8 +159,13 @@ export default function DealsPage() {
     <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-gray-50">
       <Header currentPage="deals" />
 
-      <main style={{ padding: "2rem 1rem" }}>
-        <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+      <main style={{ padding: 0 }}>
+        <div style={{ backgroundImage: "linear-gradient(90deg, rgba(0,0,0,.68), rgba(0,0,0,.18)), url('/New-images/Deals.jpg')", backgroundSize: "cover", backgroundPosition: "center", padding: "4rem 1rem", textAlign: "center", color: "#ffffff" }}>
+          <h1 style={{ fontSize: "2.5rem", fontWeight: 800, marginBottom: ".5rem" }}>The Best Journeys Come with Great Deals</h1>
+          <p style={{ fontSize: "1.15rem", margin: 0 }}>Your Next Adventure, Now More Affordable</p>
+        </div>
+        <div style={{ padding: "2rem 1rem" }}>
+          <div style={{ maxWidth: "900px", margin: "0 auto" }}>
           {/* Header */}
           <div style={{ marginBottom: "2rem", textAlign: "center" }}>
             <h1
@@ -171,7 +176,7 @@ export default function DealsPage() {
                 color: "#1f2937",
               }}
             >
-              🎁 Special Deals & Offers
+              Special Deals & Offers
             </h1>
             <p style={{ fontSize: "1.1rem", color: "#6b7280" }}>
               Exclusive discounts on hotels, homestays, and packages
@@ -518,6 +523,7 @@ export default function DealsPage() {
               })}
             </div>
           )}
+        </div>
         </div>
       </main>
     </div>

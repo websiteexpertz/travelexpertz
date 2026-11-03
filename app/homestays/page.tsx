@@ -422,7 +422,7 @@ export default function Homestays() {
           <div
             className="hero-section"
             style={{
-              backgroundImage: "url('/homestay-hero.jpeg')",
+              backgroundImage: "url('/New-images/Homestay.jpg')",
               backgroundSize: "cover",
               backgroundPosition: "center",
               position: "relative",
@@ -488,7 +488,7 @@ export default function Homestays() {
                     letterSpacing: "0.02em",
                   }}
                 >
-                  Authentic Home Experiences
+                  Experience Local Living, Create Lasting Memories
                 </span>
               </div>
 
@@ -509,7 +509,7 @@ export default function Homestays() {
                   padding: "0 0.25rem",
                 }}
               >
-                Where Comfort Feels Like Home.
+                Experience Destinations Through Local Hospitality
               </h1>
 
               {/* Trust Indicators */}

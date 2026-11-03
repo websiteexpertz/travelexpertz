@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
     const admin = searchParams.get("admin") === "true";
     const city = searchParams.get("city");
     const state = searchParams.get("state");
+    const handpicked = searchParams.get("handpicked") === "true";
 
     client = new MongoClient(MONGODB_URI);
     await client.connect();
@@ -71,6 +72,7 @@ export async function GET(request: NextRequest) {
 
     // Build filter for city/state if provided
     const hotelFilter: any = admin ? {} : { active: true };
+    if (handpicked) hotelFilter.isHandpicked = true;
     if (city) {
       hotelFilter.city = { $regex: city, $options: "i" };
     }
@@ -95,6 +97,7 @@ export async function GET(request: NextRequest) {
         { propertyType: "Hotel" },
       ],
     };
+    if (handpicked) ownerPropertiesFilter.isHandpicked = true;
     if (city) {
       ownerPropertiesFilter.city = { $regex: city, $options: "i" };
     }

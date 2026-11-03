@@ -34,20 +34,33 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const service = String(body.serviceType || "");
+    const normalized = {
+      ...body,
+      fullName: String(body.fullName || body.yourFullName || "").trim(),
+      email: String(body.email || body.emailAddress || "").trim(),
+      mobile: String(body.mobile || body.mobileNumber || "").trim(),
+    };
 
-    // Validation
-    if (!body.serviceType || !body.fullName || !body.mobile || !body.email) {
+    const supportedServices = ["visa", "forex", "insurance", "destination-wedding"];
+    if (!supportedServices.includes(service) || !normalized.fullName || !normalized.mobile || !normalized.email) {
       return NextResponse.json(
-        { error: "Missing required fields: serviceType, fullName, mobile, email" },
+        { error: "Missing required enquiry fields." },
         { status: 400 }
       );
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized.email)) {
+      return NextResponse.json({ error: "Please enter a valid email address." }, { status: 400 });
+    }
+    if (body.consent !== true && String(body.consent).toLowerCase() !== "true") {
+      return NextResponse.json({ error: "Consent is required to submit this enquiry." }, { status: 400 });
     }
 
     const db = await getDb();
     const bookingsCollection = db.collection("serviceBookings");
 
     const newBooking = {
-      ...body,
+      ...normalized,
       status: "pending",
       createdAt: new Date(),
       updatedAt: new Date(),

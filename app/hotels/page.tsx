@@ -336,7 +336,7 @@ function HotelsContent() {
           <div
             className="hero-section"
             style={{
-              backgroundImage: "url('/hotel-hero.jpeg')",
+              backgroundImage: "url('/New-images/Hotel.jpg')",
               backgroundSize: "cover",
               backgroundPosition: "center",
               position: "relative",
@@ -423,7 +423,9 @@ function HotelsContent() {
                   padding: "0 0.25rem",
                 }}
               >
-                Your Perfect Stay, Just a Click Away.
+                {searchParams.get("verified") === "1"
+                  ? "Quality Checked. Travel Expertz Approved"
+                  : "Experience Comfort Beyond Expectations."}
               </h1>
 
               {/* Trust Indicators */}

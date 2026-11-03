@@ -63,6 +63,7 @@ interface Homestay {
   isLuxury?: boolean;
   isTeVerified?: boolean;
   isDeal?: boolean;
+  isHandpicked?: boolean;
   dealDescription?: string;
   starCategory?: number;
   customFields?: { [key: string]: any };
@@ -104,6 +105,7 @@ const emptyHomestay: Homestay = {
   isLuxury: false,
   isTeVerified: false,
   isDeal: false,
+  isHandpicked: false,
   dealDescription: "",
   starCategory: 3,
   customFields: {},
@@ -1546,6 +1548,14 @@ export default function AdminHomestays() {
                       }
                     />
                     Active
+                  </label>
+                  <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.9rem" }}>
+                    <input
+                      type="checkbox"
+                      checked={formData.isHandpicked}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, isHandpicked: e.target.checked }))}
+                    />
+                    Handpicked for Homepage
                   </label>
                   <label
                     style={{
