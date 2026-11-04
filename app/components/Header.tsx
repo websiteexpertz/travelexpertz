@@ -478,7 +478,7 @@ export default function Header({
           border-radius: 12px;
           background: rgba(255, 255, 255, 0.12);
           color: #ffffff;
-          font-size: 0.95rem;
+          font-size: 1.15rem;
           font-weight: 800;
           letter-spacing: 0.02em;
           text-decoration: none;
@@ -513,7 +513,7 @@ export default function Header({
           border-radius: 12px;
           background: #0b6dff;
           color: #ffffff;
-          font-size: 0.95rem;
+          font-size: 1.15rem;
           font-weight: 800;
           text-decoration: none;
           white-space: nowrap;
@@ -539,7 +539,7 @@ export default function Header({
         .travel-header-nav .nav-link {
           flex: 0 0 auto;
           padding: 0.7rem 0.35rem !important;
-          font-size: 0.95rem !important;
+          font-size: 1.1rem !important;
           line-height: 1.2;
           white-space: nowrap;
         }
@@ -597,13 +597,13 @@ export default function Header({
           }
 
           .travel-header-nav {
-            gap: 0.35rem;
+            gap: 0.5rem;
           }
 
           .travel-header-nav .nav-link {
             padding-left: 0.25rem !important;
             padding-right: 0.25rem !important;
-            font-size: 0.85rem !important;
+            font-size: 1.1rem !important;
           }
         }
 
