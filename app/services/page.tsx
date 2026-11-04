@@ -124,9 +124,7 @@ export default function ServicesPage() {
   const [serviceHero, setServiceHero] = useState({
     title: (
       <>
-        Premium Travel
-        <br />
-        Services
+        Premium Travel Services
       </>
     ),
     image: "/New-images/Flights.jpg",
@@ -140,9 +138,7 @@ export default function ServicesPage() {
       setServiceHero({
         title: (
           <>
-            Your Wings
-            <br />
-            to the World
+            Your Wings to the World
           </>
         ),
         image: "/New-images/Flights.jpg",
@@ -151,9 +147,7 @@ export default function ServicesPage() {
       setServiceHero({
         title: (
           <>
-            From Station to Station,
-            <br />
-            Memories Along the Way
+            From Station to Station, Memories Along the Way
           </>
         ),
         image: "/New-images/Trains.jpg",
@@ -162,9 +156,7 @@ export default function ServicesPage() {
       setServiceHero({
         title: (
           <>
-            Connecting Destinations,
-            <br />
-            Creating Memories
+            Connecting Destinations, Creating Memories
           </>
         ),
         image: "/New-images/Buses.jpg",
@@ -567,11 +559,12 @@ export default function ServicesPage() {
             </div>
             <h1
               style={{
-                fontSize: "clamp(2.75rem, 6vw, 4.25rem)",
+                fontSize: "clamp(2rem, 4.5vw, 3.5rem)",
                 fontWeight: 800,
                 marginBottom: "1.2rem",
                 lineHeight: 1.1,
                 letterSpacing: "-0.02em",
+                whiteSpace: "nowrap",
                 background:
                   "linear-gradient(135deg, #ffffff 0%, #e0edff 50%, #bfdbfe 100%)",
                 WebkitBackgroundClip: "text",

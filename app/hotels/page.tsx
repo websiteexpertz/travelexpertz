@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import Header from "../components/Header";
 import DatePicker from "../components/DatePicker";
 import { formatDateShort } from "@/lib/utils/dateFormat";
+import ImageSlideshow from "../components/ImageSlideshow";
 
 interface Hotel {
   _id?: string;
@@ -17,6 +18,7 @@ interface Hotel {
   rating: number;
   reviews: number;
   image: string;
+  images?: string[];
   amenities: string[];
   popular?: boolean;
   active?: boolean;
@@ -45,6 +47,11 @@ const normalizeHotel = (hotel: Partial<Hotel>): Hotel => {
     rating: Number((hotel as { rating?: unknown }).rating ?? 0) || 0,
     reviews: Number((hotel as { reviews?: unknown }).reviews ?? 0) || 0,
     image: hotel.image ?? "",
+    images: Array.isArray((hotel as { images?: unknown }).images)
+      ? ((hotel as { images: string[] }).images)
+      : hotel.image
+        ? [hotel.image]
+        : [],
     amenities: Array.isArray(hotel.amenities) ? hotel.amenities : [],
     popular: typeof hotel.popular === "boolean" ? hotel.popular : false,
     active: typeof hotel.active === "boolean" ? hotel.active : true,
@@ -70,10 +77,10 @@ const SIDEBAR_PRICE_RANGES = [
 ];
 
 const STAR_OPTIONS = [
-  { label: "7 Star", value: 7, minRating: 4.8, maxRating: 5.01 },
   { label: "5 Star", value: 5, minRating: 4.5, maxRating: 5.01 },
   { label: "4 Star", value: 4, minRating: 3.5, maxRating: 4.5 },
   { label: "3 Star", value: 3, minRating: 2.5, maxRating: 3.5 },
+  { label: "2 Star", value: 2, minRating: 1.5, maxRating: 2.5 },
 ];
 
 const RATING_OPTIONS = [
@@ -122,6 +129,7 @@ function HotelsContent() {
   const [sortBy, setSortBy] = useState<string>("featured");
   const [selectedStars, setSelectedStars] = useState<number[]>([]);
   const [selectedPriceRanges, setSelectedPriceRanges] = useState<string[]>([]);
+  const [maxPrice, setMaxPrice] = useState(30000);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [selectedRatings, setSelectedRatings] = useState<number[]>([]);
   const [showPopularOnly, setShowPopularOnly] = useState(false);
@@ -150,6 +158,7 @@ function HotelsContent() {
   const clearSidebarFilters = () => {
     setSelectedStars([]);
     setSelectedPriceRanges([]);
+    setMaxPrice(30000);
     setSelectedAmenities([]);
     setSelectedRatings([]);
     setShowPopularOnly(false);
@@ -198,7 +207,7 @@ function HotelsContent() {
 
   const starCounts = useMemo<Record<number, number>>(
     () => ({
-      7: hotels.filter((h) => h.rating >= 4.8).length,
+      2: hotels.filter((h) => h.rating >= 1.5 && h.rating < 2.5).length,
       5: hotels.filter((h) => h.rating >= 4.5).length,
       4: hotels.filter((h) => h.rating >= 3.5 && h.rating < 4.5).length,
       3: hotels.filter((h) => h.rating >= 2.5 && h.rating < 3.5).length,
@@ -269,6 +278,7 @@ function HotelsContent() {
                   (range.max === Infinity || hotel.price < range.max)
               : false;
           });
+        const matchesSliderPrice = hotel.price <= maxPrice;
 
         const matchesStars =
           selectedStars.length === 0 ||
@@ -294,6 +304,7 @@ function HotelsContent() {
           matchesPrice &&
           matchesSearch &&
           matchesSidebarPrice &&
+          matchesSliderPrice &&
           matchesStars &&
           matchesAmenities &&
           matchesRatings &&
@@ -314,6 +325,7 @@ function HotelsContent() {
     sortBy,
     selectedStars,
     selectedPriceRanges,
+    maxPrice,
     selectedAmenities,
     selectedRatings,
     showPopularOnly,
@@ -349,7 +361,7 @@ function HotelsContent() {
                 position: "absolute",
                 inset: 0,
                 background:
-                  "linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.05) 50%, rgba(0,0,0,0.08) 100%)",
+                  "linear-gradient(180deg, rgba(0,0,0,0.32) 0%, rgba(0,0,0,0.24) 50%, rgba(0,0,0,0.36) 100%)",
                 zIndex: 1,
               }}
             />
@@ -372,49 +384,16 @@ function HotelsContent() {
               }}
             >
               {/* Badge Pill */}
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  padding: "0.4rem 1rem",
-                  borderRadius: "9999px",
-                  background: "rgba(255,255,255,0.2)",
-                  border: "1px solid rgba(255,255,255,0.4)",
-                  marginBottom: "1.25rem",
-                  animation: "fadeInUp 0.8s ease-out",
-                }}
-              >
-                <span
-                  style={{
-                    width: "6px",
-                    height: "6px",
-                    borderRadius: "50%",
-                    background: "#ffffff",
-                    animation: "pulse 2s ease-in-out infinite",
-                  }}
-                />
-                <span
-                  style={{
-                    fontSize: "0.8rem",
-                    fontWeight: 600,
-                    color: "#ffffff",
-                    letterSpacing: "0.02em",
-                  }}
-                >
-                  🏨 Hotels & 🏠 Homestays
-                </span>
-              </div>
-
               <h1
                 style={{
-                  fontSize: "clamp(1.25rem, 5vw, 3rem)",
+                  fontSize: "clamp(1rem, 3.5vw, 2.25rem)",
                   fontWeight: 900,
                   marginBottom: "0.5rem",
                   lineHeight: 1.1,
                   letterSpacing: "-0.03em",
                   margin: "0 auto 0.5rem",
                   display: "block",
+                  whiteSpace: "nowrap",
                   animation: "fadeInUp 0.8s ease-out",
                   animationDelay: "0.2s",
                   animationFillMode: "both",
@@ -583,16 +562,15 @@ function HotelsContent() {
                   boxShadow: "0 2px 12px rgba(0, 0, 0, 0.08)",
                 }}
               >
-                <h2
-                  style={{
-                    fontSize: "1.3rem",
-                    fontWeight: 700,
-                    marginBottom: "1.5rem",
-                    color: "#1f2937",
-                  }}
-                >
-                  Featured Hotels
-                </h2>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", gap: "1rem" }}>
+                  <h2 style={{ fontSize: "1.3rem", fontWeight: 700, color: "#1f2937" }}>Featured Hotels</h2>
+                  <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} aria-label="Sort hotels" style={{ padding: "0.5rem 0.75rem", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
+                    <option value="featured">Featured</option>
+                    <option value="price-low">Price: Low to High</option>
+                    <option value="price-high">Price: High to Low</option>
+                    <option value="rating">Highest Rated</option>
+                  </select>
+                </div>
                 <div
                   className="hotels-grid"
                   style={{
@@ -647,7 +625,7 @@ function HotelsContent() {
                           color: "inherit",
                           display: "flex",
                           width: "100%",
-                          minHeight: "200px",
+                          minHeight: "165px",
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.transform = "translateY(-4px)";
@@ -661,19 +639,12 @@ function HotelsContent() {
                         }}
                       >
                         <div
-                          style={{ position: "relative", flex: "0 0 250px" }}
+                          style={{ position: "relative", flex: "0 0 210px" }}
                         >
-                          {hotel.image && (
-                            <img
-                              src={hotel.image}
-                              alt={hotel.name}
-                              style={{
-                                width: "100%",
-                                height: "100%",
-                                objectFit: "cover",
-                              }}
-                            />
-                          )}
+                          <ImageSlideshow
+                            images={hotel.images?.length ? hotel.images : [hotel.image]}
+                            alt={hotel.name}
+                          />
                           {!hotel.image && (
                             <div
                               style={{
@@ -801,61 +772,6 @@ function HotelsContent() {
                             ))}
                           </div>
 
-                          {/* Host Profile */}
-                          {hotel.hostName && (
-                            <div
-                              style={{
-                                background: "#f8fafc",
-                                padding: "0.75rem",
-                                borderRadius: "0.5rem",
-                                marginBottom: "0.75rem",
-                              }}
-                            >
-                              <p
-                                style={{
-                                  fontSize: "0.75rem",
-                                  color: "#6b7280",
-                                  margin: "0 0 0.25rem",
-                                  fontWeight: 600,
-                                }}
-                              >
-                                Hosted by
-                              </p>
-                              <p
-                                style={{
-                                  fontSize: "0.9rem",
-                                  color: "#1f2937",
-                                  margin: "0",
-                                  fontWeight: 600,
-                                }}
-                              >
-                                {hotel.hostName}
-                              </p>
-                              {hotel.hostEmail && (
-                                <p
-                                  style={{
-                                    fontSize: "0.75rem",
-                                    color: "#6b7280",
-                                    margin: "0.25rem 0 0",
-                                  }}
-                                >
-                                  📧 {hotel.hostEmail}
-                                </p>
-                              )}
-                              {hotel.hostPhone && (
-                                <p
-                                  style={{
-                                    fontSize: "0.75rem",
-                                    color: "#6b7280",
-                                    margin: "0.25rem 0 0",
-                                  }}
-                                >
-                                  📞 {hotel.hostPhone}
-                                </p>
-                              )}
-                            </div>
-                          )}
-
                           <div
                             style={{
                               display: "flex",
@@ -882,6 +798,7 @@ function HotelsContent() {
                               >
                                 {formatInr(hotel.price)}
                               </p>
+                              <small style={{ color: "#6b7280" }}>+ taxes</small>
                             </div>
                             <button
                               style={{
@@ -1061,50 +978,18 @@ function HotelsContent() {
                   >
                     Price Per Night
                   </h4>
-                  {SIDEBAR_PRICE_RANGES.map((range) => (
-                    <label
-                      key={range.key}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.625rem",
-                        padding: "0.35rem 0.5rem",
-                        cursor: "pointer",
-                        fontSize: "0.85rem",
-                        color: "#374151",
-                        borderRadius: "8px",
-                        transition: "background 0.15s",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = "#f8fafc";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = "transparent";
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedPriceRanges.includes(range.key)}
-                        onChange={() => togglePriceRange(range.key)}
-                        style={{
-                          width: "16px",
-                          height: "16px",
-                          accentColor: "#3b82f6",
-                          cursor: "pointer",
-                        }}
-                      />
-                      <span>{range.label}</span>
-                      <span
-                        style={{
-                          marginLeft: "auto",
-                          fontSize: "0.75rem",
-                          color: "#9ca3af",
-                        }}
-                      >
-                        ({priceRangeCounts[range.key] || 0})
-                      </span>
-                    </label>
-                  ))}
+                  <label style={{ display: "block", fontSize: "0.85rem", color: "#374151" }}>
+                    Up to {formatInr(maxPrice)} per night
+                    <input
+                      type="range"
+                      min="0"
+                      max="30000"
+                      step="500"
+                      value={maxPrice}
+                      onChange={(event) => setMaxPrice(Number(event.target.value))}
+                      style={{ width: "100%", marginTop: "0.75rem", accentColor: "#3b82f6" }}
+                    />
+                  </label>
                 </div>
 
                 {/* Star Category */}

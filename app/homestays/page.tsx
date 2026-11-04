@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import Header from "../components/Header";
 import DatePicker from "../components/DatePicker";
 import { formatDateShort } from "@/lib/utils/dateFormat";
+import ImageSlideshow from "../components/ImageSlideshow";
 
 interface Homestay {
   _id?: string;
@@ -73,10 +73,10 @@ const SIDEBAR_PRICE_RANGES = [
 ] as const;
 
 const STAR_OPTIONS = [
-  { value: 7, label: "7 Star", minRating: 4.8, maxRating: 5 },
-  { value: 5, label: "5 Star", minRating: 4.5, maxRating: 4.8 },
+  { value: 5, label: "5 Star", minRating: 4.5, maxRating: 5.01 },
   { value: 4, label: "4 Star", minRating: 3.5, maxRating: 4.5 },
   { value: 3, label: "3 Star", minRating: 2.5, maxRating: 3.5 },
+  { value: 2, label: "2 Star", minRating: 1.5, maxRating: 2.5 },
 ] as const;
 
 const RATING_OPTIONS = [
@@ -204,6 +204,7 @@ export default function Homestays() {
   // Sidebar filter states
   const [selectedStars, setSelectedStars] = useState<number[]>([]);
   const [selectedPriceRanges, setSelectedPriceRanges] = useState<string[]>([]);
+  const [maxPrice, setMaxPrice] = useState(30000);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [selectedRatings, setSelectedRatings] = useState<string[]>([]);
   const [showPopularOnly, setShowPopularOnly] = useState(false);
@@ -230,6 +231,7 @@ export default function Homestays() {
   const clearSidebarFilters = () => {
     setSelectedStars([]);
     setSelectedPriceRanges([]);
+    setMaxPrice(30000);
     setSelectedAmenities([]);
     setSelectedRatings([]);
     setShowPopularOnly(false);
@@ -351,6 +353,7 @@ export default function Homestays() {
                   (range.max === Infinity || homestay.price < range.max)
               : false;
           });
+        const matchesSliderPrice = homestay.price <= maxPrice;
 
         const matchesStars =
           selectedStars.length === 0 ||
@@ -379,6 +382,7 @@ export default function Homestays() {
           matchesPrice &&
           matchesSearch &&
           matchesSidebarPrice &&
+          matchesSliderPrice &&
           matchesStars &&
           matchesRating &&
           matchesAmenities &&
@@ -399,6 +403,7 @@ export default function Homestays() {
     sortBy,
     selectedStars,
     selectedPriceRanges,
+    maxPrice,
     selectedAmenities,
     selectedRatings,
     showPopularOnly,
@@ -435,7 +440,7 @@ export default function Homestays() {
                 position: "absolute",
                 inset: 0,
                 background:
-                  "linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.05) 50%, rgba(0,0,0,0.08) 100%)",
+                  "linear-gradient(180deg, rgba(0,0,0,0.32) 0%, rgba(0,0,0,0.24) 50%, rgba(0,0,0,0.36) 100%)",
                 zIndex: 1,
               }}
             />
@@ -458,49 +463,16 @@ export default function Homestays() {
               }}
             >
               {/* Badge Pill */}
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  padding: "0.4rem 1rem",
-                  borderRadius: "9999px",
-                  background: "rgba(255,255,255,0.2)",
-                  border: "1px solid rgba(255,255,255,0.4)",
-                  marginBottom: "1.25rem",
-                  animation: "fadeInUp 0.8s ease-out",
-                }}
-              >
-                <span
-                  style={{
-                    width: "6px",
-                    height: "6px",
-                    borderRadius: "50%",
-                    background: "#ffffff",
-                    animation: "pulse 2s ease-in-out infinite",
-                  }}
-                />
-                <span
-                  style={{
-                    fontSize: "0.8rem",
-                    fontWeight: 600,
-                    color: "#ffffff",
-                    letterSpacing: "0.02em",
-                  }}
-                >
-                  Experience Local Living, Create Lasting Memories
-                </span>
-              </div>
-
               <h1
-                style={{
-                  fontSize: "clamp(1.25rem, 5vw, 3rem)",
-                  fontWeight: 900,
-                  marginBottom: "0.5rem",
-                  lineHeight: 1.1,
-                  letterSpacing: "-0.03em",
-                  margin: "0 auto 0.5rem",
-                  display: "block",
+                  style={{
+                    fontSize: "clamp(1rem, 3.5vw, 2.25rem)",
+                    fontWeight: 900,
+                    marginBottom: "0.5rem",
+                    lineHeight: 1.1,
+                    letterSpacing: "-0.03em",
+                    margin: "0 auto 0.5rem",
+                    display: "block",
+                    whiteSpace: "nowrap",
                   animation: "fadeInUp 0.8s ease-out",
                   animationDelay: "0.2s",
                   animationFillMode: "both",
@@ -667,16 +639,15 @@ export default function Homestays() {
                   boxShadow: "0 2px 12px rgba(0, 0, 0, 0.08)",
                 }}
               >
-                <h2
-                  style={{
-                    fontSize: "1.3rem",
-                    fontWeight: 700,
-                    marginBottom: "1.5rem",
-                    color: "#1f2937",
-                  }}
-                >
-                  Featured Homestays
-                </h2>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", gap: "1rem" }}>
+                  <h2 style={{ fontSize: "1.3rem", fontWeight: 700, color: "#1f2937" }}>Featured Homestays</h2>
+                  <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} aria-label="Sort homestays" style={{ padding: "0.5rem 0.75rem", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
+                    <option value="featured">Featured</option>
+                    <option value="price-low">Price: Low to High</option>
+                    <option value="price-high">Price: High to Low</option>
+                    <option value="rating">Highest Rated</option>
+                  </select>
+                </div>
                 <div
                   className="homestays-grid"
                   style={{
@@ -730,7 +701,7 @@ export default function Homestays() {
                           color: "inherit",
                           display: "flex",
                           width: "100%",
-                          minHeight: "200px",
+                          minHeight: "165px",
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.transform = "translateY(-4px)";
@@ -744,24 +715,11 @@ export default function Homestays() {
                         }}
                       >
                         <div
-                          style={{ position: "relative", flex: "0 0 250px" }}
+                          style={{ position: "relative", flex: "0 0 210px" }}
                         >
-                          <img
-                            src={
-                              homestay.image ||
-                              "https://via.placeholder.com/400x200?text=No+Image"
-                            }
+                          <ImageSlideshow
+                            images={homestay.images?.length ? homestay.images : [homestay.image]}
                             alt={homestay.name}
-                            style={{
-                              width: "100%",
-                              height: "100%",
-                              objectFit: "cover",
-                              backgroundColor: "#f3f4f6",
-                            }}
-                            onError={(e) => {
-                              e.currentTarget.src =
-                                "https://via.placeholder.com/400x200?text=Image+Not+Found";
-                            }}
                           />
                           {homestay.popular && (
                             <div
@@ -863,61 +821,6 @@ export default function Homestays() {
                               ))}
                           </div>
 
-                          {/* Host Profile */}
-                          {homestay.hostName && (
-                            <div
-                              style={{
-                                background: "#f8fafc",
-                                padding: "0.75rem",
-                                borderRadius: "0.5rem",
-                                marginBottom: "0.75rem",
-                              }}
-                            >
-                              <p
-                                style={{
-                                  fontSize: "0.75rem",
-                                  color: "#6b7280",
-                                  margin: "0 0 0.25rem",
-                                  fontWeight: 600,
-                                }}
-                              >
-                                Hosted by
-                              </p>
-                              <p
-                                style={{
-                                  fontSize: "0.9rem",
-                                  color: "#1f2937",
-                                  margin: "0",
-                                  fontWeight: 600,
-                                }}
-                              >
-                                {homestay.hostName}
-                              </p>
-                              {homestay.hostEmail && (
-                                <p
-                                  style={{
-                                    fontSize: "0.75rem",
-                                    color: "#6b7280",
-                                    margin: "0.25rem 0 0",
-                                  }}
-                                >
-                                  📧 {homestay.hostEmail}
-                                </p>
-                              )}
-                              {homestay.hostPhone && (
-                                <p
-                                  style={{
-                                    fontSize: "0.75rem",
-                                    color: "#6b7280",
-                                    margin: "0.25rem 0 0",
-                                  }}
-                                >
-                                  📞 {homestay.hostPhone}
-                                </p>
-                              )}
-                            </div>
-                          )}
-
                           <div
                             style={{
                               display: "flex",
@@ -944,6 +847,7 @@ export default function Homestays() {
                               >
                                 {formatInr(homestay.price)}
                               </p>
+                              <small style={{ color: "#6b7280" }}>+ taxes</small>
                             </div>
                             <button
                               style={{
@@ -1134,50 +1038,10 @@ export default function Homestays() {
                   >
                     Price Per Night
                   </h4>
-                  {SIDEBAR_PRICE_RANGES.map((range) => (
-                    <label
-                      key={range.key}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.625rem",
-                        padding: "0.35rem 0.5rem",
-                        cursor: "pointer",
-                        fontSize: "0.85rem",
-                        color: "#374151",
-                        borderRadius: "8px",
-                        transition: "background 0.15s",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = "#f8fafc";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = "transparent";
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedPriceRanges.includes(range.key)}
-                        onChange={() => togglePriceRange(range.key)}
-                        style={{
-                          width: "16px",
-                          height: "16px",
-                          accentColor: "#3b82f6",
-                          cursor: "pointer",
-                        }}
-                      />
-                      <span>{range.label}</span>
-                      <span
-                        style={{
-                          marginLeft: "auto",
-                          fontSize: "0.75rem",
-                          color: "#9ca3af",
-                        }}
-                      >
-                        ({priceRangeCounts[range.key] || 0})
-                      </span>
-                    </label>
-                  ))}
+                  <label style={{ display: "block", fontSize: "0.85rem", color: "#374151" }}>
+                    Up to {formatInr(maxPrice)} per night
+                    <input type="range" min="0" max="30000" step="500" value={maxPrice} onChange={(event) => setMaxPrice(Number(event.target.value))} style={{ width: "100%", marginTop: "0.75rem", accentColor: "#3b82f6" }} />
+                  </label>
                 </div>
 
                 {/* Star Category */}

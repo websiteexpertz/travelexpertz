@@ -196,7 +196,11 @@
 }
 
 .hero {
+  min-height: 500px;
   padding: 46px 24px 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background:
     linear-gradient(90deg, rgba(0, 0, 0, .72) 0%, rgba(0, 0, 0, .5) 45%, rgba(0, 0, 0, .12) 100%),
     url("/New-images/Taxi.jpg") center 58% / cover no-repeat;
@@ -213,6 +217,7 @@
 
 .heroInner {
   padding: 0 8px;
+  text-align: center;
 }
 
 .eyebrow,
@@ -230,18 +235,19 @@
 }
 
 .hero h1 {
-  max-width: 700px;
+  max-width: none;
   margin: 14px 0 10px;
   color: #fff;
-  font-size: clamp(32px, 4vw, 48px);
+  font-size: clamp(26px, 3vw, 40px);
   font-weight: 750;
   letter-spacing: -.04em;
   line-height: 1.12;
+  white-space: nowrap;
 }
 
 .hero p {
   max-width: 620px;
-  margin: 0;
+  margin: 0 auto;
   color: #d7e8fb;
   font-size: 16px;
   line-height: 1.65;
@@ -1595,7 +1601,7 @@
   }
 
   .hero {
-    min-height: 225px;
+    min-height: 500px;
     padding: 25px 16px 76px;
   }
 
@@ -1615,9 +1621,10 @@
   }
 
   .hero h1 {
-    max-width: 340px;
+    max-width: none;
     margin-top: 11px;
-    font-size: clamp(29px, 8vw, 34px);
+    font-size: clamp(24px, 6vw, 30px);
+    white-space: nowrap;
   }
 
   .hero p {

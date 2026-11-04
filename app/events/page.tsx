@@ -399,12 +399,13 @@ export default function EventsPage() {
             {/* Title with gradient text */}
             <h1
               style={{
-                fontSize: "clamp(2.2rem, 6vw, 3.8rem)",
+                fontSize: "clamp(1.7rem, 4.5vw, 3rem)",
                 fontWeight: 900,
                 color: "white",
                 marginBottom: "1rem",
                 lineHeight: 1.1,
                 letterSpacing: "-0.03em",
+                whiteSpace: "nowrap",
                 animation: "fadeSlideUp 0.8s ease-out 0.15s both",
               }}
             >

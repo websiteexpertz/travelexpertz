@@ -94,11 +94,12 @@ export default function AboutPage() {
         <div style={{ maxWidth: "900px", margin: "0 auto" }}>
           <h1
             style={{
-              fontSize: "3.5rem",
+              fontSize: "2.75rem",
               fontWeight: 800,
               color: "#1a1a2e",
               marginBottom: "1.5rem",
               letterSpacing: "-1px",
+              whiteSpace: "nowrap",
             }}
           >
             {hero?.title || "About TravelExpertz"}

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Header from "../../components/Header";
+import ImageSlideshow from "../../components/ImageSlideshow";
 
 interface Hotel {
   _id?: string;
@@ -14,6 +15,7 @@ interface Hotel {
   rating: number;
   reviews: number;
   image: string;
+  images?: string[];
   amenities: string[];
   popular?: boolean;
   active?: boolean;
@@ -46,6 +48,9 @@ const normalizeHotel = (hotel: Partial<Hotel>): Hotel => {
     rating: Number((hotel as { rating?: unknown }).rating ?? 0) || 0,
     reviews: Number((hotel as { reviews?: unknown }).reviews ?? 0) || 0,
     image: imageSrc || "https://via.placeholder.com/220x180?text=Hotel+Image",
+    images: Array.isArray((hotel as { images?: unknown }).images)
+      ? ((hotel as { images: string[] }).images)
+      : [imageSrc],
     amenities: Array.isArray(hotel.amenities) ? hotel.amenities : [],
     popular: typeof hotel.popular === "boolean" ? hotel.popular : false,
     active: typeof hotel.active === "boolean" ? hotel.active : true,
@@ -70,6 +75,9 @@ const normalizeHomestay = (homestay: any): Hotel => {
     reviews: Number(homestay.reviews ?? 0) || 0,
     image:
       imageSrc || "https://via.placeholder.com/220x180?text=Homestay+Image",
+    images: Array.isArray(homestay.images)
+      ? homestay.images
+      : [imageSrc],
     amenities: Array.isArray(homestay.amenities) ? homestay.amenities : [],
     popular: Boolean(homestay.popular),
     active: true,
@@ -97,10 +105,10 @@ const SIDEBAR_PRICE_RANGES = [
 ];
 
 const STAR_OPTIONS = [
-  { label: "7 Star", value: 7, minRating: 4.8, maxRating: 5.01 },
-  { label: "5 Star", value: 5, minRating: 4.5, maxRating: 4.8 },
+  { label: "5 Star", value: 5, minRating: 4.5, maxRating: 5.01 },
   { label: "4 Star", value: 4, minRating: 3.5, maxRating: 4.5 },
   { label: "3 Star", value: 3, minRating: 2.5, maxRating: 3.5 },
+  { label: "2 Star", value: 2, minRating: 1.5, maxRating: 2.5 },
 ];
 
 const RATING_OPTIONS = [
@@ -153,6 +161,7 @@ function HotelSearchContent() {
   const [sortBy, setSortBy] = useState<string>("featured");
   const [selectedStars, setSelectedStars] = useState<number[]>([]);
   const [selectedPriceRanges, setSelectedPriceRanges] = useState<string[]>([]);
+  const [maxPrice, setMaxPrice] = useState(30000);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [selectedRatings, setSelectedRatings] = useState<number[]>([]);
   const [selectedPropertyTypes, setSelectedPropertyTypes] = useState<
@@ -188,6 +197,7 @@ function HotelSearchContent() {
   const clearSidebarFilters = () => {
     setSelectedStars([]);
     setSelectedPriceRanges([]);
+    setMaxPrice(30000);
     setSelectedAmenities([]);
     setSelectedRatings([]);
     setSelectedPropertyTypes([]);
@@ -337,7 +347,7 @@ function HotelSearchContent() {
 
   const starCounts = useMemo<Record<number, number>>(
     () => ({
-      7: hotels.filter((h) => h.rating >= 4.8).length,
+      2: hotels.filter((h) => h.rating >= 1.5 && h.rating < 2.5).length,
       5: hotels.filter((h) => h.rating >= 4.5 && h.rating < 4.8).length,
       4: hotels.filter((h) => h.rating >= 3.5 && h.rating < 4.5).length,
       3: hotels.filter((h) => h.rating >= 2.5 && h.rating < 3.5).length,
@@ -425,6 +435,7 @@ function HotelSearchContent() {
                   (range.max === Infinity || hotel.price < range.max)
               : false;
           });
+        const matchesSliderPrice = hotel.price <= maxPrice;
 
         const matchesStars =
           selectedStars.length === 0 ||
@@ -451,6 +462,7 @@ function HotelSearchContent() {
           matchesPrice &&
           matchesRating &&
           matchesSidebarPrice &&
+          matchesSliderPrice &&
           matchesStars &&
           matchesAmenities &&
           matchesRatingsFilter &&
@@ -469,6 +481,7 @@ function HotelSearchContent() {
     sortBy,
     selectedStars,
     selectedPriceRanges,
+    maxPrice,
     selectedAmenities,
     selectedRatings,
     selectedPropertyTypes,
@@ -1390,8 +1403,8 @@ function HotelSearchContent() {
                     href={`/hotels/${hotel._id || encodeURIComponent(hotel.name)}`}
                     style={{
                       display: "flex",
-                      gap: "1.5rem",
-                      padding: "1.5rem",
+                      gap: "1rem",
+                      padding: "1rem",
                       background: "white",
                       borderRadius: "12px",
                       border: "1px solid #e2e8f0",
@@ -1419,27 +1432,15 @@ function HotelSearchContent() {
                     {/* Hotel Image */}
                     <div
                       style={{
-                        flex: "0 0 220px",
+                        flex: "0 0 190px",
                         borderRadius: "12px",
                         overflow: "hidden",
-                        height: "180px",
+                        height: "150px",
                       }}
                     >
-                      <img
-                        src={
-                          hotel.image ||
-                          "https://via.placeholder.com/220x180?text=Hotel+Image"
-                        }
+                      <ImageSlideshow
+                        images={hotel.images?.length ? hotel.images : [hotel.image]}
                         alt={hotel.name}
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover",
-                        }}
-                        onError={(e) => {
-                          e.currentTarget.src =
-                            "https://via.placeholder.com/220x180?text=Hotel+Image";
-                        }}
                       />
                     </div>
 
@@ -1539,6 +1540,7 @@ function HotelSearchContent() {
                             >
                               per night
                             </p>
+                            <small style={{ color: "#6b7280" }}>+ taxes</small>
                           </div>
                         </div>
 
@@ -1905,50 +1907,10 @@ function HotelSearchContent() {
                 >
                   Price Per Night
                 </h4>
-                {SIDEBAR_PRICE_RANGES.map((range) => (
-                  <label
-                    key={range.key}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.625rem",
-                      padding: "0.35rem 0.5rem",
-                      cursor: "pointer",
-                      fontSize: "0.85rem",
-                      color: "#374151",
-                      borderRadius: "8px",
-                      transition: "background 0.15s",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "#f8fafc";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "transparent";
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedPriceRanges.includes(range.key)}
-                      onChange={() => togglePriceRange(range.key)}
-                      style={{
-                        width: "16px",
-                        height: "16px",
-                        accentColor: "#3b82f6",
-                        cursor: "pointer",
-                      }}
-                    />
-                    <span>{range.label}</span>
-                    <span
-                      style={{
-                        marginLeft: "auto",
-                        fontSize: "0.75rem",
-                        color: "#9ca3af",
-                      }}
-                    >
-                      ({priceRangeCounts[range.key] || 0})
-                    </span>
-                  </label>
-                ))}
+                <label style={{ display: "block", fontSize: "0.85rem", color: "#374151" }}>
+                  Up to {formatInr(maxPrice)} per night
+                  <input type="range" min="0" max="30000" step="500" value={maxPrice} onChange={(event) => setMaxPrice(Number(event.target.value))} style={{ width: "100%", marginTop: "0.75rem", accentColor: "#3b82f6" }} />
+                </label>
               </div>
 
               {/* Star Category */}

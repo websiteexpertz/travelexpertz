@@ -1207,6 +1207,8 @@ export default function Packages() {
               backgroundPosition: "center",
               position: "relative",
               overflow: "hidden",
+              padding: "7rem 1.5rem 3rem",
+              minHeight: "500px",
             }}
           >
             {/* Subtle Dark Overlay for Text Readability */}
@@ -1228,50 +1230,15 @@ export default function Packages() {
               className="hero-content"
               style={{ position: "relative", zIndex: 2 }}
             >
-              {/* Badge pill */}
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "0.4rem",
-                  padding: "0.4rem 1rem",
-                  background: "rgba(255,255,255,0.7)",
-                  backdropFilter: "blur(12px)",
-                  WebkitBackdropFilter: "blur(12px)",
-                  border: "1px solid rgba(255,255,255,0.3)",
-                  borderRadius: "50px",
-                  marginBottom: "1.2rem",
-                  fontSize: "clamp(0.7rem, 2vw, 0.82rem)",
-                  color: "#1e40af",
-                  fontWeight: 600,
-                  boxShadow: "0 2px 12px rgba(0,0,0,0.1)",
-                  animation: "fadeInUp 0.8s ease-out",
-                  animationDelay: "0.1s",
-                  animationFillMode: "both",
-                }}
-              >
-                <span
-                  style={{
-                    width: "6px",
-                    height: "6px",
-                    borderRadius: "50%",
-                    background: "#3b82f6",
-                    display: "inline-block",
-                    boxShadow: "0 0 8px rgba(59,130,246,0.4)",
-                    animation: "pulse 2s ease infinite",
-                  }}
-                />
-                From Dream Destinations to Real Adventures
-              </div>
-
               <h1
                 style={{
-                  fontSize: "clamp(1.25rem, 5vw, 2.5rem)",
+                  fontSize: "clamp(1rem, 3.5vw, 2rem)",
                   fontWeight: 700,
                   marginBottom: "0.5rem",
                   lineHeight: 1.1,
                   letterSpacing: "-0.03em",
                   padding: "0 0.25rem",
+                  whiteSpace: "nowrap",
                   animation: "fadeInUp 0.8s ease-out",
                   animationDelay: "0.25s",
                   animationFillMode: "both",
@@ -1281,24 +1248,6 @@ export default function Packages() {
               >
                 Your Perfect Holiday, Thoughtfully Planned
               </h1>
-              <p
-                style={{
-                  fontSize: "clamp(0.85rem, 2vw, 1rem)",
-                  color: "#ffffff",
-                  lineHeight: 1.6,
-                  fontWeight: 500,
-                  maxWidth: "600px",
-                  margin: "0 auto",
-                  padding: "0 0.5rem",
-                  animation: "fadeInUp 0.8s ease-out",
-                  animationDelay: "0.45s",
-                  animationFillMode: "both",
-                  textShadow: "0 1px 4px rgba(0, 0, 0, 0.2)",
-                }}
-              >
-                From Dream Destinations to Real Adventures
-              </p>
-
               {/* Trust Indicators */}
               <div
                 className="trust-indicators"
@@ -1500,32 +1449,18 @@ export default function Packages() {
         </div>
 
         {/* Destinations Section */}
-        <section
-          className="destinations-section w-full"
-          style={{ maxWidth: "100rem", margin: "0 auto" }}
-        >
-          <div className="destinations-title">
-            <span style={{ fontSize: "1.5rem" }}>🌍</span>
-            <span>Destinations</span>
-          </div>
+        {destinations.length > 0 && (
+          <section
+            className="destinations-section w-full"
+            style={{ maxWidth: "100rem", margin: "0 auto" }}
+          >
+            <div className="destinations-title">
+              <span style={{ fontSize: "1.5rem" }}>🌍</span>
+              <span>Destinations</span>
+            </div>
 
-          <div className="destinations-grid">
-            {loading && (
-              <div
-                style={{ textAlign: "center", color: "#64748b", width: "100%" }}
-              >
-                Loading destinations...
-              </div>
-            )}
-            {!loading && destinations.length === 0 && (
-              <div
-                style={{ textAlign: "center", color: "#64748b", width: "100%" }}
-              >
-                No destinations available yet.
-              </div>
-            )}
-            {!loading &&
-              destinations.map((destination) => (
+            <div className="destinations-grid">
+              {destinations.map((destination) => (
                 <div
                   key={destination._id || destination.name}
                   onClick={() =>
@@ -1552,25 +1487,26 @@ export default function Packages() {
                   </span>
                 </div>
               ))}
-          </div>
-
-          {selectedDestination && (
-            <div style={{ textAlign: "center" }}>
-              <button
-                onClick={() => setSelectedDestination("")}
-                className="clear-filter-btn"
-              >
-                <span
-                  className="material-symbols-outlined"
-                  style={{ fontSize: "1rem" }}
-                >
-                  close
-                </span>
-                Clear filter: {selectedDestination}
-              </button>
             </div>
-          )}
-        </section>
+
+            {selectedDestination && (
+              <div style={{ textAlign: "center" }}>
+                <button
+                  onClick={() => setSelectedDestination("")}
+                  className="clear-filter-btn"
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: "1rem" }}
+                  >
+                    close
+                  </span>
+                  Clear filter: {selectedDestination}
+                </button>
+              </div>
+            )}
+          </section>
+        )}
 
         {/* Category Carousels */}
         <section

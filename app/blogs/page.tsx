@@ -177,11 +177,12 @@ export default function BlogsPage() {
             <h1
               style={{
                 color: "white",
-                fontSize: "clamp(2rem, 5vw, 3.25rem)",
+                fontSize: "clamp(1.5rem, 4vw, 2.5rem)",
                 fontWeight: 800,
                 lineHeight: 1.15,
                 marginBottom: "1rem",
                 letterSpacing: "-0.02em",
+                whiteSpace: "nowrap",
               }}
             >
               Explore Our{" "}

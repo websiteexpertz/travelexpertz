@@ -99,11 +99,12 @@ export default function LuxuryPage() {
           <h1
             style={{
               margin: "0 0 1rem",
-              fontSize: "3rem",
+              fontSize: "2.25rem",
               fontWeight: 800,
               color: "#ffffff",
               textTransform: "uppercase",
               letterSpacing: "2px",
+              whiteSpace: "nowrap",
             }}
           >
             Indulge in the Art of Fine Living.
