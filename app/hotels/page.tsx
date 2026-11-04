@@ -12,6 +12,7 @@ interface Hotel {
   _id?: string;
   name: string;
   location: string;
+  address?: string;
   city?: string;
   state?: string;
   price: number;
@@ -25,6 +26,7 @@ interface Hotel {
   hostName?: string;
   hostEmail?: string;
   hostPhone?: string;
+  roomViews: string[];
 }
 
 const inrFormatter = new Intl.NumberFormat("en-IN", {
@@ -38,11 +40,26 @@ const formatInr = (value: number) =>
 
 const normalizeHotel = (hotel: Partial<Hotel>): Hotel => {
   const rawId = (hotel as { _id?: unknown })._id;
+  const rawViews = (hotel as { roomViews?: unknown }).roomViews;
+  const amenities = Array.isArray(hotel.amenities) ? hotel.amenities : [];
+  const roomViews = Array.isArray(rawViews)
+    ? rawViews.filter((view): view is string => typeof view === "string")
+    : typeof (hotel as { roomView?: unknown }).roomView === "string"
+      ? [(hotel as { roomView: string }).roomView]
+      : [];
+  const derivedViews = amenities.filter((amenity) =>
+    ROOM_VIEW_OPTIONS.some((view) =>
+      amenity.toLowerCase().includes(view.toLowerCase()),
+    ),
+  );
 
   return {
     _id: typeof rawId === "string" ? rawId : rawId ? String(rawId) : undefined,
     name: hotel.name ?? "",
     location: hotel.location ?? "",
+    address: (hotel as { address?: string }).address ?? "",
+    city: (hotel as { city?: string }).city ?? "",
+    state: (hotel as { state?: string }).state ?? "",
     price: Number((hotel as { price?: unknown }).price ?? 0) || 0,
     rating: Number((hotel as { rating?: unknown }).rating ?? 0) || 0,
     reviews: Number((hotel as { reviews?: unknown }).reviews ?? 0) || 0,
@@ -52,12 +69,13 @@ const normalizeHotel = (hotel: Partial<Hotel>): Hotel => {
       : hotel.image
         ? [hotel.image]
         : [],
-    amenities: Array.isArray(hotel.amenities) ? hotel.amenities : [],
+    amenities,
     popular: typeof hotel.popular === "boolean" ? hotel.popular : false,
     active: typeof hotel.active === "boolean" ? hotel.active : true,
     hostName: hotel.hostName ?? "",
     hostEmail: hotel.hostEmail ?? "",
     hostPhone: hotel.hostPhone ?? "",
+    roomViews: Array.from(new Set([...roomViews, ...derivedViews])),
   };
 };
 
@@ -81,6 +99,13 @@ const STAR_OPTIONS = [
   { label: "4 Star", value: 4, minRating: 3.5, maxRating: 4.5 },
   { label: "3 Star", value: 3, minRating: 2.5, maxRating: 3.5 },
   { label: "2 Star", value: 2, minRating: 1.5, maxRating: 2.5 },
+];
+
+const ROOM_VIEW_OPTIONS = [
+  "Garden View",
+  "Mountain View",
+  "Valley View",
+  "River View",
 ];
 
 const RATING_OPTIONS = [
@@ -132,6 +157,7 @@ function HotelsContent() {
   const [maxPrice, setMaxPrice] = useState(30000);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [selectedRatings, setSelectedRatings] = useState<number[]>([]);
+  const [selectedRoomViews, setSelectedRoomViews] = useState<string[]>([]);
   const [showPopularOnly, setShowPopularOnly] = useState(false);
   const [showAllAmenities, setShowAllAmenities] = useState(false);
 
@@ -155,12 +181,17 @@ function HotelsContent() {
         ? prev.filter((r) => r !== rating)
         : [...prev, rating],
     );
+  const toggleRoomView = (view: string) =>
+    setSelectedRoomViews((prev) =>
+      prev.includes(view) ? prev.filter((item) => item !== view) : [...prev, view],
+    );
   const clearSidebarFilters = () => {
     setSelectedStars([]);
     setSelectedPriceRanges([]);
     setMaxPrice(30000);
     setSelectedAmenities([]);
     setSelectedRatings([]);
+    setSelectedRoomViews([]);
     setShowPopularOnly(false);
   };
 
@@ -239,6 +270,7 @@ function HotelsContent() {
     selectedStars.length > 0 ||
     selectedPriceRanges.length > 0 ||
     selectedAmenities.length > 0 ||
+    selectedRoomViews.length > 0 ||
     selectedRatings.length > 0 ||
     showPopularOnly;
 
@@ -292,6 +324,13 @@ function HotelsContent() {
         const matchesAmenities =
           selectedAmenities.length === 0 ||
           selectedAmenities.every((a) => hotel.amenities.includes(a));
+        const matchesRoomViews =
+          selectedRoomViews.length === 0 ||
+          selectedRoomViews.some((view) =>
+            hotel.roomViews.some((item) =>
+              item.toLowerCase().includes(view.toLowerCase()),
+            ),
+          );
 
         const matchesRatings =
           selectedRatings.length === 0 ||
@@ -307,6 +346,7 @@ function HotelsContent() {
           matchesSliderPrice &&
           matchesStars &&
           matchesAmenities &&
+          matchesRoomViews &&
           matchesRatings &&
           matchesPopular
         );
@@ -328,6 +368,7 @@ function HotelsContent() {
     maxPrice,
     selectedAmenities,
     selectedRatings,
+    selectedRoomViews,
     showPopularOnly,
   ]);
 
@@ -625,7 +666,9 @@ function HotelsContent() {
                           color: "inherit",
                           display: "flex",
                           width: "100%",
-                          minHeight: "165px",
+                          height: "165px",
+                          minHeight: 0,
+                          position: "relative",
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.transform = "translateY(-4px)";
@@ -686,8 +729,12 @@ function HotelsContent() {
                             flex: 1,
                             display: "flex",
                             flexDirection: "column",
+                            overflow: "hidden",
+                            position: "relative",
+                            paddingBottom: "3.25rem",
                           }}
                         >
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
                           <h3
                             style={{
                               fontSize: "1rem",
@@ -698,6 +745,13 @@ function HotelsContent() {
                           >
                             {hotel.name}
                           </h3>
+                          <div style={{ flexShrink: 0, textAlign: "right" }}>
+                            <strong style={{ display: "block", fontSize: "1.25rem", color: "#0a66c2" }}>
+                              {formatInr(hotel.price)}
+                            </strong>
+                            <small style={{ color: "#6b7280" }}>+ taxes</small>
+                          </div>
+                          </div>
                           <p
                             style={{
                               fontSize: "0.875rem",
@@ -705,21 +759,10 @@ function HotelsContent() {
                               marginBottom: "0.25rem",
                             }}
                           >
-                            {hotel.city && hotel.state
-                              ? `${hotel.city}, ${hotel.state}`
-                              : hotel.location}
+                            {[hotel.address, hotel.city, hotel.state]
+                              .filter(Boolean)
+                              .join(", ") || hotel.location}
                           </p>
-                          {hotel.location && (hotel.city || hotel.state) && (
-                            <p
-                              style={{
-                                fontSize: "0.8rem",
-                                color: "#9ca3af",
-                                marginBottom: "0.75rem",
-                              }}
-                            >
-                              {hotel.location}
-                            </p>
-                          )}
 
                           <div
                             style={{
@@ -777,30 +820,16 @@ function HotelsContent() {
                               display: "flex",
                               justifyContent: "space-between",
                               alignItems: "center",
+                              marginTop: "auto",
                             }}
                           >
-                            <div>
-                              <span
-                                style={{
-                                  fontSize: "0.875rem",
-                                  color: "#6b7280",
-                                }}
-                              >
-                                From
-                              </span>
-                              <p
-                                style={{
-                                  fontSize: "1.5rem",
-                                  fontWeight: 700,
-                                  color: "#0a66c2",
-                                  margin: "0",
-                                }}
-                              >
-                                {formatInr(hotel.price)}
-                              </p>
-                              <small style={{ color: "#6b7280" }}>+ taxes</small>
-                            </div>
+                            <span />
                             <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                window.location.href = `/hotels/${hotel._id || encodeURIComponent(hotel.name)}`;
+                              }}
                               style={{
                                 backgroundColor: "#0a66c2",
                                 color: "white",
@@ -810,21 +839,10 @@ function HotelsContent() {
                                 cursor: "pointer",
                                 fontSize: "0.875rem",
                                 fontWeight: 600,
-                                transition: "background-color 0.2s",
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor =
-                                  "#084ba8";
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor =
-                                  "#0a66c2";
-                              }}
-                              onClick={(e) => {
-                                e.preventDefault();
-                                window.location.href = `/hotels/${
-                                  hotel._id || encodeURIComponent(hotel.name)
-                                }`;
+                                marginLeft: "auto",
+                                position: "absolute",
+                                right: "1rem",
+                                bottom: "0.75rem",
                               }}
                             >
                               View Details
@@ -1122,6 +1140,43 @@ function HotelsContent() {
                       >
                         ({ratingCounts[opt.value] || 0})
                       </span>
+                    </label>
+                  ))}
+                </div>
+
+                <div>
+                  <h4
+                    style={{
+                      fontSize: "0.8rem",
+                      fontWeight: 700,
+                      color: "#1e293b",
+                      marginBottom: "0.75rem",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                    }}
+                  >
+                    Room View
+                  </h4>
+                  {ROOM_VIEW_OPTIONS.map((view) => (
+                    <label
+                      key={view}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.625rem",
+                        padding: "0.35rem 0.5rem",
+                        cursor: "pointer",
+                        fontSize: "0.85rem",
+                        color: "#374151",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedRoomViews.includes(view)}
+                        onChange={() => toggleRoomView(view)}
+                        style={{ width: "16px", height: "16px", accentColor: "#3b82f6" }}
+                      />
+                      <span>{view}</span>
                     </label>
                   ))}
                 </div>

@@ -160,8 +160,8 @@ export default function DealsPage() {
       <Header currentPage="deals" />
 
       <main style={{ padding: 0 }}>
-        <div style={{ backgroundImage: "linear-gradient(90deg, rgba(0,0,0,.68), rgba(0,0,0,.18)), url('/New-images/Deals.jpg')", backgroundSize: "cover", backgroundPosition: "center", padding: "4rem 1rem", textAlign: "center", color: "#ffffff" }}>
-          <h1 style={{ fontSize: "2rem", fontWeight: 800, marginBottom: ".5rem", whiteSpace: "nowrap" }}>The Best Journeys Come with Great Deals</h1>
+        <div style={{ backgroundImage: "linear-gradient(90deg, rgba(0,0,0,.28), rgba(0,0,0,.06)), url('/New-images/Deals.jpg')", backgroundSize: "cover", backgroundPosition: "center 85%", minHeight: "50vh", boxSizing: "border-box", padding: "4rem 1rem", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", color: "#ffffff" }}>
+          <h1 style={{ fontSize: "2rem", fontWeight: 800, marginBottom: ".5rem", whiteSpace: "nowrap", color: "#ffffff" }}>The Best Journeys Come with Great Deals</h1>
           <p style={{ fontSize: "1.15rem", margin: 0 }}>Your Next Adventure, Now More Affordable</p>
         </div>
         <div style={{ padding: "2rem 1rem" }}>

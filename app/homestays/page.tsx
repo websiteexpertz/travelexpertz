@@ -10,6 +10,7 @@ interface Homestay {
   _id?: string;
   name: string;
   location: string;
+  address?: string;
   price: number;
   rating: number;
   reviews: number;
@@ -22,6 +23,7 @@ interface Homestay {
   hostName?: string;
   hostEmail?: string;
   hostPhone?: string;
+  roomViews: string[];
 }
 
 const inrFormatter = new Intl.NumberFormat("en-IN", {
@@ -37,23 +39,37 @@ const normalizeHomestay = (homestay: Partial<Homestay>): Homestay => {
   const rawId = (homestay as { _id?: unknown })._id;
   const images = Array.isArray(homestay.images) ? homestay.images : [];
   const primaryImage = images.length > 0 ? images[0] : (homestay.image ?? "");
+  const rawViews = (homestay as { roomViews?: unknown }).roomViews;
+  const amenities = Array.isArray(homestay.amenities) ? homestay.amenities : [];
+  const roomViews = Array.isArray(rawViews)
+    ? rawViews.filter((view): view is string => typeof view === "string")
+    : typeof (homestay as { roomView?: unknown }).roomView === "string"
+      ? [(homestay as { roomView: string }).roomView]
+      : [];
+  const derivedViews = amenities.filter((amenity) =>
+    ROOM_VIEW_OPTIONS.some((view) =>
+      amenity.toLowerCase().includes(view.toLowerCase()),
+    ),
+  );
 
   return {
     _id: typeof rawId === "string" ? rawId : rawId ? String(rawId) : undefined,
     name: homestay.name ?? "",
     location: homestay.location ?? "",
+    address: (homestay as { address?: string }).address ?? "",
     price: Number((homestay as { price?: unknown }).price ?? 0) || 0,
     rating: Number((homestay as { rating?: unknown }).rating ?? 0) || 0,
     reviews: Number((homestay as { reviews?: unknown }).reviews ?? 0) || 0,
     image: primaryImage,
     images: images,
-    amenities: Array.isArray(homestay.amenities) ? homestay.amenities : [],
+    amenities,
     popular: typeof homestay.popular === "boolean" ? homestay.popular : false,
     active: typeof homestay.active === "boolean" ? homestay.active : true,
     propertyType: homestay.propertyType ?? "Entire Place",
     hostName: homestay.hostName ?? "",
     hostEmail: homestay.hostEmail ?? "",
     hostPhone: homestay.hostPhone ?? "",
+    roomViews: Array.from(new Set([...roomViews, ...derivedViews])),
   };
 };
 
@@ -85,6 +101,13 @@ const RATING_OPTIONS = [
   { key: "3.5+", label: "★ 3.5+", minRating: 3.5 },
   { key: "3.0+", label: "★ 3.0+", minRating: 3.0 },
 ] as const;
+
+const ROOM_VIEW_OPTIONS = [
+  "Garden View",
+  "Mountain View",
+  "Valley View",
+  "River View",
+];
 
 // Hero animations
 const homestayHeroStyles = `
@@ -207,6 +230,7 @@ export default function Homestays() {
   const [maxPrice, setMaxPrice] = useState(30000);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [selectedRatings, setSelectedRatings] = useState<string[]>([]);
+  const [selectedRoomViews, setSelectedRoomViews] = useState<string[]>([]);
   const [showPopularOnly, setShowPopularOnly] = useState(false);
   const [showAllAmenities, setShowAllAmenities] = useState(false);
 
@@ -228,12 +252,17 @@ export default function Homestays() {
     setSelectedRatings((prev) =>
       prev.includes(key) ? prev.filter((r) => r !== key) : [...prev, key],
     );
+  const toggleRoomView = (view: string) =>
+    setSelectedRoomViews((prev) =>
+      prev.includes(view) ? prev.filter((item) => item !== view) : [...prev, view],
+    );
   const clearSidebarFilters = () => {
     setSelectedStars([]);
     setSelectedPriceRanges([]);
     setMaxPrice(30000);
     setSelectedAmenities([]);
     setSelectedRatings([]);
+    setSelectedRoomViews([]);
     setShowPopularOnly(false);
   };
 
@@ -311,6 +340,7 @@ export default function Homestays() {
     selectedStars.length > 0 ||
     selectedPriceRanges.length > 0 ||
     selectedAmenities.length > 0 ||
+    selectedRoomViews.length > 0 ||
     selectedRatings.length > 0 ||
     showPopularOnly;
 
@@ -375,6 +405,13 @@ export default function Homestays() {
         const matchesAmenities =
           selectedAmenities.length === 0 ||
           selectedAmenities.every((a) => homestay.amenities.includes(a));
+        const matchesRoomViews =
+          selectedRoomViews.length === 0 ||
+          selectedRoomViews.some((view) =>
+            homestay.roomViews.some((item) =>
+              item.toLowerCase().includes(view.toLowerCase()),
+            ),
+          );
         const matchesPopular = !showPopularOnly || homestay.popular;
 
         return (
@@ -386,6 +423,7 @@ export default function Homestays() {
           matchesStars &&
           matchesRating &&
           matchesAmenities &&
+          matchesRoomViews &&
           matchesPopular
         );
       })
@@ -406,6 +444,7 @@ export default function Homestays() {
     maxPrice,
     selectedAmenities,
     selectedRatings,
+    selectedRoomViews,
     showPopularOnly,
   ]);
 
@@ -701,7 +740,9 @@ export default function Homestays() {
                           color: "inherit",
                           display: "flex",
                           width: "100%",
-                          minHeight: "165px",
+                          height: "165px",
+                          minHeight: 0,
+                          position: "relative",
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.transform = "translateY(-4px)";
@@ -746,8 +787,12 @@ export default function Homestays() {
                             flex: 1,
                             display: "flex",
                             flexDirection: "column",
+                            overflow: "hidden",
+                            position: "relative",
+                            paddingBottom: "3.25rem",
                           }}
                         >
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
                           <h3
                             style={{
                               fontSize: "1rem",
@@ -758,6 +803,13 @@ export default function Homestays() {
                           >
                             {homestay.name}
                           </h3>
+                          <div style={{ flexShrink: 0, textAlign: "right" }}>
+                            <strong style={{ display: "block", fontSize: "1.25rem", color: "#0a66c2" }}>
+                              {formatInr(homestay.price)}
+                            </strong>
+                            <small style={{ color: "#6b7280" }}>+ taxes</small>
+                          </div>
+                          </div>
                           <p
                             style={{
                               fontSize: "0.875rem",
@@ -765,7 +817,7 @@ export default function Homestays() {
                               marginBottom: "0.75rem",
                             }}
                           >
-                            {homestay.location}
+                            {homestay.address || homestay.location}
                           </p>
 
                           <div
@@ -826,30 +878,16 @@ export default function Homestays() {
                               display: "flex",
                               justifyContent: "space-between",
                               alignItems: "center",
+                              marginTop: "auto",
                             }}
                           >
-                            <div>
-                              <span
-                                style={{
-                                  fontSize: "0.875rem",
-                                  color: "#6b7280",
-                                }}
-                              >
-                                From
-                              </span>
-                              <p
-                                style={{
-                                  fontSize: "1.5rem",
-                                  fontWeight: 700,
-                                  color: "#0a66c2",
-                                  margin: "0",
-                                }}
-                              >
-                                {formatInr(homestay.price)}
-                              </p>
-                              <small style={{ color: "#6b7280" }}>+ taxes</small>
-                            </div>
+                            <span />
                             <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                window.location.href = `/homestays/${homestay._id || encodeURIComponent(homestay.name)}`;
+                              }}
                               style={{
                                 backgroundColor: "#0a66c2",
                                 color: "white",
@@ -859,22 +897,10 @@ export default function Homestays() {
                                 cursor: "pointer",
                                 fontSize: "0.875rem",
                                 fontWeight: 600,
-                                transition: "background-color 0.2s",
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor =
-                                  "#084ba8";
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor =
-                                  "#0a66c2";
-                              }}
-                              onClick={(e) => {
-                                e.preventDefault();
-                                window.location.href = `/homestays/${
-                                  homestay._id ||
-                                  encodeURIComponent(homestay.name)
-                                }`;
+                                marginLeft: "auto",
+                                position: "absolute",
+                                right: "1rem",
+                                bottom: "0.75rem",
                               }}
                             >
                               View Details
@@ -1174,6 +1200,43 @@ export default function Homestays() {
                       >
                         ({ratingCounts[opt.key] || 0})
                       </span>
+                    </label>
+                  ))}
+                </div>
+
+                <div>
+                  <h4
+                    style={{
+                      fontSize: "0.8rem",
+                      fontWeight: 700,
+                      color: "#1e293b",
+                      marginBottom: "0.75rem",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                    }}
+                  >
+                    Room View
+                  </h4>
+                  {ROOM_VIEW_OPTIONS.map((view) => (
+                    <label
+                      key={view}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.625rem",
+                        padding: "0.35rem 0.5rem",
+                        cursor: "pointer",
+                        fontSize: "0.85rem",
+                        color: "#374151",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedRoomViews.includes(view)}
+                        onChange={() => toggleRoomView(view)}
+                        style={{ width: "16px", height: "16px", accentColor: "#3b82f6" }}
+                      />
+                      <span>{view}</span>
                     </label>
                   ))}
                 </div>
