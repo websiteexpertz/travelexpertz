@@ -29,7 +29,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Booking not found" }, { status: 404 });
     }
 
-    const totalPrice = Number(booking.totalPrice);
+    const totalPrice = Number(booking.amountToPay ?? booking.totalPrice);
+    if (!Number.isFinite(totalPrice) || totalPrice <= 0) {
+      return NextResponse.json({ error: "Invalid booking payment amount" }, { status: 400 });
+    }
     const origin = process.env.CASHFREE_ENV === "production"
       ? (process.env.NEXT_PUBLIC_APP_URL || "https://travelexpertz.com").replace(/\/$/, "")
       : (process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin).replace(/\/$/, "");

@@ -36,15 +36,18 @@ export async function GET(request: Request) {
         );
       }
 
-      // Populate homestay details
-      const homestaysCollection = db.collection("homestays");
-      const homestay = await homestaysCollection.findOne({
-        _id: new ObjectId(booking.homestayId),
-      });
+      const propertyCollection = booking.hotelId ? "hotels" : "homestays";
+      const propertyId = booking.hotelId || booking.homestayId;
+      const property = propertyId
+        ? await db.collection(propertyCollection).findOne({
+            _id: new ObjectId(propertyId),
+          })
+        : null;
 
       return NextResponse.json({
         ...booking,
-        homestay,
+        homestay: property,
+        hotel: booking.hotelId ? property : undefined,
       });
     }
 
@@ -114,11 +117,29 @@ export async function POST(request: Request) {
       );
     }
 
-    // Calculate pricing
-    const basePrice = (body.basePrice || 0) * nights;
-    const taxes = basePrice * 0.12; // 12% GST
-    const platformFee = basePrice * 0.05; // 5% platform fee
+    const propertyCollection = isHotelBooking ? "hotels" : "homestays";
+    const property = await db.collection(propertyCollection).findOne({
+      _id: new ObjectId(propertyId),
+    });
+    const room = property?.rooms?.find((item: { id?: string }) => item.id === body.roomId);
+    const nightlyPrice = Number(room?.price ?? body.basePrice);
+
+    if (!property || !Number.isFinite(nightlyPrice) || nightlyPrice <= 0) {
+      return NextResponse.json({ error: "Property or room price not found" }, { status: 400 });
+    }
+
+    const taxRate = isHotelBooking ? Number(property.taxRate ?? 10) : 12;
+    const commissionRate = isHotelBooking ? Number(property.commissionRate ?? 10) : 5;
+    const basePrice = nightlyPrice * nights;
+    const taxes = basePrice * Math.max(0, taxRate) / 100;
+    const platformFee = basePrice * Math.max(0, commissionRate) / 100;
     const totalPrice = basePrice + taxes + platformFee;
+    const paymentOption = body.paymentOption === "commission" ? "commission" : "full";
+    if (isHotelBooking && commissionRate <= 0) {
+      return NextResponse.json({ error: "Hotel commission must be greater than 0" }, { status: 400 });
+    }
+    const amountToPay = paymentOption === "commission" ? platformFee : totalPrice;
+    const balanceDueAtHotel = paymentOption === "commission" ? totalPrice - amountToPay : 0;
 
     // Generate booking reference
     const bookingReference = `BK${Date.now()}${Math.random()
@@ -186,6 +207,11 @@ export async function POST(request: Request) {
       taxes,
       platformFee,
       totalPrice,
+      taxRate,
+      commissionRate,
+      paymentOption,
+      amountToPay,
+      balanceDueAtHotel,
       bookingReference,
       paymentStatus: body.paymentInitiated ? "pending" : "completed",
       bookingStatus: body.paymentInitiated ? "pending" : (body.userId ? "confirmed" : "pending"),

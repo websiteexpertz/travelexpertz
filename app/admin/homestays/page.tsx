@@ -15,6 +15,7 @@ interface Room {
   availability: number;
   cancellationPolicy: string;
   mealPlan?: string;
+  roomView?: string;
 }
 
 interface Review {
@@ -119,6 +120,10 @@ export default function AdminHomestays() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [showForm, setShowForm] = useState<boolean>(false);
+  const [listSearch, setListSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "inactive"
+  >("all");
   const [uploadingImage, setUploadingImage] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<TabType>("basic");
   const [editingRoomIndex, setEditingRoomIndex] = useState<number | null>(null);
@@ -150,6 +155,7 @@ export default function AdminHomestays() {
     availability: 1,
     cancellationPolicy: "",
     mealPlan: "",
+    roomView: "",
   });
 
   const inrFormatter = new Intl.NumberFormat("en-IN", {
@@ -300,6 +306,7 @@ export default function AdminHomestays() {
       availability: 1,
       cancellationPolicy: "",
       mealPlan: "",
+      roomView: "",
     });
   };
 
@@ -338,6 +345,7 @@ export default function AdminHomestays() {
       availability: 1,
       cancellationPolicy: "",
       mealPlan: "",
+      roomView: "",
     });
   };
 
@@ -656,6 +664,52 @@ export default function AdminHomestays() {
     { id: "reviews" as TabType, label: "Reviews", icon: "⭐" },
     { id: "policies" as TabType, label: "Policies", icon: "📜" },
   ];
+  const activeTabIndex = tabs.findIndex((tab) => tab.id === activeTab);
+  const isLastTab = activeTabIndex === tabs.length - 1;
+  const filteredHomestays = homestays.filter((homestay) => {
+    const query = listSearch.trim().toLowerCase();
+    const matchesSearch =
+      !query ||
+      [homestay.name, homestay.location, homestay.city, homestay.state]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query));
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "active" ? homestay.active : !homestay.active);
+    return matchesSearch && matchesStatus;
+  });
+  const validateCurrentTab = () => {
+    if (activeTab === "basic") {
+      const missingFields = [
+        ["Homestay name", formData.name.trim()],
+        ["State", formData.state?.trim()],
+        ["City", formData.city?.trim()],
+        ["Address", formData.address.trim()],
+        ["Description", formData.description.trim()],
+        ["Host name", formData.hostName.trim()],
+      ]
+        .filter(([, value]) => !value)
+        .map(([label]) => label);
+
+      if (missingFields.length > 0) {
+        alert(
+          `Please complete the required fields: ${missingFields.join(", ")}`,
+        );
+        return false;
+      }
+    }
+
+    if (
+      activeTab === "rooms" &&
+      editingRoomIndex !== null &&
+      !roomFormData.type.trim()
+    ) {
+      alert("Please enter the room type or finish the room before continuing.");
+      return false;
+    }
+
+    return true;
+  };
 
   return (
     <div style={{ background: "#f3f4f6", minHeight: "100vh", padding: "2rem" }}>
@@ -1549,11 +1603,23 @@ export default function AdminHomestays() {
                     />
                     Active
                   </label>
-                  <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.9rem" }}>
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      fontSize: "0.9rem",
+                    }}
+                  >
                     <input
                       type="checkbox"
                       checked={formData.isHandpicked}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, isHandpicked: e.target.checked }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          isHandpicked: e.target.checked,
+                        }))
+                      }
                     />
                     Handpicked for Homepage
                   </label>
@@ -2488,6 +2554,41 @@ export default function AdminHomestays() {
                           <option value="Full Board">Full Board</option>
                         </select>
                       </div>
+                    </div>
+
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          marginBottom: "0.5rem",
+                          fontWeight: 600,
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        Room View
+                      </label>
+                      <select
+                        value={roomFormData.roomView || ""}
+                        onChange={(e) =>
+                          setRoomFormData((prev) => ({
+                            ...prev,
+                            roomView: e.target.value,
+                          }))
+                        }
+                        style={{
+                          width: "100%",
+                          padding: "0.75rem",
+                          border: "1px solid #d1d5db",
+                          borderRadius: "8px",
+                          fontSize: "0.95rem",
+                        }}
+                      >
+                        <option value="">Select room view</option>
+                        <option value="Garden View">Garden View</option>
+                        <option value="Mountain View">Mountain View</option>
+                        <option value="Valley View">Valley View</option>
+                        <option value="River View">River View</option>
+                      </select>
                     </div>
 
                     <div>
@@ -3483,28 +3584,74 @@ export default function AdminHomestays() {
             <div
               style={{
                 display: "flex",
+                justifyContent: "space-between",
                 gap: "1rem",
                 marginTop: "2rem",
                 paddingTop: "2rem",
                 borderTop: "1px solid #e5e7eb",
               }}
             >
+              <div style={{ display: "flex", gap: "1rem" }}>
+                {activeTabIndex > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab(tabs[activeTabIndex - 1].id)}
+                    style={{
+                      padding: "0.75rem 1.5rem",
+                      background: "#e5e7eb",
+                      color: "#374151",
+                      border: "none",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      fontSize: "1rem",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Back
+                  </button>
+                )}
+                {isLastTab ? (
+                  <button
+                    type="button"
+                    onClick={submitHomestay}
+                    style={{
+                      padding: "0.75rem 2rem",
+                      background: "#00b894",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      fontSize: "1rem",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {editingId ? "Update Homestay" : "Create Homestay"}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (validateCurrentTab()) {
+                        setActiveTab(tabs[activeTabIndex + 1].id);
+                      }
+                    }}
+                    style={{
+                      padding: "0.75rem 2rem",
+                      background: "#0066cc",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      fontSize: "1rem",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Next: {tabs[activeTabIndex + 1].label}
+                  </button>
+                )}
+              </div>
               <button
-                onClick={submitHomestay}
-                style={{
-                  padding: "0.75rem 2rem",
-                  background: "#00b894",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  fontSize: "1rem",
-                  fontWeight: 600,
-                }}
-              >
-                {editingId ? "Update Homestay" : "Create Homestay"}
-              </button>
-              <button
+                type="button"
                 onClick={() => {
                   resetForm();
                   setShowForm(false);
@@ -3529,6 +3676,62 @@ export default function AdminHomestays() {
         {/* Homestay List */}
         {!showForm && (
           <div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "minmax(240px, 1fr) 180px auto",
+                gap: "0.75rem",
+                alignItems: "center",
+                background: "white",
+                borderRadius: "12px",
+                padding: "1rem",
+                marginBottom: "1rem",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+              }}
+            >
+              <input
+                type="search"
+                value={listSearch}
+                onChange={(event) => setListSearch(event.target.value)}
+                placeholder="Search homestay, city, or state"
+                aria-label="Search homestays"
+                style={{
+                  width: "100%",
+                  padding: "0.75rem",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "8px",
+                  fontSize: "0.95rem",
+                }}
+              />
+              <select
+                value={statusFilter}
+                onChange={(event) =>
+                  setStatusFilter(event.target.value as typeof statusFilter)
+                }
+                aria-label="Filter homestays by status"
+                style={{
+                  width: "100%",
+                  padding: "0.75rem",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "8px",
+                  fontSize: "0.95rem",
+                  background: "white",
+                }}
+              >
+                <option value="all">All statuses</option>
+                <option value="active">Active only</option>
+                <option value="inactive">Inactive only</option>
+              </select>
+              <span
+                style={{
+                  color: "#6b7280",
+                  fontSize: "0.9rem",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {filteredHomestays.length} of {homestays.length} homestays
+              </span>
+            </div>
             {loading ? (
               <div
                 style={{
@@ -3548,7 +3751,7 @@ export default function AdminHomestays() {
                   gap: "1rem",
                 }}
               >
-                {homestays.map((homestay) => (
+                {filteredHomestays.map((homestay) => (
                   <div
                     key={homestay._id}
                     style={{
@@ -3754,7 +3957,7 @@ export default function AdminHomestays() {
                     </div>
                   </div>
                 ))}
-                {homestays.length === 0 && (
+                {filteredHomestays.length === 0 && (
                   <div
                     style={{
                       background: "white",
@@ -3764,8 +3967,9 @@ export default function AdminHomestays() {
                       color: "#6b7280",
                     }}
                   >
-                    No homestays found. Click &quot;Add Homestay&quot; to create
-                    one.
+                    {homestays.length === 0
+                      ? 'No homestays found. Click "Add Homestay" to create one.'
+                      : "No homestays match the current search or status filter."}
                   </div>
                 )}
               </div>

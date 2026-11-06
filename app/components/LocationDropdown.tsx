@@ -26,7 +26,7 @@ interface LocationDropdownProps {
   required?: boolean;
   maxLength?: number;
   providerOnly?: boolean;
-  variant?: "default" | "cab";
+  variant?: "default" | "cab" | "hero";
 }
 
 export const LocationDropdown: React.FC<LocationDropdownProps> = ({
@@ -201,7 +201,7 @@ export const LocationDropdown: React.FC<LocationDropdownProps> = ({
   return (
     <div
       ref={dropdownRef}
-      className={`${styles.wrapper} location-dropdown-wrapper${isOpen ? ` ${styles.open}` : ""}${variant === "cab" ? ` ${styles.cabVariant}` : ""}`}
+      className={`${styles.wrapper} location-dropdown-wrapper${isOpen ? ` ${styles.open}` : ""}${variant === "cab" ? ` ${styles.cabVariant}` : ""}${variant === "hero" ? ` ${styles.heroVariant}` : ""}`}
     >
       <input
         ref={inputRef}
@@ -233,9 +233,7 @@ export const LocationDropdown: React.FC<LocationDropdownProps> = ({
       />
 
       {isOpen && (
-        <div
-          className={styles.popover}
-        >
+        <div className={styles.popover}>
           <div
             id={listboxId}
             className={styles.suggestions}

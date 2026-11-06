@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
+import { load } from "@cashfreepayments/cashfree-js";
 import Header from "../../components/Header";
 
 interface Room {
@@ -17,6 +18,9 @@ interface Room {
   availability: number;
   cancellationPolicy: string;
   mealPlan?: string;
+  taxesAndFees?: number;
+  minimumAdvance?: number;
+  roomView?: string;
 }
 
 interface Review {
@@ -52,6 +56,8 @@ interface Hotel {
   hostName?: string;
   hostEmail?: string;
   hostPhone?: string;
+  taxRate?: number;
+  commissionRate?: number;
 }
 
 const inrFormatter = new Intl.NumberFormat("en-IN", {
@@ -65,6 +71,7 @@ const formatInr = (value: number) =>
 
 export default function HotelDetails() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const hotelId = params?.id as string;
 
   const [hotel, setHotel] = useState<Hotel | null>(null);
@@ -87,14 +94,14 @@ export default function HotelDetails() {
 
   // Booking details
   const [bookingDetails, setBookingDetails] = useState({
-    checkIn: "",
-    checkOut: "",
+    checkIn: searchParams.get("checkIn") || "",
+    checkOut: searchParams.get("checkOut") || "",
     rooms: 1,
-    guests: 2,
+    guests: Number(searchParams.get("guests")) || 2,
   });
 
   const [showBookingForm, setShowBookingForm] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showGuestDetailsModal, setShowGuestDetailsModal] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [guestDetails, setGuestDetails] = useState({
     name: "",
@@ -102,10 +109,15 @@ export default function HotelDetails() {
     phone: "",
     message: "",
   });
+  const [paymentOption, setPaymentOption] = useState<"full" | "commission">(
+    "full",
+  );
+  const [processingPayment, setProcessingPayment] = useState(false);
 
   const [selectedRoomForBooking, setSelectedRoomForBooking] =
     useState<Room | null>(null);
   const [showRoomSelectionModal, setShowRoomSelectionModal] = useState(false);
+  const [roomForDetails, setRoomForDetails] = useState<Room | null>(null);
 
   const [showHostProperties, setShowHostProperties] = useState(false);
   const [hostProperties, setHostProperties] = useState<any[]>([]);
@@ -116,6 +128,15 @@ export default function HotelDetails() {
     checkAuth();
   }, []);
 
+  useEffect(() => {
+    setBookingDetails((current) => ({
+      ...current,
+      checkIn: searchParams.get("checkIn") || current.checkIn,
+      checkOut: searchParams.get("checkOut") || current.checkOut,
+      guests: Number(searchParams.get("guests")) || current.guests,
+    }));
+  }, [searchParams]);
+
   const checkAuth = async () => {
     try {
       // First check localStorage for quick auth detection
@@ -124,7 +145,6 @@ export default function HotelDetails() {
         try {
           const user = JSON.parse(userString);
           setUserProfile(user);
-          setIsAuthenticated(true);
           setGuestDetails((prev) => ({
             ...prev,
             name: user.name || prev.name,
@@ -144,29 +164,19 @@ export default function HotelDetails() {
       if (response.ok) {
         const user = await response.json();
         setUserProfile(user);
-        setIsAuthenticated(true);
         setGuestDetails((prev) => ({
           ...prev,
           name: user.name || prev.name,
           email: user.email || prev.email,
           phone: user.mobile || prev.phone,
         }));
-      } else {
-        setIsAuthenticated(false);
       }
     } catch (err) {
       console.error("Auth check failed:", err);
-      setIsAuthenticated(false);
     }
   };
 
   const handleConfirmBooking = async () => {
-    if (!isAuthenticated) {
-      alert("Please log in to make a booking");
-      window.location.href = "/auth/login";
-      return;
-    }
-
     if (!selectedRoomForBooking) {
       alert("Please select a room first");
       return;
@@ -183,6 +193,7 @@ export default function HotelDetails() {
     }
 
     try {
+      setProcessingPayment(true);
       const checkinDate = new Date(bookingDetails.checkIn);
       const checkoutDate = new Date(bookingDetails.checkOut);
       const nights = Math.ceil(
@@ -194,11 +205,6 @@ export default function HotelDetails() {
         alert("Check-out date must be after check-in date");
         return;
       }
-
-      const basePrice = selectedRoomForBooking.price;
-      const taxes = basePrice * nights * 0.12;
-      const platformFee = basePrice * nights * 0.05;
-      const totalPrice = basePrice * nights + taxes + platformFee;
 
       if (!hotel) {
         alert("Hotel information not loaded. Please refresh and try again.");
@@ -224,8 +230,10 @@ export default function HotelDetails() {
           checkOut: bookingDetails.checkOut,
           guests: bookingDetails.guests,
           basePrice: selectedRoomForBooking.price,
+          paymentInitiated: true,
+          paymentOption,
           city: hotel.location || "Unknown",
-          userId: userProfile._id,
+          ...(userProfile?._id ? { userId: userProfile._id } : {}),
         }),
       });
 
@@ -235,13 +243,29 @@ export default function HotelDetails() {
       }
 
       const booking = await response.json();
-      alert("Booking confirmed successfully!");
+      const orderResponse = await fetch("/api/payments/cashfree", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId: booking._id }),
+      });
+      if (!orderResponse.ok) {
+        const error = await orderResponse.json();
+        throw new Error(error.error || "Failed to initialize payment");
+      }
 
-      // Redirect to my bookings
-      window.location.href = "/user/bookings";
+      const { paymentSessionId } = await orderResponse.json();
+      const cashfree = await load({
+        mode: (process.env.NEXT_PUBLIC_CASHFREE_ENV === "production"
+          ? "production"
+          : "sandbox") as "sandbox" | "production",
+      });
+      if (!cashfree) throw new Error("Cashfree checkout could not be loaded");
+      await cashfree.checkout({ paymentSessionId, redirectTarget: "_self" });
     } catch (error: any) {
       console.error("Error creating booking:", error);
       alert(error.message || "Failed to create booking");
+    } finally {
+      setProcessingPayment(false);
     }
   };
 
@@ -383,6 +407,24 @@ export default function HotelDetails() {
     const diff = end.getTime() - start.getTime();
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
   };
+
+  const bookingNights = calculateNights();
+  const bookingBase = (selectedRoomForBooking?.price || 0) * bookingNights;
+  const bookingCommission =
+    (selectedRoomForBooking?.minimumAdvance ||
+      bookingBase *
+        (Number(hotel?.commissionRate ?? 10) /
+          100 /
+          Math.max(bookingNights, 1))) * bookingNights;
+  const bookingTax =
+    Math.max(
+      0,
+      (selectedRoomForBooking?.taxesAndFees || 0) * bookingNights -
+        bookingCommission,
+    ) || bookingBase * (Number(hotel?.taxRate ?? 10) / 100);
+  const bookingTotal = bookingBase + bookingTax + bookingCommission;
+  const depositAmount = bookingCommission;
+  const balanceAtHotel = Math.max(0, bookingTotal - depositAmount);
 
   if (loading) {
     return (
@@ -833,7 +875,6 @@ export default function HotelDetails() {
                     </div>
                   </div>
                 </div>
-
               </div>
             )}
 
@@ -1289,7 +1330,7 @@ export default function HotelDetails() {
                                       return;
                                     }
                                     setSelectedRoomForBooking(room);
-                                    setShowRoomSelectionModal(true);
+                                    setShowGuestDetailsModal(true);
                                   }}
                                   style={{
                                     width: "100%",
@@ -1330,6 +1371,24 @@ export default function HotelDetails() {
                                   {room.availability <= 0
                                     ? "No Rooms Available"
                                     : "Select Room"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setRoomForDetails(room)}
+                                  style={{
+                                    width: "100%",
+                                    marginTop: "0.6rem",
+                                    padding: "0.65rem 1rem",
+                                    background: "#ffffff",
+                                    color: "#075985",
+                                    border: "1px solid #bae6fd",
+                                    borderRadius: "8px",
+                                    fontSize: "0.9rem",
+                                    fontWeight: 700,
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  View room details
                                 </button>
                               </div>
                             </div>
@@ -2024,6 +2083,128 @@ export default function HotelDetails() {
                 </div>
               )}
 
+              {showBookingForm &&
+                selectedRoomForBooking &&
+                bookingNights > 0 && (
+                  <div
+                    style={{
+                      background: "#ffffff",
+                      border: "1px solid #dbeafe",
+                      borderRadius: "12px",
+                      padding: "1rem",
+                      marginBottom: "1rem",
+                    }}
+                  >
+                    <h4 style={{ margin: "0 0 0.75rem", fontSize: "1rem" }}>
+                      Choose how you pay
+                    </h4>
+                    <div style={{ display: "grid", gap: "0.6rem" }}>
+                      <label
+                        style={{
+                          display: "flex",
+                          gap: "0.75rem",
+                          alignItems: "flex-start",
+                          padding: "0.75rem",
+                          border: `2px solid ${paymentOption === "full" ? "#2563eb" : "#e2e8f0"}`,
+                          borderRadius: "10px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          name="hotel-payment-option"
+                          checked={paymentOption === "full"}
+                          onChange={() => setPaymentOption("full")}
+                        />
+                        <span>
+                          <strong>Pay in full now</strong>
+                          <small
+                            style={{
+                              display: "block",
+                              color: "#64748b",
+                              marginTop: "0.2rem",
+                            }}
+                          >
+                            Pay {formatInr(bookingTotal)} securely with Cashfree
+                          </small>
+                        </span>
+                      </label>
+                      <label
+                        style={{
+                          display: "flex",
+                          gap: "0.75rem",
+                          alignItems: "flex-start",
+                          padding: "0.75rem",
+                          border: `2px solid ${paymentOption === "commission" ? "#2563eb" : "#e2e8f0"}`,
+                          borderRadius: "10px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          name="hotel-payment-option"
+                          checked={paymentOption === "commission"}
+                          onChange={() => setPaymentOption("commission")}
+                        />
+                        <span>
+                          <strong>Pay a deposit now</strong>
+                          <small
+                            style={{
+                              display: "block",
+                              color: "#64748b",
+                              marginTop: "0.2rem",
+                            }}
+                          >
+                            Pay {formatInr(depositAmount)} now, then{" "}
+                            {formatInr(balanceAtHotel)} at the hotel
+                          </small>
+                        </span>
+                      </label>
+                    </div>
+                    <div
+                      style={{
+                        borderTop: "1px solid #e2e8f0",
+                        marginTop: "1rem",
+                        paddingTop: "0.75rem",
+                        display: "grid",
+                        gap: "0.35rem",
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <span>Room subtotal</span>
+                        <strong>{formatInr(bookingBase)}</strong>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <span>Taxes & fees</span>
+                        <strong>
+                          {formatInr(bookingTax + bookingCommission)}
+                        </strong>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          fontWeight: 700,
+                        }}
+                      >
+                        <span>Total stay</span>
+                        <strong>{formatInr(bookingTotal)}</strong>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
               {showBookingForm ? (
                 <div
                   style={{
@@ -2057,16 +2238,18 @@ export default function HotelDetails() {
                   </button>
                   <button
                     onClick={handleConfirmBooking}
+                    disabled={processingPayment}
                     style={{
                       padding: "1rem",
-                      background:
-                        "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
+                      background: processingPayment
+                        ? "#94a3b8"
+                        : "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
                       color: "white",
                       border: "none",
                       borderRadius: "12px",
                       fontSize: "1rem",
                       fontWeight: 700,
-                      cursor: "pointer",
+                      cursor: processingPayment ? "not-allowed" : "pointer",
                       transition: "all 0.3s ease",
                     }}
                     onMouseEnter={(e) => {
@@ -2079,7 +2262,9 @@ export default function HotelDetails() {
                       e.currentTarget.style.boxShadow = "none";
                     }}
                   >
-                    Confirm Booking
+                    {processingPayment
+                      ? "Opening secure payment..."
+                      : "Continue to secure payment"}
                   </button>
                 </div>
               ) : (
@@ -2456,6 +2641,289 @@ export default function HotelDetails() {
               ›
             </button>
           )}
+        </div>
+      )}
+
+      {roomForDetails && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${roomForDetails.type} room details`}
+          onClick={() => setRoomForDetails(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 10000,
+            background: "rgba(15, 23, 42, 0.72)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "1rem",
+          }}
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              width: "min(760px, 100%)",
+              maxHeight: "90vh",
+              overflowY: "auto",
+              background: "#ffffff",
+              borderRadius: "16px",
+              padding: "1.5rem",
+              boxShadow: "0 24px 70px rgba(15, 23, 42, 0.3)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: "1rem",
+                alignItems: "flex-start",
+              }}
+            >
+              <div>
+                <p
+                  style={{
+                    margin: 0,
+                    color: "#0284c7",
+                    fontWeight: 700,
+                    fontSize: "0.8rem",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Room details
+                </p>
+                <h2
+                  style={{
+                    margin: "0.25rem 0 0",
+                    color: "#0f172a",
+                    fontSize: "1.6rem",
+                  }}
+                >
+                  {roomForDetails.type}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRoomForDetails(null)}
+                aria-label="Close room details"
+                style={{
+                  background: "#f1f5f9",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: "36px",
+                  height: "36px",
+                  fontSize: "1.4rem",
+                  cursor: "pointer",
+                  color: "#334155",
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {roomForDetails.images?.length > 0 && (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+                  gap: "0.6rem",
+                  margin: "1.25rem 0",
+                }}
+              >
+                {roomForDetails.images.map((image, index) => (
+                  <img
+                    key={`${image}-${index}`}
+                    src={image}
+                    alt={`${roomForDetails.type} ${index + 1}`}
+                    style={{
+                      width: "100%",
+                      height: "130px",
+                      objectFit: "cover",
+                      borderRadius: "10px",
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+
+            <h3
+              style={{
+                margin: "0 0 0.6rem",
+                fontSize: "1rem",
+                color: "#0f172a",
+              }}
+            >
+              Room overview
+            </h3>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                gap: "0.75rem",
+                marginBottom: "1.25rem",
+              }}
+            >
+              {[
+                ["Room type", roomForDetails.type],
+                ["Guests", `${roomForDetails.maxGuests} guests`],
+                ["Bed type", roomForDetails.bedType || "Not specified"],
+                [
+                  "Room size",
+                  roomForDetails.size
+                    ? `${roomForDetails.size} m²`
+                    : "Not specified",
+                ],
+                ["Availability", `${roomForDetails.availability} room(s)`],
+                ["Meal plan", roomForDetails.mealPlan || "Not specified"],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  style={{
+                    background: "#f8fafc",
+                    borderRadius: "10px",
+                    padding: "0.8rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      color: "#64748b",
+                      fontSize: "0.78rem",
+                      marginBottom: "0.25rem",
+                    }}
+                  >
+                    {label}
+                  </div>
+                  <strong style={{ color: "#0f172a" }}>{value}</strong>
+                </div>
+              ))}
+            </div>
+
+            <section style={{ marginBottom: "1.25rem" }}>
+              <h3
+                style={{
+                  margin: "0 0 0.6rem",
+                  fontSize: "1rem",
+                  color: "#0f172a",
+                }}
+              >
+                Room amenities
+              </h3>
+              {roomForDetails.amenities?.length ? (
+                <div
+                  style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}
+                >
+                  {roomForDetails.amenities.map((amenity) => (
+                    <span
+                      key={amenity}
+                      style={{
+                        padding: "0.4rem 0.65rem",
+                        background: "#eff6ff",
+                        color: "#075985",
+                        borderRadius: "999px",
+                        fontSize: "0.85rem",
+                      }}
+                    >
+                      {amenity}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ margin: 0, color: "#64748b" }}>
+                  No amenities listed.
+                </p>
+              )}
+            </section>
+
+            <section
+              style={{
+                background: "#f8fafc",
+                borderRadius: "10px",
+                padding: "1rem",
+              }}
+            >
+              <h3
+                style={{
+                  margin: "0 0 0.75rem",
+                  fontSize: "1rem",
+                  color: "#0f172a",
+                }}
+              >
+                Rate plan
+              </h3>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "1rem",
+                  alignItems: "flex-start",
+                  flexWrap: "wrap",
+                }}
+              >
+                <div>
+                  <strong style={{ display: "block", color: "#0f172a" }}>
+                    {roomForDetails.mealPlan || "Rate plan"}
+                  </strong>
+                  <span
+                    style={{
+                      display: "block",
+                      marginTop: "0.25rem",
+                      color: "#475569",
+                      fontSize: "0.88rem",
+                    }}
+                  >
+                    {roomForDetails.cancellationPolicy ||
+                      "Cancellation policy not specified"}
+                  </span>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  {roomForDetails.originalPrice &&
+                    roomForDetails.originalPrice > roomForDetails.price && (
+                      <span
+                        style={{
+                          display: "block",
+                          color: "#94a3b8",
+                          textDecoration: "line-through",
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        {formatInr(roomForDetails.originalPrice)}
+                      </span>
+                    )}
+                  <strong
+                    style={{
+                      display: "block",
+                      color: "#0066cc",
+                      fontSize: "1.25rem",
+                    }}
+                  >
+                    {formatInr(roomForDetails.price)}
+                  </strong>
+                  {typeof roomForDetails.taxesAndFees === "number" && (
+                    <span
+                      style={{
+                        display: "block",
+                        color: "#64748b",
+                        fontSize: "0.82rem",
+                      }}
+                    >
+                      + {formatInr(roomForDetails.taxesAndFees)} taxes &amp;
+                      fees
+                    </span>
+                  )}
+                  <span
+                    style={{
+                      display: "block",
+                      color: "#64748b",
+                      fontSize: "0.82rem",
+                    }}
+                  >
+                    per night
+                  </span>
+                </div>
+              </div>
+            </section>
+          </div>
         </div>
       )}
 
@@ -3238,6 +3706,432 @@ export default function HotelDetails() {
                 <p>Loading properties...</p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {showGuestDetailsModal && selectedRoomForBooking && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Complete your booking"
+          onClick={() => setShowGuestDetailsModal(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 10000,
+            background: "rgba(15, 23, 42, 0.65)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "1rem",
+          }}
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              width: "min(760px, 100%)",
+              maxHeight: "92vh",
+              overflowY: "auto",
+              background: "#fff",
+              borderRadius: "18px",
+              padding: "1.5rem",
+              boxShadow: "0 24px 70px rgba(15, 23, 42, 0.3)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: "1rem",
+                alignItems: "flex-start",
+                marginBottom: "1.25rem",
+              }}
+            >
+              <div>
+                <p
+                  style={{
+                    margin: 0,
+                    color: "#2563eb",
+                    fontSize: "0.8rem",
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Secure checkout
+                </p>
+                <h2
+                  style={{
+                    margin: "0.25rem 0 0",
+                    color: "#0f172a",
+                    fontSize: "1.5rem",
+                  }}
+                >
+                  Complete your booking
+                </h2>
+                <p style={{ margin: "0.35rem 0 0", color: "#64748b" }}>
+                  {selectedRoomForBooking.type} at {hotel?.name}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowGuestDetailsModal(false)}
+                aria-label="Close checkout"
+                style={{
+                  border: 0,
+                  background: "#f1f5f9",
+                  borderRadius: "50%",
+                  width: "36px",
+                  height: "36px",
+                  fontSize: "1.3rem",
+                  cursor: "pointer",
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                gap: "0.85rem",
+              }}
+            >
+              {[
+                [
+                  "Full name",
+                  "name",
+                  "text",
+                  guestDetails.name,
+                  "Your full name",
+                ],
+                [
+                  "Email",
+                  "email",
+                  "email",
+                  guestDetails.email,
+                  "you@example.com",
+                ],
+                ["Phone", "phone", "tel", guestDetails.phone, "+91 9876543210"],
+              ].map(([label, field, type, value, placeholder]) => (
+                <label
+                  key={field}
+                  style={{
+                    display: "grid",
+                    gap: "0.35rem",
+                    color: "#475569",
+                    fontSize: "0.85rem",
+                    fontWeight: 600,
+                  }}
+                >
+                  {label} *
+                  <input
+                    type={type}
+                    value={value}
+                    placeholder={placeholder}
+                    onChange={(event) =>
+                      setGuestDetails((current) => ({
+                        ...current,
+                        [field]: event.target.value,
+                      }))
+                    }
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      padding: "0.75rem",
+                      border: "1px solid #cbd5e1",
+                      borderRadius: "9px",
+                      fontSize: "0.95rem",
+                    }}
+                  />
+                </label>
+              ))}
+              <label
+                style={{
+                  display: "grid",
+                  gap: "0.35rem",
+                  color: "#475569",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                }}
+              >
+                Guests
+                <input
+                  type="number"
+                  min="1"
+                  max={selectedRoomForBooking.maxGuests}
+                  value={bookingDetails.guests}
+                  onChange={(event) =>
+                    setBookingDetails((current) => ({
+                      ...current,
+                      guests: Number(event.target.value) || 1,
+                    }))
+                  }
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    padding: "0.75rem",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "9px",
+                    fontSize: "0.95rem",
+                  }}
+                />
+              </label>
+              <label
+                style={{
+                  display: "grid",
+                  gap: "0.35rem",
+                  color: "#475569",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                }}
+              >
+                Check-in *
+                <input
+                  type="date"
+                  value={bookingDetails.checkIn}
+                  min={new Date().toISOString().split("T")[0]}
+                  onChange={(event) =>
+                    setBookingDetails((current) => ({
+                      ...current,
+                      checkIn: event.target.value,
+                    }))
+                  }
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    padding: "0.75rem",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "9px",
+                    fontSize: "0.95rem",
+                  }}
+                />
+              </label>
+              <label
+                style={{
+                  display: "grid",
+                  gap: "0.35rem",
+                  color: "#475569",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                }}
+              >
+                Check-out *
+                <input
+                  type="date"
+                  value={bookingDetails.checkOut}
+                  min={
+                    bookingDetails.checkIn ||
+                    new Date().toISOString().split("T")[0]
+                  }
+                  onChange={(event) =>
+                    setBookingDetails((current) => ({
+                      ...current,
+                      checkOut: event.target.value,
+                    }))
+                  }
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    padding: "0.75rem",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "9px",
+                    fontSize: "0.95rem",
+                  }}
+                />
+              </label>
+              <label
+                style={{
+                  gridColumn: "1 / -1",
+                  display: "grid",
+                  gap: "0.35rem",
+                  color: "#475569",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                }}
+              >
+                Special requests
+                <textarea
+                  value={guestDetails.message}
+                  onChange={(event) =>
+                    setGuestDetails((current) => ({
+                      ...current,
+                      message: event.target.value,
+                    }))
+                  }
+                  rows={2}
+                  placeholder="Any requests for the hotel?"
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    padding: "0.75rem",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "9px",
+                    fontSize: "0.95rem",
+                    resize: "vertical",
+                  }}
+                />
+              </label>
+            </div>
+
+            <div
+              style={{
+                marginTop: "1.25rem",
+                padding: "1rem",
+                borderRadius: "12px",
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  color: "#475569",
+                  marginBottom: "0.35rem",
+                }}
+              >
+                <span>
+                  Room subtotal{" "}
+                  {bookingNights > 0
+                    ? `(${bookingNights} night${bookingNights === 1 ? "" : "s"})`
+                    : ""}
+                </span>
+                <strong>{formatInr(bookingBase)}</strong>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  color: "#475569",
+                  marginBottom: "0.35rem",
+                }}
+              >
+                <span>Taxes &amp; fees</span>
+                <strong>{formatInr(bookingTax + bookingCommission)}</strong>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  color: "#0f172a",
+                  fontSize: "1.1rem",
+                  fontWeight: 800,
+                  borderTop: "1px solid #e2e8f0",
+                  paddingTop: "0.65rem",
+                }}
+              >
+                <span>Total stay</span>
+                <strong>{formatInr(bookingTotal)}</strong>
+              </div>
+              {bookingNights <= 0 && (
+                <p
+                  style={{
+                    margin: "0.65rem 0 0",
+                    color: "#b45309",
+                    fontSize: "0.82rem",
+                  }}
+                >
+                  Select valid dates to calculate the final price.
+                </p>
+              )}
+            </div>
+
+            <div style={{ display: "grid", gap: "0.6rem", marginTop: "1rem" }}>
+              <label
+                style={{
+                  display: "flex",
+                  gap: "0.65rem",
+                  alignItems: "flex-start",
+                  padding: "0.75rem",
+                  border: `2px solid ${paymentOption === "full" ? "#2563eb" : "#e2e8f0"}`,
+                  borderRadius: "10px",
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="radio"
+                  name="popup-payment-option"
+                  checked={paymentOption === "full"}
+                  onChange={() => setPaymentOption("full")}
+                />
+                <span>
+                  <strong>Pay in full now</strong>
+                  <small style={{ display: "block", color: "#64748b" }}>
+                    {formatInr(bookingTotal)} through Cashfree
+                  </small>
+                </span>
+              </label>
+              <label
+                style={{
+                  display: "flex",
+                  gap: "0.65rem",
+                  alignItems: "flex-start",
+                  padding: "0.75rem",
+                  border: `2px solid ${paymentOption === "commission" ? "#2563eb" : "#e2e8f0"}`,
+                  borderRadius: "10px",
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="radio"
+                  name="popup-payment-option"
+                  checked={paymentOption === "commission"}
+                  onChange={() => setPaymentOption("commission")}
+                />
+                <span>
+                  <strong>Pay a deposit now</strong>
+                  <small style={{ display: "block", color: "#64748b" }}>
+                    {formatInr(depositAmount)} now, {formatInr(balanceAtHotel)}{" "}
+                    at the hotel
+                  </small>
+                </span>
+              </label>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1.5fr",
+                gap: "0.75rem",
+                marginTop: "1.25rem",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setShowGuestDetailsModal(false)}
+                style={{
+                  padding: "0.85rem",
+                  border: 0,
+                  borderRadius: "9px",
+                  background: "#e2e8f0",
+                  color: "#334155",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmBooking}
+                disabled={processingPayment}
+                style={{
+                  padding: "0.85rem",
+                  border: 0,
+                  borderRadius: "9px",
+                  background: processingPayment ? "#94a3b8" : "#0b6dff",
+                  color: "#fff",
+                  fontWeight: 700,
+                  cursor: processingPayment ? "not-allowed" : "pointer",
+                }}
+              >
+                {processingPayment
+                  ? "Opening secure payment..."
+                  : "Continue to payment"}
+              </button>
+            </div>
           </div>
         </div>
       )}

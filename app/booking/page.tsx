@@ -30,8 +30,7 @@ function BookingPageContent() {
     specialRequests: "",
   });
   const [processing, setProcessing] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userProfile, setUserProfile] = useState<any>(null); // Store full user profile from initial auth check
+  const [userProfile, setUserProfile] = useState<any>(null);
 
   useEffect(() => {
     checkAuth();
@@ -46,7 +45,6 @@ function BookingPageContent() {
         try {
           const user = JSON.parse(userString);
           setUserProfile(user);
-          setIsAuthenticated(true);
           setGuestDetails((prev) => ({
             ...prev,
             name: user.name || prev.name,
@@ -66,19 +64,15 @@ function BookingPageContent() {
       if (response.ok) {
         const user = await response.json();
         setUserProfile(user); // Store the full profile
-        setIsAuthenticated(true);
         setGuestDetails((prev) => ({
           ...prev,
           name: user.name || prev.name,
           email: user.email || prev.email,
           phone: user.mobile || prev.phone,
         }));
-      } else {
-        setIsAuthenticated(false);
       }
     } catch (err) {
       console.error("Auth check failed:", err);
-      setIsAuthenticated(false);
     }
   };
 
@@ -154,12 +148,6 @@ function BookingPageContent() {
   };
 
   const handleConfirmBooking = async () => {
-    if (!isAuthenticated) {
-      alert("Please log in to make a booking");
-      router.push("/auth/login");
-      return;
-    }
-
     if (!guestDetails.name || !guestDetails.email || !guestDetails.phone) {
       alert("Please fill in all required fields");
       return;
@@ -170,17 +158,7 @@ function BookingPageContent() {
     setProcessing(true);
 
     try {
-      // Use the user profile already fetched during auth check
-      if (!userProfile || !userProfile._id) {
-        throw new Error("User profile not available");
-      }
-
-      console.log("Using stored user profile:", {
-        userId: userProfile._id,
-        name: userProfile.name,
-      });
-
-      // Create booking (will be auto-confirmed for logged in users)
+      // Guest bookings are allowed; associate the booking with an account only when available.
       const response = await fetch("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -200,7 +178,7 @@ function BookingPageContent() {
           checkOut: bookingData.checkout,
           guests: bookingData.guests,
           basePrice: bookingData.room.price,
-          userId: userProfile._id,
+          ...(userProfile?._id ? { userId: userProfile._id } : {}),
           paymentInitiated: true,
         }),
       });

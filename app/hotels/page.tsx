@@ -27,6 +27,7 @@ interface Hotel {
   hostEmail?: string;
   hostPhone?: string;
   roomViews: string[];
+  taxesAndFees?: number;
 }
 
 const inrFormatter = new Intl.NumberFormat("en-IN", {
@@ -40,13 +41,12 @@ const formatInr = (value: number) =>
 
 const normalizeHotel = (hotel: Partial<Hotel>): Hotel => {
   const rawId = (hotel as { _id?: unknown })._id;
-  const rawViews = (hotel as { roomViews?: unknown }).roomViews;
+  const hotelWithRooms = hotel as Partial<Hotel> & {
+    roomView?: unknown;
+    rooms?: unknown;
+  };
   const amenities = Array.isArray(hotel.amenities) ? hotel.amenities : [];
-  const roomViews = Array.isArray(rawViews)
-    ? rawViews.filter((view): view is string => typeof view === "string")
-    : typeof (hotel as { roomView?: unknown }).roomView === "string"
-      ? [(hotel as { roomView: string }).roomView]
-      : [];
+  const roomViews = getRoomViews(hotelWithRooms);
   const derivedViews = amenities.filter((amenity) =>
     ROOM_VIEW_OPTIONS.some((view) =>
       amenity.toLowerCase().includes(view.toLowerCase()),
@@ -65,7 +65,7 @@ const normalizeHotel = (hotel: Partial<Hotel>): Hotel => {
     reviews: Number((hotel as { reviews?: unknown }).reviews ?? 0) || 0,
     image: hotel.image ?? "",
     images: Array.isArray((hotel as { images?: unknown }).images)
-      ? ((hotel as { images: string[] }).images)
+      ? (hotel as { images: string[] }).images
       : hotel.image
         ? [hotel.image]
         : [],
@@ -76,6 +76,8 @@ const normalizeHotel = (hotel: Partial<Hotel>): Hotel => {
     hostEmail: hotel.hostEmail ?? "",
     hostPhone: hotel.hostPhone ?? "",
     roomViews: Array.from(new Set([...roomViews, ...derivedViews])),
+    taxesAndFees:
+      Number((hotel as { taxesAndFees?: unknown }).taxesAndFees ?? 0) || 0,
   };
 };
 
@@ -107,6 +109,29 @@ const ROOM_VIEW_OPTIONS = [
   "Valley View",
   "River View",
 ];
+
+const getRoomViews = (property: {
+  roomViews?: unknown;
+  roomView?: unknown;
+  rooms?: unknown;
+}) => {
+  const views: string[] = [];
+  const addView = (value: unknown) => {
+    if (typeof value === "string" && value.trim()) views.push(value.trim());
+  };
+
+  if (Array.isArray(property.roomViews)) property.roomViews.forEach(addView);
+  addView(property.roomView);
+  if (Array.isArray(property.rooms)) {
+    property.rooms.forEach((room) => {
+      if (room && typeof room === "object") {
+        addView((room as { roomView?: unknown }).roomView);
+      }
+    });
+  }
+
+  return Array.from(new Set(views));
+};
 
 const RATING_OPTIONS = [
   { label: "★ 4.5+", value: 4.5 },
@@ -183,7 +208,9 @@ function HotelsContent() {
     );
   const toggleRoomView = (view: string) =>
     setSelectedRoomViews((prev) =>
-      prev.includes(view) ? prev.filter((item) => item !== view) : [...prev, view],
+      prev.includes(view)
+        ? prev.filter((item) => item !== view)
+        : [...prev, view],
     );
   const clearSidebarFilters = () => {
     setSelectedStars([]);
@@ -603,9 +630,34 @@ function HotelsContent() {
                   boxShadow: "0 2px 12px rgba(0, 0, 0, 0.08)",
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", gap: "1rem" }}>
-                  <h2 style={{ fontSize: "1.3rem", fontWeight: 700, color: "#1f2937" }}>Featured Hotels</h2>
-                  <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} aria-label="Sort hotels" style={{ padding: "0.5rem 0.75rem", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "1.5rem",
+                    gap: "1rem",
+                  }}
+                >
+                  <h2
+                    style={{
+                      fontSize: "1.3rem",
+                      fontWeight: 700,
+                      color: "#1f2937",
+                    }}
+                  >
+                    Featured Hotels
+                  </h2>
+                  <select
+                    value={sortBy}
+                    onChange={(event) => setSortBy(event.target.value)}
+                    aria-label="Sort hotels"
+                    style={{
+                      padding: "0.5rem 0.75rem",
+                      borderRadius: "8px",
+                      border: "1px solid #cbd5e1",
+                    }}
+                  >
                     <option value="featured">Featured</option>
                     <option value="price-low">Price: Low to High</option>
                     <option value="price-high">Price: High to Low</option>
@@ -657,7 +709,7 @@ function HotelsContent() {
                         className="hotel-card"
                         style={{
                           borderRadius: "1rem",
-                          overflow: "hidden",
+                          overflow: "visible",
                           background: "#ffffff",
                           boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
                           transition: "transform 0.2s, box-shadow 0.2s",
@@ -666,8 +718,8 @@ function HotelsContent() {
                           color: "inherit",
                           display: "flex",
                           width: "100%",
-                          height: "165px",
-                          minHeight: 0,
+                          minHeight: "165px",
+                          height: "auto",
                           position: "relative",
                         }}
                         onMouseEnter={(e) => {
@@ -685,7 +737,11 @@ function HotelsContent() {
                           style={{ position: "relative", flex: "0 0 210px" }}
                         >
                           <ImageSlideshow
-                            images={hotel.images?.length ? hotel.images : [hotel.image]}
+                            images={
+                              hotel.images?.length
+                                ? hotel.images
+                                : [hotel.image]
+                            }
                             alt={hotel.name}
                           />
                           {!hotel.image && (
@@ -734,23 +790,39 @@ function HotelsContent() {
                             paddingBottom: "3.25rem",
                           }}
                         >
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
-                          <h3
+                          <div
                             style={{
-                              fontSize: "1rem",
-                              fontWeight: 600,
-                              marginBottom: "0.25rem",
-                              color: "#1f2937",
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "flex-start",
+                              gap: "1rem",
                             }}
                           >
-                            {hotel.name}
-                          </h3>
-                          <div style={{ flexShrink: 0, textAlign: "right" }}>
-                            <strong style={{ display: "block", fontSize: "1.25rem", color: "#0a66c2" }}>
-                              {formatInr(hotel.price)}
-                            </strong>
-                            <small style={{ color: "#6b7280" }}>+ taxes</small>
-                          </div>
+                            <h3
+                              style={{
+                                fontSize: "1rem",
+                                fontWeight: 600,
+                                marginBottom: "0.25rem",
+                                color: "#1f2937",
+                              }}
+                            >
+                              {hotel.name}
+                            </h3>
+                            <div style={{ flexShrink: 0, textAlign: "right" }}>
+                              <strong
+                                style={{
+                                  display: "block",
+                                  fontSize: "1.25rem",
+                                  color: "#0a66c2",
+                                }}
+                              >
+                                {formatInr(hotel.price)}
+                              </strong>
+                              <small style={{ color: "#6b7280" }}>
+                                + {formatInr(hotel.taxesAndFees ?? 0)} taxes
+                                &amp; fees
+                              </small>
+                            </div>
                           </div>
                           <p
                             style={{
@@ -759,9 +831,7 @@ function HotelsContent() {
                               marginBottom: "0.25rem",
                             }}
                           >
-                            {[hotel.address, hotel.city, hotel.state]
-                              .filter(Boolean)
-                              .join(", ") || hotel.location}
+                            {hotel.address || hotel.location}
                           </p>
 
                           <div
@@ -996,7 +1066,13 @@ function HotelsContent() {
                   >
                     Price Per Night
                   </h4>
-                  <label style={{ display: "block", fontSize: "0.85rem", color: "#374151" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.85rem",
+                      color: "#374151",
+                    }}
+                  >
                     Up to {formatInr(maxPrice)} per night
                     <input
                       type="range"
@@ -1004,8 +1080,14 @@ function HotelsContent() {
                       max="30000"
                       step="500"
                       value={maxPrice}
-                      onChange={(event) => setMaxPrice(Number(event.target.value))}
-                      style={{ width: "100%", marginTop: "0.75rem", accentColor: "#3b82f6" }}
+                      onChange={(event) =>
+                        setMaxPrice(Number(event.target.value))
+                      }
+                      style={{
+                        width: "100%",
+                        marginTop: "0.75rem",
+                        accentColor: "#3b82f6",
+                      }}
                     />
                   </label>
                 </div>
@@ -1174,7 +1256,11 @@ function HotelsContent() {
                         type="checkbox"
                         checked={selectedRoomViews.includes(view)}
                         onChange={() => toggleRoomView(view)}
-                        style={{ width: "16px", height: "16px", accentColor: "#3b82f6" }}
+                        style={{
+                          width: "16px",
+                          height: "16px",
+                          accentColor: "#3b82f6",
+                        }}
                       />
                       <span>{view}</span>
                     </label>

@@ -26,6 +26,7 @@ interface Hotel {
   type?: "hotel" | "homestay";
   propertyType?: string;
   roomViews: string[];
+  taxesAndFees?: number;
 }
 
 const inrFormatter = new Intl.NumberFormat("en-IN", {
@@ -42,13 +43,12 @@ const normalizeHotel = (hotel: Partial<Hotel>): Hotel => {
   const typeValue = (hotel as any).type || (hotel as any).propertyType;
   const normalizedType = typeValue ? String(typeValue).toLowerCase() : "hotel";
   const imageSrc = hotel.image ?? (hotel as any).images?.[0] ?? "";
-  const rawViews = (hotel as { roomViews?: unknown }).roomViews;
+  const hotelWithRooms = hotel as Partial<Hotel> & {
+    roomView?: unknown;
+    rooms?: unknown;
+  };
   const amenities = Array.isArray(hotel.amenities) ? hotel.amenities : [];
-  const roomViews = Array.isArray(rawViews)
-    ? rawViews.filter((view): view is string => typeof view === "string")
-    : typeof (hotel as { roomView?: unknown }).roomView === "string"
-      ? [(hotel as { roomView: string }).roomView]
-      : [];
+  const roomViews = getRoomViews(hotelWithRooms);
   const derivedViews = amenities.filter((amenity) =>
     ROOM_VIEW_OPTIONS.some((view) =>
       amenity.toLowerCase().includes(view.toLowerCase()),
@@ -66,7 +66,7 @@ const normalizeHotel = (hotel: Partial<Hotel>): Hotel => {
     reviews: Number((hotel as { reviews?: unknown }).reviews ?? 0) || 0,
     image: imageSrc || "https://via.placeholder.com/220x180?text=Hotel+Image",
     images: Array.isArray((hotel as { images?: unknown }).images)
-      ? ((hotel as { images: string[] }).images)
+      ? (hotel as { images: string[] }).images
       : [imageSrc],
     amenities,
     popular: typeof hotel.popular === "boolean" ? hotel.popular : false,
@@ -77,6 +77,8 @@ const normalizeHotel = (hotel: Partial<Hotel>): Hotel => {
     type: normalizedType as Hotel["type"],
     propertyType: normalizedType,
     roomViews: Array.from(new Set([...roomViews, ...derivedViews])),
+    taxesAndFees:
+      Number((hotel as { taxesAndFees?: unknown }).taxesAndFees ?? 0) || 0,
   };
 };
 
@@ -84,12 +86,7 @@ const normalizeHomestay = (homestay: any): Hotel => {
   const rawId = homestay._id;
   const normalizedType = "homestay";
   const imageSrc = homestay.image ?? homestay.images?.[0] ?? "";
-  const rawViews = homestay.roomViews;
-  const roomViews = Array.isArray(rawViews)
-    ? rawViews.filter((view: unknown): view is string => typeof view === "string")
-    : typeof homestay.roomView === "string"
-      ? [homestay.roomView]
-      : [];
+  const roomViews = getRoomViews(homestay);
   return {
     _id: typeof rawId === "string" ? rawId : rawId ? String(rawId) : undefined,
     name: homestay.name ?? homestay.propertyName ?? "",
@@ -102,9 +99,7 @@ const normalizeHomestay = (homestay: any): Hotel => {
     reviews: Number(homestay.reviews ?? 0) || 0,
     image:
       imageSrc || "https://via.placeholder.com/220x180?text=Homestay+Image",
-    images: Array.isArray(homestay.images)
-      ? homestay.images
-      : [imageSrc],
+    images: Array.isArray(homestay.images) ? homestay.images : [imageSrc],
     amenities: Array.isArray(homestay.amenities) ? homestay.amenities : [],
     popular: Boolean(homestay.popular),
     active: true,
@@ -152,6 +147,29 @@ const ROOM_VIEW_OPTIONS = [
   "Valley View",
   "River View",
 ];
+
+const getRoomViews = (property: {
+  roomViews?: unknown;
+  roomView?: unknown;
+  rooms?: unknown;
+}) => {
+  const views: string[] = [];
+  const addView = (value: unknown) => {
+    if (typeof value === "string" && value.trim()) views.push(value.trim());
+  };
+
+  if (Array.isArray(property.roomViews)) property.roomViews.forEach(addView);
+  addView(property.roomView);
+  if (Array.isArray(property.rooms)) {
+    property.rooms.forEach((room) => {
+      if (room && typeof room === "object") {
+        addView((room as { roomView?: unknown }).roomView);
+      }
+    });
+  }
+
+  return Array.from(new Set(views));
+};
 
 // Top attractions data - fetched from API based on location
 const ATTRACTIONS: Record<string, string[]> = {};
@@ -232,7 +250,9 @@ function HotelSearchContent() {
     );
   const toggleRoomView = (view: string) =>
     setSelectedRoomViews((prev) =>
-      prev.includes(view) ? prev.filter((item) => item !== view) : [...prev, view],
+      prev.includes(view)
+        ? prev.filter((item) => item !== view)
+        : [...prev, view],
     );
   const clearSidebarFilters = () => {
     setSelectedStars([]);
@@ -1451,7 +1471,7 @@ function HotelSearchContent() {
                 filteredHotels.map((hotel) => (
                   <a
                     key={hotel._id || hotel.name}
-                    href={`/hotels/${hotel._id || encodeURIComponent(hotel.name)}`}
+                    href={`/hotels/${hotel._id || encodeURIComponent(hotel.name)}?checkIn=${encodeURIComponent(filters.checkIn)}&checkOut=${encodeURIComponent(filters.checkOut)}&guests=${encodeURIComponent(filters.guests)}`}
                     style={{
                       display: "flex",
                       gap: "1rem",
@@ -1466,8 +1486,9 @@ function HotelSearchContent() {
                       textDecoration: "none",
                       color: "inherit",
                       willChange: "transform, box-shadow, border-color",
-                      height: "165px",
-                      overflow: "hidden",
+                      minHeight: "165px",
+                      height: "auto",
+                      overflow: "visible",
                       position: "relative",
                     }}
                     onMouseEnter={(e) => {
@@ -1493,7 +1514,9 @@ function HotelSearchContent() {
                       }}
                     >
                       <ImageSlideshow
-                        images={hotel.images?.length ? hotel.images : [hotel.image]}
+                        images={
+                          hotel.images?.length ? hotel.images : [hotel.image]
+                        }
                         alt={hotel.name}
                       />
                     </div>
@@ -1546,30 +1569,8 @@ function HotelSearchContent() {
                               >
                                 location_on
                               </span>
-                              {[hotel.address, hotel.city, hotel.state]
-                                .filter(Boolean)
-                                .join(", ") || hotel.location}
+                              {hotel.address || hotel.location}
                             </p>
-                            {!hotel.address && hotel.location && (hotel.city || hotel.state) && (
-                              <p
-                                style={{
-                                  fontSize: "0.8rem",
-                                  color: "#9ca3af",
-                                  margin: 0,
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: "0.5rem",
-                                }}
-                              >
-                                <span
-                                  className="material-symbols-outlined"
-                                  style={{ fontSize: "0.85rem" }}
-                                >
-                                  place
-                                </span>
-                                {hotel.location}
-                              </p>
-                            )}
                           </div>
 
                           {/* Price */}
@@ -1595,12 +1596,15 @@ function HotelSearchContent() {
                             >
                               per night
                             </p>
-                            <small style={{ color: "#6b7280" }}>+ taxes</small>
+                            <small style={{ color: "#6b7280" }}>
+                              + {formatInr(Number(hotel.taxesAndFees || 0))}{" "}
+                              taxes &amp; fees
+                            </small>
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.preventDefault();
-                                window.location.href = `/hotels/${hotel._id || encodeURIComponent(hotel.name)}`;
+                                window.location.href = `/hotels/${hotel._id || encodeURIComponent(hotel.name)}?checkIn=${encodeURIComponent(filters.checkIn)}&checkOut=${encodeURIComponent(filters.checkOut)}&guests=${encodeURIComponent(filters.guests)}`;
                               }}
                               style={{
                                 position: "absolute",
@@ -1620,53 +1624,6 @@ function HotelSearchContent() {
                               View Details
                             </button>
                           </div>
-                        </div>
-
-                        <div
-                          style={{
-                            marginBottom: "1.25rem",
-                            paddingBottom: "1.25rem",
-                            borderBottom: "1px solid #f1f5f9",
-                          }}
-                        >
-                          <h4
-                            style={{
-                              fontSize: "0.8rem",
-                              fontWeight: 700,
-                              color: "#1e293b",
-                              marginBottom: "0.75rem",
-                              textTransform: "uppercase",
-                              letterSpacing: "0.5px",
-                            }}
-                          >
-                            Room View
-                          </h4>
-                          {ROOM_VIEW_OPTIONS.map((view) => (
-                            <label
-                              key={view}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "0.625rem",
-                                padding: "0.35rem 0.5rem",
-                                cursor: "pointer",
-                                fontSize: "0.85rem",
-                                color: "#374151",
-                              }}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={selectedRoomViews.includes(view)}
-                                onChange={() => toggleRoomView(view)}
-                                style={{
-                                  width: "16px",
-                                  height: "16px",
-                                  accentColor: "#3b82f6",
-                                }}
-                              />
-                              <span>{view}</span>
-                            </label>
-                          ))}
                         </div>
 
                         {/* Amenities */}
@@ -1753,7 +1710,6 @@ function HotelSearchContent() {
                             ({hotel.reviews} reviews)
                           </span>
                         </div>
-
                       </div>
                     </div>
                   </a>
@@ -2000,9 +1956,29 @@ function HotelSearchContent() {
                 >
                   Price Per Night
                 </h4>
-                <label style={{ display: "block", fontSize: "0.85rem", color: "#374151" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.85rem",
+                    color: "#374151",
+                  }}
+                >
                   Up to {formatInr(maxPrice)} per night
-                  <input type="range" min="0" max="30000" step="500" value={maxPrice} onChange={(event) => setMaxPrice(Number(event.target.value))} style={{ width: "100%", marginTop: "0.75rem", accentColor: "#3b82f6" }} />
+                  <input
+                    type="range"
+                    min="0"
+                    max="30000"
+                    step="500"
+                    value={maxPrice}
+                    onChange={(event) =>
+                      setMaxPrice(Number(event.target.value))
+                    }
+                    style={{
+                      width: "100%",
+                      marginTop: "0.75rem",
+                      accentColor: "#3b82f6",
+                    }}
+                  />
                 </label>
               </div>
 
@@ -2127,6 +2103,55 @@ function HotelSearchContent() {
                       }}
                     />
                     <span>★ {opt.label}</span>
+                  </label>
+                ))}
+              </div>
+
+              {/* Room View */}
+              <div
+                style={{
+                  marginBottom: "1.25rem",
+                  paddingBottom: "1.25rem",
+                  borderBottom: "1px solid #f1f5f9",
+                }}
+              >
+                <h4
+                  style={{
+                    fontSize: "0.8rem",
+                    fontWeight: 700,
+                    color: "#1e293b",
+                    marginBottom: "0.75rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}
+                >
+                  Room View
+                </h4>
+                {ROOM_VIEW_OPTIONS.map((view) => (
+                  <label
+                    key={view}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.625rem",
+                      padding: "0.35rem 0.5rem",
+                      cursor: "pointer",
+                      fontSize: "0.85rem",
+                      color: "#374151",
+                      borderRadius: "8px",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedRoomViews.includes(view)}
+                      onChange={() => toggleRoomView(view)}
+                      style={{
+                        width: "16px",
+                        height: "16px",
+                        accentColor: "#3b82f6",
+                      }}
+                    />
+                    <span>{view}</span>
                   </label>
                 ))}
               </div>

@@ -16,6 +16,7 @@ interface Room {
   availability: number;
   cancellationPolicy: string;
   mealPlan?: string;
+  roomView?: string;
 }
 
 interface Review {
@@ -67,6 +68,8 @@ interface Hotel {
   isHandpicked?: boolean;
   dealDescription?: string;
   starCategory?: number;
+  taxRate: number;
+  commissionRate: number;
   customFields?: { [key: string]: any };
 }
 
@@ -109,6 +112,8 @@ const emptyHotel: Hotel = {
   isHandpicked: false,
   dealDescription: "",
   starCategory: 3,
+  taxRate: 10,
+  commissionRate: 10,
   customFields: {},
 };
 
@@ -120,6 +125,10 @@ export default function AdminHotels() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [showForm, setShowForm] = useState<boolean>(false);
+  const [listSearch, setListSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "inactive"
+  >("all");
   const [uploadingImage, setUploadingImage] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<TabType>("basic");
   const [editingRoomIndex, setEditingRoomIndex] = useState<number | null>(null);
@@ -151,6 +160,7 @@ export default function AdminHotels() {
     availability: 1,
     cancellationPolicy: "",
     mealPlan: "",
+    roomView: "",
   });
 
   const inrFormatter = new Intl.NumberFormat("en-IN", {
@@ -299,6 +309,7 @@ export default function AdminHotels() {
       availability: 1,
       cancellationPolicy: "",
       mealPlan: "",
+      roomView: "",
     });
   };
 
@@ -337,6 +348,7 @@ export default function AdminHotels() {
       availability: 1,
       cancellationPolicy: "",
       mealPlan: "",
+      roomView: "",
     });
   };
 
@@ -658,6 +670,56 @@ export default function AdminHotels() {
     { id: "reviews" as TabType, label: "Reviews", icon: "⭐" },
     { id: "policies" as TabType, label: "Policies", icon: "📜" },
   ];
+  const activeTabIndex = tabs.findIndex((tab) => tab.id === activeTab);
+  const isLastTab = activeTabIndex === tabs.length - 1;
+  const filteredHotels = hotels.filter((hotel) => {
+    const query = listSearch.trim().toLowerCase();
+    const matchesSearch =
+      !query ||
+      [hotel.name, hotel.location, hotel.city, hotel.state]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query));
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "active" ? hotel.active : !hotel.active);
+    return matchesSearch && matchesStatus;
+  });
+  const validateCurrentTab = () => {
+    if (activeTab === "basic") {
+      const missingFields = [
+        ["Hotel name", formData.name.trim()],
+        ["State", formData.state?.trim()],
+        ["City", formData.city?.trim()],
+        ["Address", formData.address.trim()],
+        ["Description", formData.description.trim()],
+        ["Host name", formData.hostName.trim()],
+      ]
+        .filter(([, value]) => !value)
+        .map(([label]) => label);
+
+      if (
+        missingFields.length > 0 ||
+        !Number.isFinite(formData.taxRate) ||
+        !Number.isFinite(formData.commissionRate)
+      ) {
+        alert(
+          `Please complete the required fields: ${missingFields.join(", ") || "tax and commission"}`,
+        );
+        return false;
+      }
+    }
+
+    if (
+      activeTab === "rooms" &&
+      editingRoomIndex !== null &&
+      !roomFormData.type.trim()
+    ) {
+      alert("Please enter the room type or finish the room before continuing.");
+      return false;
+    }
+
+    return true;
+  };
 
   return (
     <div style={{ background: "#f3f4f6", minHeight: "100vh", padding: "2rem" }}>
@@ -903,6 +965,98 @@ export default function AdminHotels() {
                           </option>
                         ))}
                     </select>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    border: "1px solid #dbeafe",
+                    borderRadius: "10px",
+                    padding: "1rem",
+                    background: "#f8fbff",
+                  }}
+                >
+                  <h3 style={{ margin: "0 0 0.35rem", fontSize: "1rem" }}>
+                    Booking pricing
+                  </h3>
+                  <p
+                    style={{
+                      margin: "0 0 1rem",
+                      color: "#64748b",
+                      fontSize: "0.85rem",
+                    }}
+                  >
+                    Set the applicable guest tax. Commission is used internally
+                    to calculate the minimum advance and is never shown to
+                    customers.
+                  </p>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gap: "1.5rem",
+                    }}
+                  >
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          marginBottom: "0.5rem",
+                          fontWeight: 600,
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        Applicable hotel tax (%) *
+                      </label>
+                      <input
+                        name="taxRate"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        required
+                        value={formData.taxRate}
+                        onChange={handleInputChange}
+                        placeholder="10"
+                        style={{
+                          width: "100%",
+                          padding: "0.75rem",
+                          border: "1px solid #d1d5db",
+                          borderRadius: "8px",
+                          fontSize: "0.95rem",
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          marginBottom: "0.5rem",
+                          fontWeight: 600,
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        TravelExpertz commission (%) *
+                      </label>
+                      <input
+                        name="commissionRate"
+                        type="number"
+                        min="0.01"
+                        max="100"
+                        step="0.01"
+                        required
+                        value={formData.commissionRate}
+                        onChange={handleInputChange}
+                        placeholder="10"
+                        style={{
+                          width: "100%",
+                          padding: "0.75rem",
+                          border: "1px solid #d1d5db",
+                          borderRadius: "8px",
+                          fontSize: "0.95rem",
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -1179,7 +1333,9 @@ export default function AdminHotels() {
                           }));
                         }
                       }}
-                      onError={(error) => console.error("Owner selection error:", error)}
+                      onError={(error) =>
+                        console.error("Owner selection error:", error)
+                      }
                     />
                   </div>
                 </div>
@@ -1550,11 +1706,23 @@ export default function AdminHotels() {
                     />
                     Active
                   </label>
-                  <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.9rem" }}>
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      fontSize: "0.9rem",
+                    }}
+                  >
                     <input
                       type="checkbox"
                       checked={formData.isHandpicked}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, isHandpicked: e.target.checked }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          isHandpicked: e.target.checked,
+                        }))
+                      }
                     />
                     Handpicked for Homepage
                   </label>
@@ -2489,6 +2657,41 @@ export default function AdminHotels() {
                           <option value="Full Board">Full Board</option>
                         </select>
                       </div>
+                    </div>
+
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          marginBottom: "0.5rem",
+                          fontWeight: 600,
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        Room View
+                      </label>
+                      <select
+                        value={roomFormData.roomView || ""}
+                        onChange={(e) =>
+                          setRoomFormData((prev) => ({
+                            ...prev,
+                            roomView: e.target.value,
+                          }))
+                        }
+                        style={{
+                          width: "100%",
+                          padding: "0.75rem",
+                          border: "1px solid #d1d5db",
+                          borderRadius: "8px",
+                          fontSize: "0.95rem",
+                        }}
+                      >
+                        <option value="">Select room view</option>
+                        <option value="Garden View">Garden View</option>
+                        <option value="Mountain View">Mountain View</option>
+                        <option value="Valley View">Valley View</option>
+                        <option value="River View">River View</option>
+                      </select>
                     </div>
 
                     <div>
@@ -3484,28 +3687,74 @@ export default function AdminHotels() {
             <div
               style={{
                 display: "flex",
+                justifyContent: "space-between",
                 gap: "1rem",
                 marginTop: "2rem",
                 paddingTop: "2rem",
                 borderTop: "1px solid #e5e7eb",
               }}
             >
+              <div style={{ display: "flex", gap: "1rem" }}>
+                {activeTabIndex > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab(tabs[activeTabIndex - 1].id)}
+                    style={{
+                      padding: "0.75rem 1.5rem",
+                      background: "#e5e7eb",
+                      color: "#374151",
+                      border: "none",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      fontSize: "1rem",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Back
+                  </button>
+                )}
+                {isLastTab ? (
+                  <button
+                    type="button"
+                    onClick={submitHotel}
+                    style={{
+                      padding: "0.75rem 2rem",
+                      background: "#00b894",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      fontSize: "1rem",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {editingId ? "Update Hotel" : "Create Hotel"}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (validateCurrentTab()) {
+                        setActiveTab(tabs[activeTabIndex + 1].id);
+                      }
+                    }}
+                    style={{
+                      padding: "0.75rem 2rem",
+                      background: "#0066cc",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      fontSize: "1rem",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Next: {tabs[activeTabIndex + 1].label}
+                  </button>
+                )}
+              </div>
               <button
-                onClick={submitHotel}
-                style={{
-                  padding: "0.75rem 2rem",
-                  background: "#00b894",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  fontSize: "1rem",
-                  fontWeight: 600,
-                }}
-              >
-                {editingId ? "Update Hotel" : "Create Hotel"}
-              </button>
-              <button
+                type="button"
                 onClick={() => {
                   resetForm();
                   setShowForm(false);
@@ -3530,6 +3779,62 @@ export default function AdminHotels() {
         {/* Hotel List */}
         {!showForm && (
           <div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "minmax(240px, 1fr) 180px auto",
+                gap: "0.75rem",
+                alignItems: "center",
+                background: "white",
+                borderRadius: "12px",
+                padding: "1rem",
+                marginBottom: "1rem",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+              }}
+            >
+              <input
+                type="search"
+                value={listSearch}
+                onChange={(event) => setListSearch(event.target.value)}
+                placeholder="Search hotel, city, or state"
+                aria-label="Search hotels"
+                style={{
+                  width: "100%",
+                  padding: "0.75rem",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "8px",
+                  fontSize: "0.95rem",
+                }}
+              />
+              <select
+                value={statusFilter}
+                onChange={(event) =>
+                  setStatusFilter(event.target.value as typeof statusFilter)
+                }
+                aria-label="Filter hotels by status"
+                style={{
+                  width: "100%",
+                  padding: "0.75rem",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "8px",
+                  fontSize: "0.95rem",
+                  background: "white",
+                }}
+              >
+                <option value="all">All statuses</option>
+                <option value="active">Active only</option>
+                <option value="inactive">Inactive only</option>
+              </select>
+              <span
+                style={{
+                  color: "#6b7280",
+                  fontSize: "0.9rem",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {filteredHotels.length} of {hotels.length} hotels
+              </span>
+            </div>
             {loading ? (
               <div
                 style={{
@@ -3549,7 +3854,7 @@ export default function AdminHotels() {
                   gap: "1rem",
                 }}
               >
-                {hotels.map((hotel) => (
+                {filteredHotels.map((hotel) => (
                   <div
                     key={hotel._id}
                     style={{
@@ -3763,7 +4068,7 @@ export default function AdminHotels() {
                     </div>
                   </div>
                 ))}
-                {hotels.length === 0 && (
+                {filteredHotels.length === 0 && (
                   <div
                     style={{
                       background: "white",
@@ -3773,7 +4078,9 @@ export default function AdminHotels() {
                       color: "#6b7280",
                     }}
                   >
-                    No hotels found. Click &quot;Add Hotel&quot; to create one.
+                    {hotels.length === 0
+                      ? 'No hotels found. Click "Add Hotel" to create one.'
+                      : "No hotels match the current search or status filter."}
                   </div>
                 )}
               </div>

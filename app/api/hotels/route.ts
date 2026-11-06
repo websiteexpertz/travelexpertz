@@ -4,6 +4,27 @@ import { MongoClient } from "mongodb";
 const MONGODB_URI = process.env.MONGODB_URI || "";
 const MONGODB_DB = process.env.MONGODB_DB || "travelexpertz";
 
+function toPublicHotel(hotel: any) {
+  const taxRate = Number(hotel.taxRate ?? 10);
+  const commissionRate = Number(hotel.commissionRate ?? 10);
+  const rooms = Array.isArray(hotel.rooms)
+    ? hotel.rooms.map((room: any) => ({
+        ...room,
+        taxesAndFees:
+          Number(room.price || 0) * Math.max(0, taxRate + commissionRate) / 100,
+        minimumAdvance: Number(room.price || 0) * Math.max(0, commissionRate) / 100,
+      }))
+    : hotel.rooms;
+  const nightlyPrice = Number(hotel.price ?? rooms?.[0]?.price ?? 0);
+  const publicHotel = {
+    ...hotel,
+    rooms,
+    taxesAndFees: nightlyPrice * Math.max(0, taxRate + commissionRate) / 100,
+  };
+  delete publicHotel.commissionRate;
+  return publicHotel;
+}
+
 export async function GET(request: NextRequest) {
   let client: MongoClient | null = null;
   try {
@@ -67,7 +88,7 @@ export async function GET(request: NextRequest) {
         hotel.type = hotel.type || hotel.propertyType || "hotel";
       }
 
-      return NextResponse.json(hotel);
+      return NextResponse.json(admin ? hotel : toPublicHotel(hotel));
     }
 
     // Build filter for city/state if provided
@@ -112,23 +133,31 @@ export async function GET(request: NextRequest) {
 
     // Combine and sort by featured (popular first, then by creation date)
     const allHotels = [
-      ...builtInHotels.map((h) => ({
-        ...h,
-        source: "builtin",
-        propertyType: "hotel",
-        type: "hotel",
-      })),
-      ...ownerProperties.map((p) => ({
-        ...p,
-        source: "owner",
-        name: p.propertyName || p.name,
-        image: p.images?.[0] || p.image || "",
-        amenities: p.amenities || [],
-        rating: p.rating || 4.5,
-        reviews: p.reviews || 0,
-        propertyType: p.type || p.propertyType || "hotel",
-        type: p.type || p.propertyType || "hotel",
-      })),
+      ...builtInHotels.map((h) => {
+        const hotel = {
+          ...toPublicHotel(h),
+          source: "builtin",
+          propertyType: "hotel",
+          type: "hotel",
+        };
+        if (admin) Object.assign(hotel, h);
+        return hotel;
+      }),
+      ...ownerProperties.map((p) => {
+        const hotel = {
+          ...toPublicHotel(p),
+          source: "owner",
+          name: p.propertyName || p.name,
+          image: p.images?.[0] || p.image || "",
+          amenities: p.amenities || [],
+          rating: p.rating || 4.5,
+          reviews: p.reviews || 0,
+          propertyType: p.type || p.propertyType || "hotel",
+          type: p.type || p.propertyType || "hotel",
+        };
+        if (admin) Object.assign(hotel, p);
+        return hotel;
+      }),
     ];
 
     return NextResponse.json(allHotels);
