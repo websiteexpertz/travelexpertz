@@ -3398,6 +3398,25 @@ export default function HotelDestinationsAdmin() {
         >
           📋 Manage States
         </button>
+        <button
+          onClick={() => router.push("/admin/hero-banners")}
+          style={{
+            background: "linear-gradient(135deg, #F2C65D 0%, #D4A017 100%)",
+            color: "#1e293b",
+            border: "none",
+            padding: "0.75rem 1.5rem",
+            borderRadius: "8px",
+            cursor: "pointer",
+            fontWeight: "700",
+            fontSize: "0.95rem",
+            transition: "all 0.3s ease",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.4rem",
+          }}
+        >
+          🖼️ State Hero Banners
+        </button>
       </div>
 
       {/* Stats */}
