@@ -6,19 +6,19 @@ import Link from "next/link";
 
 type HeaderLoggedInProps = {
   currentPage?:
-    | "home"
-    | "hotels"
-    | "packages"
-    | "homestays"
-    | "deals"
-    | "luxury"
-    | "events"
-    | "cabs"
-    | "verified"
-    | "profile"
-    | "bookings"
-    | "wishlist"
-    | "transactions";
+  | "home"
+  | "hotels"
+  | "packages"
+  | "homestays"
+  | "deals"
+  | "luxury"
+  | "events"
+  | "cabs"
+  | "verified"
+  | "profile"
+  | "bookings"
+  | "wishlist"
+  | "transactions";
   userName?: string;
   isHeroPage?: boolean;
   solidHeader?: boolean;
@@ -29,16 +29,16 @@ const navItems: Array<{
   label: string;
   href: string;
 }> = [
-  { key: "home", label: "Home", href: "/" },
-  { key: "hotels", label: "Hotels", href: "/hotels" },
-  { key: "homestays", label: "Homestays", href: "/homestays" },
-  { key: "packages", label: "Packages", href: "/packages" },
-  { key: "deals", label: "Deals", href: "/deals" },
-  { key: "luxury", label: "Luxury", href: "/luxury" },
-  { key: "events", label: "Events", href: "/events" },
-  { key: "cabs", label: "Cab", href: "/cabs" },
-  { key: "verified", label: "Travel Expertz Properties", href: "/verified" },
-];
+    { key: "home", label: "Home", href: "/" },
+    { key: "hotels", label: "Hotels", href: "/hotels" },
+    { key: "homestays", label: "Homestays", href: "/homestays" },
+    { key: "packages", label: "Packages", href: "/packages" },
+    { key: "deals", label: "Deals", href: "/deals" },
+    { key: "luxury", label: "Luxury", href: "/luxury" },
+    { key: "events", label: "Events", href: "/events" },
+    { key: "cabs", label: "Cab", href: "/cabs" },
+    { key: "verified", label: "Travel Expertz Properties", href: "/verified" },
+  ];
 
 export default function HeaderLoggedIn({
   currentPage,
@@ -101,7 +101,7 @@ export default function HeaderLoggedIn({
                 width={70}
                 height={70}
                 priority
-                className="h-10 w-10 rounded-lg"
+                className="h-10 w-10 rounded-lg object-contain"
                 unoptimized
               />
             </Link>

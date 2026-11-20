@@ -328,7 +328,15 @@ export default function ServiceBookingFormEnhanced({
   // Success Screen
   if (success) {
     return (
-      <div className="booking-form-container">
+      <div
+        className="booking-form-container"
+        style={{
+          maxWidth: "900px",
+          width: "100%",
+          marginLeft: "auto",
+          marginRight: "auto",
+        }}
+      >
         <div className="success-screen">
           <div className="success-animation">
             <div
@@ -486,7 +494,15 @@ export default function ServiceBookingFormEnhanced({
   }
 
   return (
-    <div className="booking-form-container">
+    <div
+      className="booking-form-container"
+      style={{
+        maxWidth: "900px",
+        width: "100%",
+        marginLeft: "auto",
+        marginRight: "auto",
+      }}
+    >
       {/* Header */}
       <div className="form-header" style={{ background: config.gradient }}>
         <div className="header-pattern"></div>

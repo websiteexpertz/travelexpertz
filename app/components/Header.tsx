@@ -7,21 +7,21 @@ import HeaderLoggedIn from "./HeaderLoggedIn";
 
 type HeaderProps = {
   currentPage?:
-    | "home"
-    | "hotels"
-    | "packages"
-    | "homestays"
-    | "deals"
-    | "luxury"
-    | "events"
-    | "cabs"
-    | "verified"
-    | "login"
-    | "signup"
-    | "profile"
-    | "bookings"
-    | "wishlist"
-    | "transactions";
+  | "home"
+  | "hotels"
+  | "packages"
+  | "homestays"
+  | "deals"
+  | "luxury"
+  | "events"
+  | "cabs"
+  | "verified"
+  | "login"
+  | "signup"
+  | "profile"
+  | "bookings"
+  | "wishlist"
+  | "transactions";
   forceBlackText?: boolean;
   isHeroPage?: boolean;
   solidHeader?: boolean;
@@ -46,24 +46,24 @@ const navItems: Array<{
   label: string;
   href: string;
 }> = [
-  { key: "home", label: "Home", href: "/" },
-  { key: "hotels", label: "Hotels", href: "/hotels" },
-  { key: "homestays", label: "Homestays", href: "/homestays" },
-  { key: "packages", label: "Packages", href: "/packages" },
-  { key: "deals", label: "Deals", href: "/deals" },
-  { key: "flights", label: "Flights", href: "/services?service=flight" },
-  { key: "cabs", label: "Cabs", href: "/cabs" },
-  { key: "trains", label: "Trains", href: "/services?service=train" },
-  { key: "buses", label: "Buses", href: "/services?service=bus" },
-  { key: "luxury-properties", label: "Luxury Properties", href: "/luxury" },
-  { key: "events", label: "Events", href: "/events" },
-  { key: "verified", label: "TE Properties", href: "/hotels?verified=1" },
-  {
-    key: "list-property",
-    label: "List Your Property",
-    href: "/owner/auth/register",
-  },
-];
+    { key: "home", label: "Home", href: "/" },
+    { key: "hotels", label: "Hotels", href: "/hotels" },
+    { key: "homestays", label: "Homestays", href: "/homestays" },
+    { key: "packages", label: "Packages", href: "/packages" },
+    { key: "deals", label: "Deals", href: "/deals" },
+    { key: "flights", label: "Flights", href: "/services?service=flight" },
+    { key: "cabs", label: "Cabs", href: "/cabs" },
+    { key: "trains", label: "Trains", href: "/services?service=train" },
+    { key: "buses", label: "Buses", href: "/services?service=bus" },
+    { key: "luxury-properties", label: "Luxury Properties", href: "/luxury" },
+    { key: "events", label: "Events", href: "/events" },
+    { key: "verified", label: "TE Properties", href: "/hotels?verified=1" },
+    {
+      key: "list-property",
+      label: "List Your Property",
+      href: "/owner/auth/register",
+    },
+  ];
 
 export default function Header({
   currentPage,
@@ -158,7 +158,7 @@ export default function Header({
                 width={70}
                 height={70}
                 priority
-                className="h-10 w-10 rounded-lg"
+                className="h-10 w-10 rounded-lg object-contain"
                 unoptimized
               />
             </Link>

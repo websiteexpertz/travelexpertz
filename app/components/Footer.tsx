@@ -25,7 +25,7 @@ export default function Footer() {
                 alt="TravelExpertz"
                 width={120}
                 height={120}
-                className="footer-logo-img"
+                className="footer-logo-img object-contain"
               />
             </h2>
             <p>

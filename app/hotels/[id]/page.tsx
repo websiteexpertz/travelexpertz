@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useParams, useSearchParams } from "next/navigation";
 import { load } from "@cashfreepayments/cashfree-js";
 import Header from "../../components/Header";
+import HotelAvailabilityCalendar from "../../components/HotelAvailabilityCalendar";
 
 const HotelLocationMap = dynamic(() => import("../../components/HotelLocationMap"), {
   ssr: false,
@@ -820,6 +821,7 @@ export default function HotelDetails() {
               { id: "overview", label: "Overview" },
               { id: "rooms", label: `Rooms (${hotel.rooms?.length || 0})` },
               { id: "amenities", label: "Amenities" },
+              { id: "availability", label: "Availability" },
               { id: "location", label: "Location" },
               { id: "policies", label: "Policies" },
               { id: "reviews", label: `Reviews (${hotel.reviews || 0})` },
@@ -1264,6 +1266,26 @@ export default function HotelDetails() {
               ))}
             </div>
           </section>
+
+          {/* SECTION: AVAILABILITY CALENDAR (Placed immediately after Amenities & Facilities and before Location) */}
+          <div id="availability">
+            <HotelAvailabilityCalendar
+              hotelId={hotel._id || hotelId}
+              hotelName={hotel.name}
+              basePrice={baseRoomPrice}
+              currency="INR"
+              selectedRoomId={activeRoom?.id}
+              checkInDate={bookingDetails.checkIn}
+              checkOutDate={bookingDetails.checkOut}
+              onDatesChange={(checkIn, checkOut) => {
+                setBookingDetails((prev) => ({
+                  ...prev,
+                  checkIn,
+                  checkOut,
+                }));
+              }}
+            />
+          </div>
 
           {/* SECTION: LOCATION & SURROUNDINGS (Matching exact reference screenshot with Leaflet & Teal Pin) */}
           <HotelLocationMap
@@ -1874,7 +1896,7 @@ export default function HotelDetails() {
             position: "fixed",
             inset: 0,
             background: "rgba(10, 15, 29, 0.96)",
-            zIndex: 9999,
+            zIndex: 100000,
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
@@ -2027,7 +2049,7 @@ export default function HotelDetails() {
             position: "fixed",
             inset: 0,
             background: "rgba(15, 23, 42, 0.7)",
-            zIndex: 9999,
+            zIndex: 100000,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",

@@ -1,18 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
+import { sendEmail } from "@/lib/services/email";
 
 export async function POST(request: NextRequest) {
   try {
     const booking = await request.json();
 
+    const serviceName =
+      booking.enquiryType ||
+      (booking.serviceType
+        ? String(booking.serviceType).toUpperCase()
+        : "SERVICE");
+
     const emailTemplate = generateEmailTemplate(booking);
 
-    // Send email using your email service
-    // For now, just return success
-    // You can integrate with services like SendGrid, AWS SES, etc.
+    // Send admin notification if email service is configured
+    const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_USER;
+    if (adminEmail && process.env.SMTP_USER && process.env.SMTP_PASSWORD) {
+      try {
+        await sendEmail({
+          to: adminEmail,
+          subject: `New ${serviceName} Enquiry from ${booking.fullName || "Customer"}`,
+          html: emailTemplate,
+        });
+      } catch (sendErr) {
+        console.warn("Could not dispatch SMTP email:", sendErr);
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error sending email:", error);
+    console.error("Error in service booking email handler:", error);
     return NextResponse.json(
       { error: "Failed to send email" },
       { status: 500 }
