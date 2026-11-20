@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+@import "tailwindcss";
 
 /* Force reset all margins and paddings */
 html, body, #__next, #root {
@@ -275,13 +275,34 @@ header {
   top: 0 !important;
   left: 0;
   right: 0;
-  z-index: 9999;
+  z-index: 100;
   margin: 0 !important;
   padding: 0;
   transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
               box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
               backdrop-filter 0.4s cubic-bezier(0.4, 0, 0.2, 1),
               border-bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* =========================================================================
+   GLOBAL MODALS, POPUP CARDS & FORMS Z-INDEX FIX
+   Ensures all modal dialogs, popup cards, forms, and backdrops across the
+   entire website are ALWAYS visible over the fixed header.
+   ========================================================================= */
+:root {
+  --z-modal-backdrop: 99999;
+  --z-modal: 100000;
+}
+
+[role="dialog"],
+[aria-modal="true"],
+.modal-overlay,
+.modal-backdrop,
+.enquiry-backdrop,
+.fixed.inset-0,
+div[style*="position: fixed"][style*="inset: 0"],
+div[style*="position: fixed"][style*="inset:0"] {
+  z-index: 100000 !important;
 }
 
 /* Hero page header - transparent with glassmorphism */
@@ -1681,6 +1702,7 @@ footer::after {
   border-radius: 12px;
   box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  object-fit: contain;
 }
 
 .footer-brand:hover .footer-logo-img {

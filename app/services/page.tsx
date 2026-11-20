@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Header from "../components/Header";
 import dynamic from "next/dynamic";
 import Image from "next/image";
+import { Train, Map, Calendar } from "lucide-react";
+import ComingSoonServicePage from "../components/ComingSoonServicePage";
 
 const ServiceBookingFormEnhanced = dynamic(
   () => import("../components/ServiceBookingFormEnhanced"),
@@ -114,55 +117,150 @@ const stats = [
   { value: "24/7", label: "Customer Support" },
 ];
 
+const STATIC_PARTICLES = [
+  { width: 3, height: 3, left: 5, alpha: 0.25, duration: 11, delay: 1.2 },
+  { width: 5, height: 5, left: 12, alpha: 0.35, duration: 15, delay: 4.5 },
+  { width: 2, height: 2, left: 18, alpha: 0.2, duration: 9, delay: 0.5 },
+  { width: 4, height: 4, left: 24, alpha: 0.3, duration: 13, delay: 2.8 },
+  { width: 3, height: 3, left: 31, alpha: 0.22, duration: 17, delay: 6.1 },
+  { width: 6, height: 6, left: 37, alpha: 0.4, duration: 12, delay: 3.4 },
+  { width: 2, height: 2, left: 43, alpha: 0.18, duration: 10, delay: 8.2 },
+  { width: 4, height: 4, left: 49, alpha: 0.28, duration: 16, delay: 5.0 },
+  { width: 3, height: 3, left: 55, alpha: 0.32, duration: 14, delay: 1.9 },
+  { width: 5, height: 5, left: 62, alpha: 0.38, duration: 18, delay: 7.3 },
+  { width: 2, height: 2, left: 68, alpha: 0.2, duration: 8, delay: 2.1 },
+  { width: 4, height: 4, left: 73, alpha: 0.26, duration: 12, delay: 4.0 },
+  { width: 3, height: 3, left: 79, alpha: 0.3, duration: 15, delay: 9.5 },
+  { width: 5, height: 5, left: 84, alpha: 0.35, duration: 11, delay: 3.7 },
+  { width: 2, height: 2, left: 89, alpha: 0.22, duration: 16, delay: 0.8 },
+  { width: 4, height: 4, left: 94, alpha: 0.28, duration: 13, delay: 5.6 },
+  { width: 3, height: 3, left: 8, alpha: 0.24, duration: 19, delay: 6.8 },
+  { width: 5, height: 5, left: 28, alpha: 0.36, duration: 10, delay: 2.4 },
+  { width: 2, height: 2, left: 58, alpha: 0.18, duration: 14, delay: 8.9 },
+  { width: 4, height: 4, left: 86, alpha: 0.3, duration: 12, delay: 1.5 },
+];
+
 export default function ServicesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div style={{ minHeight: "100vh", backgroundColor: "#0B1D31" }} />
+      }
+    >
+      <ServicesContent />
+    </Suspense>
+  );
+}
+
+function ServicesContent() {
+  const searchParams = useSearchParams();
+  const serviceParam = searchParams.get("service");
+  const isTrainUrl = serviceParam === "train";
+  const isFlightUrl = serviceParam === "flight";
+  const isBusUrl = serviceParam === "bus";
+
   const [selectedService, setSelectedService] = useState<ServiceType | null>(
     null,
   );
   const [visibleCards, setVisibleCards] = useState<Set<number>>(new Set());
   const [heroLoaded, setHeroLoaded] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [serviceHero, setServiceHero] = useState({
-    title: (
-      <>
-        Premium Travel Services
-      </>
-    ),
-    image: "/New-images/Flights.jpg",
+  const [serviceHero, setServiceHero] = useState(() => {
+    if (isFlightUrl) {
+      return {
+        title: <>Your Wings to the World</>,
+        subtitle:
+          "Your complete flight booking companion — share your journey details and our team will help you find suitable flight options.",
+        image: "/New-images/Flights.jpg",
+      };
+    }
+    if (isBusUrl) {
+      return {
+        title: <>Connecting Destinations, Creating Memories</>,
+        subtitle:
+          "Your complete bus ticketing companion — share your journey details and our team will help you find suitable bus travel options.",
+        image: "/New-images/Buses.jpg",
+      };
+    }
+    if (isTrainUrl) {
+      return {
+        title: <>From Station to Station, Memories Along the Way</>,
+        subtitle:
+          "Your complete travel companion — from flights and trains to visa assistance, currency exchange, and comprehensive insurance coverage.",
+        image: "/New-images/Trains.jpg",
+      };
+    }
+    return {
+      title: <>Premium Travel Services</>,
+      subtitle:
+        "Your complete travel companion — from flights and trains to visa assistance, currency exchange, and comprehensive insurance coverage.",
+      image: "/New-images/Flights.jpg",
+    };
   });
   const cardsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setHeroLoaded(true);
-    const service = new URLSearchParams(window.location.search).get("service");
-    if (service === "flight") {
+    if (isFlightUrl) {
       setServiceHero({
-        title: (
-          <>
-            Your Wings to the World
-          </>
-        ),
+        title: <>Your Wings to the World</>,
+        subtitle:
+          "Your complete flight booking companion — share your journey details and our team will help you find suitable flight options.",
         image: "/New-images/Flights.jpg",
       });
-    } else if (service === "train") {
+    } else if (isBusUrl) {
       setServiceHero({
-        title: (
-          <>
-            From Station to Station, Memories Along the Way
-          </>
-        ),
-        image: "/New-images/Trains.jpg",
-      });
-    } else if (service === "bus") {
-      setServiceHero({
-        title: (
-          <>
-            Connecting Destinations, Creating Memories
-          </>
-        ),
+        title: <>Connecting Destinations, Creating Memories</>,
+        subtitle:
+          "Your complete bus ticketing companion — share your journey details and our team will help you find suitable bus travel options.",
         image: "/New-images/Buses.jpg",
       });
+    } else if (isTrainUrl) {
+      setServiceHero({
+        title: <>From Station to Station, Memories Along the Way</>,
+        subtitle:
+          "Your complete travel companion — from flights and trains to visa assistance, currency exchange, and comprehensive insurance coverage.",
+        image: "/New-images/Trains.jpg",
+      });
     }
-  }, []);
+  }, [isFlightUrl, isBusUrl, isTrainUrl]);
+
+  if (isTrainUrl) {
+    return (
+      <>
+        <Header solidHeader={true} />
+        <main style={{ backgroundColor: "#0B1D31", minHeight: "100vh" }}>
+          <ComingSoonServicePage
+            title="The Journey Is Almost Here"
+            description="Train ticket booking is coming soon to TravelExpertz. We're working on making your railway journeys simpler and more convenient."
+            statusLabel="Coming Soon"
+            imageSrc="/New-images/Trains.jpg"
+            imageAlt="Scenic train journey through mountains"
+            ctaLabel="Explore Destinations"
+            ctaHref="/hotels"
+            note="Train bookings are not available yet."
+            features={[
+              {
+                title: "Train Tickets",
+                icon: <Train className="w-6 h-6 text-[#2dd4bf]" />,
+                description: "Hassle-free reservations and confirmed train tickets",
+              },
+              {
+                title: "Routes & Destinations",
+                icon: <Map className="w-6 h-6 text-[#2dd4bf]" />,
+                description: "Explore popular scenic train routes across India",
+              },
+              {
+                title: "Journey Planning",
+                icon: <Calendar className="w-6 h-6 text-[#2dd4bf]" />,
+                description: "Smart schedules, seat availability, and holiday planning",
+              },
+            ]}
+          />
+        </main>
+      </>
+    );
+  }
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -490,19 +588,19 @@ export default function ServicesPage() {
             }}
           />
 
-          {/* Floating particles */}
-          {[...Array(20)].map((_, i) => (
+          {/* Floating particles (deterministic values to prevent SSR hydration mismatch) */}
+          {STATIC_PARTICLES.map((p, i) => (
             <div
               key={i}
               className="particle"
               style={{
-                width: `${Math.random() * 4 + 2}px`,
-                height: `${Math.random() * 4 + 2}px`,
-                left: `${Math.random() * 100}%`,
-                background: `rgba(255, 255, 255, ${0.15 + Math.random() * 0.3})`,
+                width: `${p.width}px`,
+                height: `${p.height}px`,
+                left: `${p.left}%`,
+                background: `rgba(255, 255, 255, ${p.alpha})`,
                 boxShadow: "0 0 6px rgba(255,255,255,0.2)",
-                animation: `floatUp ${8 + Math.random() * 12}s linear infinite`,
-                animationDelay: `${Math.random() * 10}s`,
+                animation: `floatUp ${p.duration}s linear infinite`,
+                animationDelay: `${p.delay}s`,
               }}
             />
           ))}
@@ -562,9 +660,8 @@ export default function ServicesPage() {
                 fontSize: "clamp(2rem, 4.5vw, 3.5rem)",
                 fontWeight: 800,
                 marginBottom: "1.2rem",
-                lineHeight: 1.1,
+                lineHeight: 1.15,
                 letterSpacing: "-0.02em",
-                whiteSpace: "nowrap",
                 background:
                   "linear-gradient(135deg, #ffffff 0%, #e0edff 50%, #bfdbfe 100%)",
                 WebkitBackgroundClip: "text",
@@ -583,9 +680,7 @@ export default function ServicesPage() {
                 lineHeight: 1.7,
               }}
             >
-              Your complete travel companion — from flights and trains to visa
-              assistance, currency exchange, and comprehensive insurance
-              coverage.
+              {serviceHero.subtitle}
             </p>
 
             {/* Stats bar */}
@@ -649,8 +744,54 @@ export default function ServicesPage() {
           />
         </section>
 
-        {/* Services Grid */}
-        {!selectedService ? (
+        {/* Main Services / Enquiry Content */}
+        {isFlightUrl ? (
+          <section
+            style={{
+              width: "100%",
+              padding: "2.5rem 1.5rem 5rem",
+              position: "relative",
+              zIndex: 2,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <div
+              style={{
+                width: "100%",
+                maxWidth: "900px",
+                marginLeft: "auto",
+                marginRight: "auto",
+              }}
+            >
+              <ServiceBookingFormEnhanced serviceType="flight" />
+            </div>
+          </section>
+        ) : isBusUrl ? (
+          <section
+            style={{
+              width: "100%",
+              padding: "2.5rem 1.5rem 5rem",
+              position: "relative",
+              zIndex: 2,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <div
+              style={{
+                width: "100%",
+                maxWidth: "900px",
+                marginLeft: "auto",
+                marginRight: "auto",
+              }}
+            >
+              <ServiceBookingFormEnhanced serviceType="bus" />
+            </div>
+          </section>
+        ) : !selectedService ? (
           <section
             style={{
               padding: "4rem 1.5rem 5rem",
@@ -805,6 +946,157 @@ export default function ServicesPage() {
                 </div>
               ))}
             </div>
+          </section>
+        ) : selectedService === "train" ? (
+          <section
+            style={{
+              backgroundColor: "#0B1D31",
+              padding: "2rem 1.5rem 4rem",
+              animation: "fadeInScale 0.4s ease",
+            }}
+          >
+            <div
+              style={{
+                maxWidth: "1024px",
+                margin: "0 auto 1rem",
+                padding: "0 1rem",
+              }}
+            >
+              <button
+                className="back-btn"
+                onClick={() => setSelectedService(null)}
+                style={{
+                  backgroundColor: "rgba(255,255,255,0.08)",
+                  color: "#ffffff",
+                  borderColor: "rgba(255,255,255,0.18)",
+                  marginBottom: 0,
+                }}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+                Back to Services
+              </button>
+            </div>
+            <ComingSoonServicePage
+              title="The Journey Is Almost Here"
+              description="Train ticket booking is coming soon to TravelExpertz. We're working on making your railway journeys simpler and more convenient."
+              statusLabel="Coming Soon"
+              imageSrc="/New-images/Trains.jpg"
+              imageAlt="Scenic train journey through mountains"
+              ctaLabel="Explore Destinations"
+              ctaHref="/hotels"
+              note="Train bookings are not available yet."
+              features={[
+                {
+                  title: "Train Tickets",
+                  icon: <Train className="w-6 h-6 text-[#2dd4bf]" />,
+                  description:
+                    "Hassle-free reservations and confirmed train tickets",
+                },
+                {
+                  title: "Routes & Destinations",
+                  icon: <Map className="w-6 h-6 text-[#2dd4bf]" />,
+                  description:
+                    "Explore popular scenic train routes across India",
+                },
+                {
+                  title: "Journey Planning",
+                  icon: <Calendar className="w-6 h-6 text-[#2dd4bf]" />,
+                  description:
+                    "Smart schedules, seat availability, and holiday planning",
+                },
+              ]}
+            />
+          </section>
+        ) : selectedService === "flight" ? (
+          <section
+            style={{
+              backgroundColor: "#F5F7FA",
+              padding: "2rem 1.5rem 4rem",
+              animation: "fadeInScale 0.4s ease",
+            }}
+          >
+            <div
+              style={{
+                maxWidth: "900px",
+                margin: "0 auto 1.5rem",
+                padding: "0 0.5rem",
+              }}
+            >
+              <button
+                className="back-btn"
+                onClick={() => setSelectedService(null)}
+                style={{ marginBottom: 0 }}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+                Back to Services
+              </button>
+            </div>
+            <ServiceBookingFormEnhanced
+              serviceType="flight"
+              onClose={() => setSelectedService(null)}
+            />
+          </section>
+        ) : selectedService === "bus" ? (
+          <section
+            style={{
+              backgroundColor: "#F5F7FA",
+              padding: "2rem 1.5rem 4rem",
+              animation: "fadeInScale 0.4s ease",
+            }}
+          >
+            <div
+              style={{
+                maxWidth: "900px",
+                margin: "0 auto 1.5rem",
+                padding: "0 0.5rem",
+              }}
+            >
+              <button
+                className="back-btn"
+                onClick={() => setSelectedService(null)}
+                style={{ marginBottom: 0 }}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+                Back to Services
+              </button>
+            </div>
+            <ServiceBookingFormEnhanced
+              serviceType="bus"
+              onClose={() => setSelectedService(null)}
+            />
           </section>
         ) : (
           <section

@@ -82,68 +82,63 @@ function getHotelCoordinates(hotel: PropertyMapItem, index: number): [number, nu
   return [26.9124 + Math.sin(fallbackAngle) * fallbackRadius, 75.7873 + Math.cos(fallbackAngle) * fallbackRadius];
 }
 
-// Safely loads Leaflet from window.L, dynamic import, or CDN injection
-async function ensureLeaflet(): Promise<any> {
+async function getLeafletInstance(): Promise<any> {
   if (typeof window === "undefined") return null;
   const win = window as any;
+
+  // Ensure Leaflet CSS
+  if (!document.getElementById("leaflet-cdn-css")) {
+    const link = document.createElement("link");
+    link.id = "leaflet-cdn-css";
+    link.rel = "stylesheet";
+    link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+    document.head.appendChild(link);
+  }
+
+  // Ensure base leaflet positioning styles so tiles/panes never collapse
+  if (!document.getElementById("leaflet-base-inline-css")) {
+    const baseStyle = document.createElement("style");
+    baseStyle.id = "leaflet-base-inline-css";
+    baseStyle.innerHTML = `
+      .leaflet-pane, .leaflet-tile, .leaflet-marker-icon, .leaflet-marker-shadow,
+      .leaflet-tile-container, .leaflet-pane > svg, .leaflet-pane > canvas,
+      .leaflet-zoom-box, .leaflet-image-layer, .leaflet-layer {
+        position: absolute; left: 0; top: 0;
+      }
+      .leaflet-container {
+        overflow: hidden;
+        position: relative;
+        -webkit-tap-highlight-color: transparent;
+        width: 100%;
+        height: 100%;
+      }
+      .leaflet-tile {
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      .leaflet-tile-loaded {
+        opacity: 1;
+      }
+    `;
+    document.head.appendChild(baseStyle);
+  }
 
   if (win.L && typeof win.L.map === "function") {
     return win.L;
   }
 
-  // 1. Try dynamic import from installed package
   try {
     const mod: any = await import("leaflet");
-    const leafletInstance = mod?.default?.map ? mod.default : mod?.map ? mod : null;
-    if (leafletInstance && typeof leafletInstance.map === "function") {
-      win.L = leafletInstance;
-      // Also ensure CSS
-      if (!document.getElementById("leaflet-cdn-css")) {
-        const link = document.createElement("link");
-        link.id = "leaflet-cdn-css";
-        link.rel = "stylesheet";
-        link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-        document.head.appendChild(link);
-      }
-      return leafletInstance;
+    const L = mod?.default?.map ? mod.default : mod?.map ? mod : win.L;
+    if (L && typeof L.map === "function") {
+      win.L = L;
+      return L;
     }
-  } catch {
-    // Dynamic import fallback to CDN below
+    return win.L || null;
+  } catch (err) {
+    console.error("Failed to load Leaflet:", err);
+    return (window as any).L || null;
   }
-
-  return new Promise((resolve) => {
-    // 2. Ensure CSS
-    if (!document.getElementById("leaflet-cdn-css")) {
-      const link = document.createElement("link");
-      link.id = "leaflet-cdn-css";
-      link.rel = "stylesheet";
-      link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-      document.head.appendChild(link);
-    }
-
-    // 3. Ensure JS Script
-    let script = document.getElementById("leaflet-cdn-script") as HTMLScriptElement;
-    if (!script) {
-      script = document.createElement("script");
-      script.id = "leaflet-cdn-script";
-      script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-      script.async = true;
-      document.head.appendChild(script);
-    }
-
-    let attempts = 0;
-    const checkInterval = setInterval(() => {
-      attempts++;
-      if (win.L && typeof win.L.map === "function") {
-        clearInterval(checkInterval);
-        resolve(win.L);
-      } else if (attempts > 80) {
-        // Stop after 4 seconds
-        clearInterval(checkInterval);
-        resolve(win.L || null);
-      }
-    }, 50);
-  });
 }
 
 export default function InlinePropertiesMap({ properties, onClose }: InlinePropertiesMapProps) {
@@ -158,7 +153,7 @@ export default function InlinePropertiesMap({ properties, onClose }: InlinePrope
     const q = searchQuery.toLowerCase().trim();
     return properties.filter(
       (p) =>
-        p.name.toLowerCase().includes(q) ||
+        (p.name && p.name.toLowerCase().includes(q)) ||
         (p.city && p.city.toLowerCase().includes(q)) ||
         (p.location && p.location.toLowerCase().includes(q)) ||
         (p.state && p.state.toLowerCase().includes(q))
@@ -167,13 +162,13 @@ export default function InlinePropertiesMap({ properties, onClose }: InlinePrope
 
   useEffect(() => {
     let isMounted = true;
+    let resizeObserver: ResizeObserver | null = null;
 
     async function initMap() {
       if (!mapContainerRef.current || typeof window === "undefined") return;
 
-      const L = await ensureLeaflet();
-      if (!L || typeof L.map !== "function") return;
-      if (!isMounted || !mapContainerRef.current) return;
+      const L = await getLeafletInstance();
+      if (!L || typeof L.map !== "function" || !isMounted || !mapContainerRef.current) return;
 
       // Inject custom popup styling once
       if (!document.getElementById("leaflet-inline-popup-styles")) {
@@ -209,6 +204,9 @@ export default function InlinePropertiesMap({ properties, onClose }: InlinePrope
             font-size: 14px !important;
             border: 1px solid rgba(255, 255, 255, 0.3) !important;
           }
+          .custom-inline-leaflet-popup a.leaflet-popup-close-button:hover {
+            background: rgba(0, 0, 0, 0.7) !important;
+          }
         `;
         document.head.appendChild(style);
       }
@@ -220,32 +218,51 @@ export default function InlinePropertiesMap({ properties, onClose }: InlinePrope
         }
 
         const map = L.map(mapContainerRef.current, {
-          center: [26.9124, 75.7873],
-          zoom: 6,
+          center: [20.5937, 78.9629],
+          zoom: 5,
           zoomControl: false,
+          scrollWheelZoom: true,
         });
 
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          maxZoom: 19,
-          attribution: 'Leaflet | &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        }).addTo(map);
+        // High quality CartoDB Voyager tiles matching HolidayExpertz aesthetic
+        L.tileLayer(
+          "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+          {
+            maxZoom: 19,
+            subdomains: "abcd",
+            attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+          }
+        ).addTo(map);
 
         L.control.zoom({ position: "bottomright" }).addTo(map);
 
         markersGroupRef.current = L.layerGroup().addTo(map);
         mapInstanceRef.current = map;
         setIsLoading(false);
+
+        // Keep map properly sized during grid/window changes
+        if (typeof ResizeObserver !== "undefined") {
+          resizeObserver = new ResizeObserver(() => {
+            if (mapInstanceRef.current) {
+              mapInstanceRef.current.invalidateSize();
+            }
+          });
+          resizeObserver.observe(mapContainerRef.current);
+        }
       }
 
       const map = mapInstanceRef.current;
       if (!map) return;
 
+      // Invalidate size immediately
       map.invalidateSize();
 
+      // Clear existing markers
       if (markersGroupRef.current) {
         markersGroupRef.current.clearLayers();
       }
 
+      // Exact teardrop navy pin matching HolidayExpertz design
       const pinHtml = `
         <div style="
           position: relative;
@@ -294,10 +311,12 @@ export default function InlinePropertiesMap({ properties, onClose }: InlinePrope
           style: "currency",
           currency: "INR",
           maximumFractionDigits: 0,
-        }).format(hotel.price || 0);
+        }).format(Number(hotel.price) || 0);
 
         const categoryTag =
           hotel.propertyType || (hotel.type === "homestay" ? "Homestay" : "Boutique Stays");
+
+        const ratingVal = Number(hotel.rating) > 0 ? Number(hotel.rating).toFixed(1) : "4.8";
 
         const popupContent = `
           <div style="width: 280px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
@@ -323,7 +342,7 @@ export default function InlinePropertiesMap({ properties, onClose }: InlinePrope
                   ${categoryTag}
                 </span>
                 <span style="font-size: 0.85rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 2px;">
-                  <span style="color: #f59e0b; font-size: 0.95rem;">★</span> ${hotel.rating ? hotel.rating.toFixed(1) : "4.8"}
+                  <span style="color: #f59e0b; font-size: 0.95rem;">★</span> ${ratingVal}
                 </span>
               </div>
               <h4 style="
@@ -398,21 +417,43 @@ export default function InlinePropertiesMap({ properties, onClose }: InlinePrope
       });
 
       if (markerBounds.length > 0) {
-        const bounds = L.latLngBounds(markerBounds);
-        map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+        try {
+          const bounds = L.latLngBounds(markerBounds);
+          map.fitBounds(bounds, { padding: [40, 40], maxZoom: 12 });
+        } catch (e) {
+          map.setView([20.5937, 78.9629], 5);
+        }
+      } else {
+        map.setView([20.5937, 78.9629], 5);
       }
 
-      setTimeout(() => map.invalidateSize(), 100);
-      setTimeout(() => map.invalidateSize(), 300);
-      setTimeout(() => map.invalidateSize(), 600);
+      // Ensure proper layout rendering
+      setTimeout(() => map && map.invalidateSize(), 50);
+      setTimeout(() => map && map.invalidateSize(), 200);
+      setTimeout(() => map && map.invalidateSize(), 500);
     }
 
     initMap();
 
     return () => {
       isMounted = false;
+      if (resizeObserver && mapContainerRef.current) {
+        resizeObserver.disconnect();
+      }
     };
   }, [filteredProperties]);
+
+  // Cleanup map instance on component destruction
+  useEffect(() => {
+    return () => {
+      if (mapInstanceRef.current) {
+        try {
+          mapInstanceRef.current.remove();
+        } catch (e) {}
+        mapInstanceRef.current = null;
+      }
+    };
+  }, []);
 
   return (
     <div
@@ -430,7 +471,7 @@ export default function InlinePropertiesMap({ properties, onClose }: InlinePrope
         flexDirection: "column",
       }}
     >
-      {/* Loading Placeholder while Leaflet script initializes */}
+      {/* Loading Placeholder */}
       {isLoading && (
         <div
           style={{
@@ -467,14 +508,14 @@ export default function InlinePropertiesMap({ properties, onClose }: InlinePrope
         }}
       />
 
-      {/* TOP-LEFT FLOATING SEARCH (Matches Reference Screenshot) */}
+      {/* TOP-LEFT FLOATING SEARCH (Matches HolidayExpertz Reference) */}
       <div
         style={{
           position: "absolute",
           top: "14px",
           left: "14px",
           zIndex: 1000,
-          width: "min(280px, calc(100% - 140px))",
+          width: "min(280px, calc(100% - 150px))",
         }}
       >
         <div
@@ -526,7 +567,7 @@ export default function InlinePropertiesMap({ properties, onClose }: InlinePrope
         </div>
       </div>
 
-      {/* TOP-RIGHT FLOATING CLOSE BUTTON (Matches Reference Screenshot) */}
+      {/* TOP-RIGHT FLOATING CLOSE BUTTON (Matches HolidayExpertz Reference) */}
       <div
         style={{
           position: "absolute",

@@ -42,10 +42,29 @@ export async function POST(request: NextRequest) {
       mobile: String(body.mobile || body.mobileNumber || "").trim(),
     };
 
-    const supportedServices = ["visa", "forex", "insurance", "destination-wedding"];
-    if (!supportedServices.includes(service) || !normalized.fullName || !normalized.mobile || !normalized.email) {
+    const supportedServices = [
+      "visa",
+      "forex",
+      "insurance",
+      "destination-wedding",
+      "flight",
+      "bus",
+      "FLIGHT",
+      "BUS",
+    ];
+    if (
+      !supportedServices.includes(service.toLowerCase()) &&
+      !supportedServices.includes(service)
+    ) {
       return NextResponse.json(
-        { error: "Missing required enquiry fields." },
+        { error: `Service '${service}' is not supported.` },
+        { status: 400 }
+      );
+    }
+
+    if (!normalized.fullName || !normalized.mobile || !normalized.email) {
+      return NextResponse.json(
+        { error: "Missing required enquiry fields: Name, Email, and Mobile are required." },
         { status: 400 }
       );
     }

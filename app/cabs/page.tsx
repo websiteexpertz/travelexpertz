@@ -23,9 +23,13 @@ import {
   Star,
   Users,
   X,
+  Car,
+  Plane,
+  Route,
 } from "lucide-react";
 import Header from "../components/Header";
 import LocationDropdown from "../components/LocationDropdown";
+import ComingSoonServicePage from "../components/ComingSoonServicePage";
 import styles from "./cabs.module.css";
 
 type TripType = "one-way" | "round-trip" | "airport-transfer";
@@ -717,6 +721,43 @@ export default function CabsPage() {
   const seatOptions = [...new Set(availableFleet.map((cab) => cab.seats))].sort(
     (a, b) => a - b,
   );
+
+  const SHOW_COMING_SOON = true;
+
+  if (SHOW_COMING_SOON) {
+    return (
+      <main style={{ backgroundColor: "#0B1D31", minHeight: "100vh" }}>
+        <Header currentPage="cabs" solidHeader />
+        <ComingSoonServicePage
+          title="Your Next Road Trip Starts Soon"
+          description="We're preparing an easier way to book outstation cabs, airport transfers, and comfortable journeys with TravelExpertz."
+          statusLabel="Coming Soon"
+          imageSrc="/New-images/Taxi.jpg"
+          imageAlt="TravelExpertz Road Trip and Outstation Cabs"
+          ctaLabel="Explore Hotels"
+          ctaHref="/hotels"
+          note="Cab booking is not available yet."
+          features={[
+            {
+              title: "Outstation Cabs",
+              icon: <Car className="w-6 h-6 text-[#2dd4bf]" />,
+              description: "Comfortable rides for intercity and long-distance travel",
+            },
+            {
+              title: "Airport Transfers",
+              icon: <Plane className="w-6 h-6 text-[#2dd4bf]" />,
+              description: "Timely pick-ups and drop-offs to catch every flight",
+            },
+            {
+              title: "Local Rides",
+              icon: <Route className="w-6 h-6 text-[#2dd4bf]" />,
+              description: "Flexible hourly rentals and city exploration",
+            },
+          ]}
+        />
+      </main>
+    );
+  }
 
   return (
     <main

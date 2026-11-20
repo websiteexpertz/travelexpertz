@@ -9,7 +9,37 @@ import DatePicker from "../components/DatePicker";
 import { formatDateShort } from "@/lib/utils/dateFormat";
 import ImageSlideshow from "../components/ImageSlideshow";
 import MapSidebarCard from "../components/MapSidebarCard";
-import InlinePropertiesMap from "../components/InlinePropertiesMap";
+
+const InlinePropertiesMap = dynamic(
+  () => import("../components/InlinePropertiesMap"),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        style={{
+          width: "100%",
+          height: "calc(100vh - 6.5rem)",
+          minHeight: "560px",
+          borderRadius: "16px",
+          border: "1px solid #e2e8f0",
+          background: "#f8fafc",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "0.5rem",
+          color: "#64748b",
+          fontWeight: 600,
+        }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: "2rem", color: "#0066cc" }}>
+          map
+        </span>
+        <span>Loading interactive map...</span>
+      </div>
+    ),
+  }
+);
 
 interface Hotel {
   _id?: string;
@@ -1574,12 +1604,6 @@ function HotelsContent() {
           border-radius: 4px;
         }
         
-        @media (max-width: 1080px) {
-          .hotels-layout {
-            grid-template-areas: "filters" "main" "map" !important;
-            grid-template-columns: 1fr !important;
-          }
-        }
         @media (max-width: 900px) {
           .hotels-layout {
             grid-template-areas: "main" "map" !important;
