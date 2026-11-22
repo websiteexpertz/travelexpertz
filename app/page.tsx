@@ -510,6 +510,13 @@ export default function Home() {
                   <div>
                     <span>Hidden India</span>
                     <h3>{destination.name}</h3>
+                    {destination.description && (
+                      <p className="curation-description">
+                        {destination.description.length > 120
+                          ? `${destination.description.substring(0, 120)}...`
+                          : destination.description}
+                      </p>
+                    )}
                     {destination.state && <p>{destination.state}</p>}
                   </div>
                 </Link>
