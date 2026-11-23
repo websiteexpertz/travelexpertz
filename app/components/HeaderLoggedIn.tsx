@@ -82,27 +82,32 @@ export default function HeaderLoggedIn({
         }}
       >
         <div
+          className="w-full max-w-[1440px] mx-auto px-6 sm:px-10 lg:px-14"
           style={{
             position: "relative",
-            width: "100%",
-            paddingLeft: "1rem",
-            paddingRight: "1rem",
           }}
         >
-          <div className="flex items-center">
+          <div className="flex items-center travel-header-row" style={{ height: "76px", width: "100%" }}>
             <Link
               href="/"
               aria-label="TravelExpertz Home"
-              className="inline-flex items-center gap-3 transition-transform hover:scale-105"
+              className="relative flex items-center justify-center shrink-0 overflow-hidden header-logo-link"
+              style={{
+                height: "40px",
+                width: "58px",
+                maxHeight: "40px",
+                maxWidth: "58px",
+                marginRight: "1.25rem",
+              }}
             >
               <Image
                 src="/logo.webp"
-                alt="TravelExpertz"
-                width={70}
-                height={70}
+                alt="TravelExpertz — Har Yatra Banaye Yadgaar"
+                fill
+                sizes="(max-width: 768px) 56px, 58px"
+                className="object-contain"
+                style={{ objectFit: "contain" }}
                 priority
-                className="h-10 w-10 rounded-lg object-contain"
-                unoptimized
               />
             </Link>
 
@@ -833,20 +838,62 @@ export default function HeaderLoggedIn({
           }
         }
 
+        .header-logo-link {
+          position: relative !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          height: 40px !important;
+          width: 58px !important;
+          max-height: 40px !important;
+          max-width: 58px !important;
+          overflow: hidden !important;
+          flex-shrink: 0 !important;
+        }
+
+        .header-logo-link img {
+          position: absolute !important;
+          inset: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+          max-width: 100% !important;
+          max-height: 100% !important;
+          object-fit: contain !important;
+          object-position: center !important;
+        }
+
         @media (min-width: 1024px) {
+          .header-logo-link {
+            height: 44px !important;
+            width: 64px !important;
+            max-height: 44px !important;
+            max-width: 64px !important;
+          }
+
+          header > div {
+            width: 100%;
+            max-width: 1440px !important;
+            padding-left: 3.5rem !important;
+            padding-right: 2rem !important;
+          }
+
           .header-mobile-menu-toggle {
             display: none !important;
           }
 
           .desktop-user-actions {
             display: flex !important;
+            flex: 0 0 auto;
+            margin-left: auto !important;
           }
 
           .travel-header-nav {
+            position: static !important;
+            transform: none !important;
             flex: 1 1 auto;
             min-width: 0;
-            margin: 0 1rem;
-            gap: 0.75rem;
+            margin: 0 !important;
+            gap: 0.65rem;
             overflow-x: auto;
             scrollbar-width: none;
             white-space: nowrap;
@@ -858,12 +905,56 @@ export default function HeaderLoggedIn({
 
           .travel-header-nav .nav-link {
             flex: 0 0 auto;
-            font-size: 1rem !important;
+            font-size: 0.95rem !important;
             white-space: nowrap;
           }
         }
 
+        @media (min-width: 1380px) {
+          .travel-header-nav {
+            gap: 0.75rem;
+          }
+          .travel-header-nav .nav-link {
+            font-size: 0.95rem !important;
+            padding-left: 0.35rem !important;
+            padding-right: 0.35rem !important;
+          }
+        }
+
+        @media (min-width: 1200px) and (max-width: 1379px) {
+          .travel-header-nav {
+            gap: 0.45rem;
+          }
+          .travel-header-nav .nav-link {
+            font-size: 0.88rem !important;
+            padding-left: 0.22rem !important;
+            padding-right: 0.22rem !important;
+          }
+        }
+
+        @media (min-width: 1024px) and (max-width: 1199px) {
+          .travel-header-nav {
+            gap: 0.28rem;
+          }
+          .travel-header-nav .nav-link {
+            font-size: 0.78rem !important;
+            padding-left: 0.16rem !important;
+            padding-right: 0.16rem !important;
+          }
+        }
+
         @media (max-width: 1023px) {
+          .header-logo-link {
+            height: 38px !important;
+            width: 56px !important;
+            max-height: 38px !important;
+            max-width: 56px !important;
+          }
+
+          .desktop-user-actions {
+            display: none !important;
+          }
+
           .header-mobile-menu-toggle {
             display: flex !important;
           }

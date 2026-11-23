@@ -200,7 +200,13 @@ function BookingPageContent() {
         throw new Error(error.error || "Failed to initialize payment");
       }
 
-      const { paymentSessionId } = await orderResponse.json();
+      const orderData = await orderResponse.json();
+      if (orderData.mock && orderData.redirectUrl) {
+        window.location.href = orderData.redirectUrl;
+        return;
+      }
+
+      const { paymentSessionId } = orderData;
       const cashfree = await load({
         mode: (process.env.NEXT_PUBLIC_CASHFREE_ENV === "production"
           ? "production"

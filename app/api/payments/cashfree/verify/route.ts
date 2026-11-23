@@ -13,12 +13,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Valid booking ID is required" }, { status: 400 });
     }
 
-    const appId = process.env.CASHFREE_APP_ID;
-    const secretKey = process.env.CASHFREE_SECRET_KEY;
-    if (!appId || !secretKey) {
-      return NextResponse.json({ error: "Cashfree credentials are not configured" }, { status: 500 });
-    }
-
     const client = new MongoClient(process.env.MONGODB_URI || "mongodb://localhost:27017");
     await client.connect();
     const db = client.db(process.env.MONGODB_DB || "travelexpertz");
@@ -28,6 +22,45 @@ export async function POST(request: Request) {
     if (!booking?.cashfreeOrderId) {
       await client.close();
       return NextResponse.json({ error: "Payment order not found" }, { status: 404 });
+    }
+
+    const appId = process.env.CASHFREE_APP_ID;
+    const secretKey = process.env.CASHFREE_SECRET_KEY;
+
+    if (booking.cashfreeOrderId.startsWith("DEV_") || !appId || !secretKey) {
+      if (process.env.NODE_ENV !== "production") {
+        await bookings.updateOne(
+          { _id: new ObjectId(bookingId) },
+          {
+            $set: {
+              paymentStatus: "paid",
+              bookingStatus: "confirmed",
+              paymentGateway: "cashfree_simulated",
+              paymentId: booking.cashfreeOrderId,
+              paymentMethod: "simulated",
+              paidAt: new Date(),
+              updatedAt: new Date(),
+            },
+          }
+        );
+
+        if (booking.paymentStatus !== "paid") {
+          const propertyId = booking.hotelId || booking.homestayId;
+          const propertyCollection = booking.hotelId ? "hotels" : "homestays";
+          if (propertyId && booking.roomId) {
+            await db.collection(propertyCollection).updateOne(
+              { _id: new ObjectId(propertyId), "rooms.id": booking.roomId },
+              { $inc: { "rooms.$.availability": -1 } }
+            );
+          }
+        }
+
+        await client.close();
+        return NextResponse.json({ status: "PAID" });
+      }
+
+      await client.close();
+      return NextResponse.json({ error: "Cashfree credentials are not configured" }, { status: 500 });
     }
 
     const response = await fetch(`${cashfreeBaseUrl}/orders/${encodeURIComponent(booking.cashfreeOrderId)}`, {

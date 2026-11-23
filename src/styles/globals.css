@@ -20,7 +20,6 @@ html, body, #__next, #root {
 }
 .travel-header-nav a {
   flex: 0 0 auto;
-  font-size: 1.1rem !important;
 }
 
 /* ====== HERO SECTION ANIMATIONS ====== */
