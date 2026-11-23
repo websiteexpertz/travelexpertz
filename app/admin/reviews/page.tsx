@@ -9,10 +9,13 @@ interface Review {
   userImage: string;
   propertyId: string;
   propertyName: string;
+  propertyCity?: string;
+  propertyState?: string;
   propertyType: string;
   rating: number;
   reviewText: string;
   reviewImages: string[];
+  media?: Array<{ type: "photo" | "video"; url: string; thumbnailUrl?: string }>;
   createdAt: string;
   verified: boolean;
   active: boolean;
@@ -321,13 +324,22 @@ export default function AdminReviews() {
                     style={{
                       fontWeight: 700,
                       fontSize: "1.1rem",
-                      marginBottom: "0.5rem",
+                      marginBottom: "0.25rem",
                     }}
                   >
-                    {review.propertyName}
+                    {review.propertyName || "TravelExpertz Journey"}
                   </div>
                   <div style={{ color: "#666", fontSize: "0.9rem" }}>
-                    Property Type: {review.propertyType}
+                    {[review.propertyCity, review.propertyState]
+                      .filter(Boolean)
+                      .join(", ") && (
+                      <span style={{ marginRight: "8px" }}>
+                        📍 {[review.propertyCity, review.propertyState]
+                          .filter(Boolean)
+                          .join(", ")}
+                      </span>
+                    )}
+                    <span>Type: {review.propertyType || "Property"}</span>
                   </div>
                 </div>
                 <div style={{ textAlign: "right" }}>
@@ -409,29 +421,84 @@ export default function AdminReviews() {
                   {review.reviewText}
                 </p>
 
-                {/* Review Images */}
-                {review.reviewImages && review.reviewImages.length > 0 && (
+                {/* Review Media (Photos & Videos) */}
+                {((review.media && review.media.length > 0) ||
+                  (review.reviewImages && review.reviewImages.length > 0)) && (
                   <div
                     style={{
-                      display: "grid",
-                      gridTemplateColumns:
-                        "repeat(auto-fill, minmax(100px, 1fr))",
-                      gap: "0.5rem",
+                      display: "flex",
+                      gap: "0.75rem",
+                      flexWrap: "wrap",
+                      marginTop: "0.5rem",
                     }}
                   >
-                    {review.reviewImages.map((img, idx) => (
-                      <img
-                        key={idx}
-                        src={img}
-                        alt={`Review image ${idx + 1}`}
-                        style={{
-                          width: "100%",
-                          height: "100px",
-                          objectFit: "cover",
-                          borderRadius: "4px",
-                        }}
-                      />
-                    ))}
+                    {review.media && review.media.length > 0
+                      ? review.media.map((m, idx) => (
+                          <div
+                            key={idx}
+                            style={{
+                              position: "relative",
+                              width: "140px",
+                              aspectRatio: "16 / 9",
+                              borderRadius: "6px",
+                              overflow: "hidden",
+                              background: "#0f172a",
+                              border: "1px solid #cbd5e1",
+                            }}
+                          >
+                            {m.type === "photo" ? (
+                              <img
+                                src={m.url}
+                                alt="Review media"
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                  objectFit: "cover",
+                                }}
+                              />
+                            ) : (
+                              <video
+                                src={m.url}
+                                controls
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                  objectFit: "cover",
+                                }}
+                              />
+                            )}
+                            <span
+                              style={{
+                                position: "absolute",
+                                top: "4px",
+                                left: "4px",
+                                padding: "2px 6px",
+                                borderRadius: "3px",
+                                fontSize: "0.65rem",
+                                fontWeight: 700,
+                                background:
+                                  m.type === "photo" ? "#0b6dff" : "#7c3aed",
+                                color: "white",
+                              }}
+                            >
+                              {m.type === "photo" ? "Photo" : "Video"}
+                            </span>
+                          </div>
+                        ))
+                      : review.reviewImages.map((img, idx) => (
+                          <img
+                            key={idx}
+                            src={img}
+                            alt={`Review image ${idx + 1}`}
+                            style={{
+                              width: "120px",
+                              height: "80px",
+                              objectFit: "cover",
+                              borderRadius: "6px",
+                              border: "1px solid #cbd5e1",
+                            }}
+                          />
+                        ))}
                   </div>
                 )}
               </div>
@@ -444,6 +511,7 @@ export default function AdminReviews() {
                   paddingTop: "1rem",
                   borderTop: "1px solid #eee",
                   alignItems: "center",
+                  flexWrap: "wrap",
                 }}
               >
                 {!review.active ? (
@@ -452,22 +520,23 @@ export default function AdminReviews() {
                       handleToggleActive(review._id, review.active)
                     }
                     style={{
-                      padding: "0.75rem 1.5rem",
-                      borderRadius: "4px",
+                      padding: "0.65rem 1.4rem",
+                      borderRadius: "6px",
                       border: "none",
                       background:
                         "linear-gradient(135deg, #10b981 0%, #059669 100%)",
                       color: "white",
                       cursor: "pointer",
                       fontWeight: 700,
-                      fontSize: "1rem",
+                      fontSize: "0.95rem",
                       display: "flex",
                       alignItems: "center",
                       gap: "0.5rem",
                       boxShadow: "0 2px 8px rgba(16, 185, 129, 0.3)",
                     }}
+                    title="Accept this review to display it in Stories of Happy Journeys on homepage"
                   >
-                    ✓ Approve Review
+                    ✓ Accept Review
                   </button>
                 ) : (
                   <button
@@ -475,46 +544,52 @@ export default function AdminReviews() {
                       handleToggleActive(review._id, review.active)
                     }
                     style={{
-                      padding: "0.5rem 1rem",
-                      borderRadius: "4px",
+                      padding: "0.55rem 1.1rem",
+                      borderRadius: "6px",
                       border: "none",
-                      background: "#ef4444",
+                      background: "#f59e0b",
                       color: "white",
                       cursor: "pointer",
                       fontWeight: 600,
+                      fontSize: "0.88rem",
                     }}
                   >
-                    Unapprove
+                    Unpublish
                   </button>
                 )}
                 <button
                   onClick={() => handleDeleteReview(review._id)}
                   style={{
-                    padding: "0.5rem 1rem",
-                    borderRadius: "4px",
+                    padding: "0.55rem 1.1rem",
+                    borderRadius: "6px",
                     border: "1px solid #ef4444",
-                    background: "white",
-                    color: "#ef4444",
+                    background: "#fff1f2",
+                    color: "#e11d48",
                     cursor: "pointer",
                     fontWeight: 600,
+                    fontSize: "0.88rem",
                   }}
+                  title="Reject or delete this review"
                 >
-                  Delete
+                  ✕ Reject / Delete
                 </button>
                 <div
                   style={{
                     marginLeft: "auto",
-                    padding: "0.5rem 1rem",
+                    padding: "0.45rem 1rem",
                     background: review.active ? "#d1fae5" : "#fef3c7",
-                    borderRadius: "4px",
-                    fontSize: "0.9rem",
-                    fontWeight: 600,
+                    borderRadius: "20px",
+                    fontSize: "0.85rem",
+                    fontWeight: 700,
                     color: review.active ? "#065f46" : "#d97706",
+                    border: `1px solid ${
+                      review.active ? "#6ee7b7" : "#fcd34d"
+                    }`,
                   }}
                 >
                   {review.active
-                    ? "✓ Approved & Visible"
-                    : "⏳ Pending Approval"}
+                    ? "✓ Accepted & Showing on Homepage"
+                    : "⏳ Pending Admin Acceptance"}
                 </div>
               </div>
             </div>

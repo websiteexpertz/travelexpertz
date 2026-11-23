@@ -57,7 +57,6 @@ const navItems: Array<{
     { key: "buses", label: "Buses", href: "/services?service=bus" },
     { key: "luxury-properties", label: "Luxury Properties", href: "/luxury" },
     { key: "events", label: "Events", href: "/events" },
-    { key: "verified", label: "TE Properties", href: "/hotels?verified=1" },
     {
       key: "list-property",
       label: "List Your Property",

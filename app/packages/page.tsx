@@ -1448,66 +1448,6 @@ export default function Packages() {
           </div>
         </div>
 
-        {/* Destinations Section */}
-        {destinations.length > 0 && (
-          <section
-            className="destinations-section w-full"
-            style={{ maxWidth: "100rem", margin: "0 auto" }}
-          >
-            <div className="destinations-title">
-              <span style={{ fontSize: "1.5rem" }}>🌍</span>
-              <span>Destinations</span>
-            </div>
-
-            <div className="destinations-grid">
-              {destinations.map((destination) => (
-                <div
-                  key={destination._id || destination.name}
-                  onClick={() =>
-                    setSelectedDestination(
-                      selectedDestination === destination.name
-                        ? ""
-                        : destination.name,
-                    )
-                  }
-                  className="destination-item"
-                >
-                  <div
-                    className={`destination-image-wrapper ${selectedDestination === destination.name ? "selected" : ""}`}
-                  >
-                    <img
-                      src={destination.image || "/placeholder-destination.jpg"}
-                      alt={destination.name}
-                    />
-                  </div>
-                  <span
-                    className={`destination-name ${selectedDestination === destination.name ? "selected" : ""}`}
-                  >
-                    {destination.name}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            {selectedDestination && (
-              <div style={{ textAlign: "center" }}>
-                <button
-                  onClick={() => setSelectedDestination("")}
-                  className="clear-filter-btn"
-                >
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: "1rem" }}
-                  >
-                    close
-                  </span>
-                  Clear filter: {selectedDestination}
-                </button>
-              </div>
-            )}
-          </section>
-        )}
-
         {/* Category Carousels */}
         <section
           ref={packagesRef}

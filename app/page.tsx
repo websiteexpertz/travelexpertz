@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
   CalendarDays,
@@ -21,6 +22,10 @@ import { LocationDropdown } from "./components/LocationDropdown";
 import ServiceEnquiryModal, {
   ServiceId,
 } from "./components/ServiceEnquiryModal";
+import TestimonialCarousel from "./components/TestimonialCarousel";
+import AddReviewModal from "./components/AddReviewModal";
+import MarqueeSlider from "./components/MarqueeSlider";
+import { SAMPLE_BLOGS } from "./data/sampleBlogs";
 import "./styles/homepage.css";
 
 const services: Array<{
@@ -94,6 +99,9 @@ const gems = [
   { title: "Tawang", state: "Arunachal Pradesh", image: "/hero2.jpeg" },
   { title: "Gokarna", state: "Karnataka", image: "/hero3.jpeg" },
   { title: "Chopta", state: "Uttarakhand", image: "/hero-bg.jpg" },
+  { title: "Spiti Valley", state: "Himachal Pradesh", image: "/hero1.jpeg" },
+  { title: "Dhanushkodi", state: "Tamil Nadu", image: "/hero3.jpeg" },
+  { title: "Orchha", state: "Madhya Pradesh", image: "/hero4.jpeg" },
 ];
 
 const whyUs = [
@@ -134,7 +142,332 @@ const whyUs = [
   },
 ];
 
+function formatEventDate(dateStr?: string) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatEventDateRange(startDate?: string, endDate?: string) {
+  const start = formatEventDate(startDate);
+  const end = formatEventDate(endDate);
+
+  if (start && end && start !== end) {
+    return `${start} — ${end}`;
+  }
+  return start || end || "Date to be announced";
+}
+
+interface EventLocationItem {
+  city?: string;
+  state?: string;
+  raw?: string;
+}
+
+function parseEventLocations(event: any): EventLocationItem[] {
+  // 1. If structured locations array is provided
+  if (Array.isArray(event.locations) && event.locations.length > 0) {
+    const valid = event.locations
+      .map((loc: any) => ({
+        city: typeof loc.city === "string" ? loc.city.trim() : "",
+        state: typeof loc.state === "string" ? loc.state.trim() : "",
+      }))
+      .filter((loc: any) => loc.city || loc.state);
+    if (valid.length > 0) return valid;
+  }
+
+  // 2. If single city and/or state are provided
+  const city = typeof event.city === "string" ? event.city.trim() : "";
+  const state = typeof event.state === "string" ? event.state.trim() : "";
+  if (city || state) {
+    return [{ city, state }];
+  }
+
+  // 3. Fallback: Parse location string
+  const locStr =
+    typeof event.location === "string" ? event.location.trim() : "";
+  if (!locStr) {
+    return [{ raw: "India" }];
+  }
+
+  // Check if multiple locations are separated by | or ;
+  const parts = locStr
+    .split(/[|;]/)
+    .map((p: string) => p.trim())
+    .filter(Boolean);
+  if (parts.length > 1) {
+    return parts.map((part: string) => {
+      const subParts = part
+        .split(",")
+        .map((s: string) => s.trim())
+        .filter(Boolean);
+      if (subParts.length === 2) {
+        return { city: subParts[0], state: subParts[1] };
+      }
+      return { raw: part };
+    });
+  }
+
+  // Single location string with comma (e.g., "Bundi, Rajasthan")
+  const commaParts = locStr
+    .split(",")
+    .map((s: string) => s.trim())
+    .filter(Boolean);
+  if (commaParts.length === 2) {
+    return [{ city: commaParts[0], state: commaParts[1] }];
+  }
+
+  return [{ raw: locStr }];
+}
+
+function EventLocationDisplay({ event }: { event: any }) {
+  const [expanded, setExpanded] = useState(false);
+  const locations = parseEventLocations(event);
+
+  // For lengthy location lists (> 2), show preview with View all locations toggle
+  const isLengthy = locations.length > 2;
+  const displayedLocations =
+    isLengthy && !expanded ? locations.slice(0, 2) : locations;
+
+  return (
+    <p
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        gap: "6px",
+        margin: "7px 16px 18px",
+        color: "#667085",
+        fontSize: "0.82rem",
+      }}
+    >
+      <MapPin
+        size={15}
+        style={{
+          flexShrink: 0,
+          minWidth: "15px",
+          marginTop: "2px",
+          color: "#667085",
+        }}
+      />
+      <span style={{ display: "inline", lineHeight: "1.4" }}>
+        {displayedLocations.map((loc, idx) => {
+          const hasCity = Boolean(loc.city);
+          const hasState = Boolean(loc.state);
+
+          return (
+            <span key={idx} style={{ display: "inline" }}>
+              {idx > 0 && <span style={{ color: "#667085" }}>; </span>}
+              {hasCity && (
+                <Link
+                  href={`/hotels/search?location=${encodeURIComponent(loc.city!)}`}
+                  className="event-location-link"
+                  onClick={(e) => e.stopPropagation()}
+                  title={`View properties in ${loc.city}`}
+                >
+                  {loc.city}
+                </Link>
+              )}
+              {hasCity && hasState && (
+                <span style={{ color: "#667085" }}>, </span>
+              )}
+              {hasState && (
+                <Link
+                  href={`/hotels/search?location=${encodeURIComponent(loc.state!)}`}
+                  className="event-location-link"
+                  onClick={(e) => e.stopPropagation()}
+                  title={`View properties in ${loc.state}`}
+                >
+                  {loc.state}
+                </Link>
+              )}
+              {!hasCity && !hasState && (
+                <span style={{ color: "#667085" }}>{loc.raw || "India"}</span>
+              )}
+            </span>
+          );
+        })}
+        {isLengthy && (
+          <button
+            type="button"
+            className="event-location-more-btn"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setExpanded(!expanded);
+            }}
+            aria-label={
+              expanded ? "Show fewer locations" : "View all locations"
+            }
+          >
+            {expanded ? "Show less" : `+${locations.length - 2} more`}
+          </button>
+        )}
+      </span>
+    </p>
+  );
+}
+
+const DESTINATION_STATE_MAP: Record<string, string> = {
+  majuli: "Assam",
+  "ziro valley": "Arunachal Pradesh",
+  ziro: "Arunachal Pradesh",
+  tawang: "Arunachal Pradesh",
+  gokarna: "Karnataka",
+  chopta: "Uttarakhand",
+  "spiti valley": "Himachal Pradesh",
+  spiti: "Himachal Pradesh",
+  dhanushkodi: "Tamil Nadu",
+  orchha: "Madhya Pradesh",
+  manali: "Himachal Pradesh",
+  shimla: "Himachal Pradesh",
+  dharamshala: "Himachal Pradesh",
+  kasol: "Himachal Pradesh",
+  kullu: "Himachal Pradesh",
+  rishikesh: "Uttarakhand",
+  mussoorie: "Uttarakhand",
+  dehradun: "Uttarakhand",
+  nainital: "Uttarakhand",
+  jaipur: "Rajasthan",
+  udaipur: "Rajasthan",
+  jodhpur: "Rajasthan",
+  jaisalmer: "Rajasthan",
+  pushkar: "Rajasthan",
+  bundi: "Rajasthan",
+  goa: "Goa",
+  calangute: "Goa",
+  candolim: "Goa",
+  panaji: "Goa",
+  munnar: "Kerala",
+  wayanad: "Kerala",
+  alleppey: "Kerala",
+  kochi: "Kerala",
+  varanasi: "Uttar Pradesh",
+  agra: "Uttar Pradesh",
+  lucknow: "Uttar Pradesh",
+  ooty: "Tamil Nadu",
+  kodaikanal: "Tamil Nadu",
+  coorg: "Karnataka",
+  hampi: "Karnataka",
+  darjeeling: "West Bengal",
+  kalimpong: "West Bengal",
+  gangtok: "Sikkim",
+  shillong: "Meghalaya",
+  cherrapunji: "Meghalaya",
+  leh: "Ladakh",
+  ladakh: "Ladakh",
+  srinagar: "Jammu and Kashmir",
+  gulmarg: "Jammu and Kashmir",
+  pahalgam: "Jammu and Kashmir",
+};
+
+function parseCurationLocation(item: any) {
+  let city = (item.city || "").trim();
+  let state = (item.state || "").trim();
+  const name = (item.name || item.title || item.destinationName || "").trim();
+
+  // 1. If item has a location string (e.g. "Jaipur, Rajasthan")
+  const locStr = (item.location || "").trim();
+  if (locStr) {
+    const parts = locStr
+      .split(",")
+      .map((s: string) => s.trim())
+      .filter(Boolean);
+    if (parts.length >= 2) {
+      if (!city) city = parts[0];
+      if (!state) state = parts[1];
+    } else if (parts.length === 1 && !city && !state) {
+      city = parts[0];
+    }
+  }
+
+  // 2. If name itself has a comma (e.g. "Bundi, Rajasthan")
+  if (name.includes(",") && (!city || !state)) {
+    const parts = name
+      .split(",")
+      .map((s: string) => s.trim())
+      .filter(Boolean);
+    if (parts.length >= 2) {
+      if (!city) city = parts[0];
+      if (!state) state = parts[1];
+    }
+  }
+
+  // 3. Look up state from DESTINATION_STATE_MAP if state is empty
+  const lookupKey = (city || name).toLowerCase();
+  if (!state && DESTINATION_STATE_MAP[lookupKey]) {
+    state = DESTINATION_STATE_MAP[lookupKey];
+  }
+
+  // 4. If city is empty but name exists
+  if (!city && name) {
+    if (state && name.toLowerCase() !== state.toLowerCase()) {
+      city = name;
+    } else if (!state) {
+      city = name;
+    }
+  }
+
+  // 5. Avoid repeating e.g. "Goa, Goa"
+  if (city && state && city.toLowerCase() === state.toLowerCase()) {
+    state = "";
+  }
+
+  const rawLocation =
+    !city && !state ? name || locStr || item.state || item.city || "India" : "";
+
+  return { city, state, rawLocation };
+}
+
+function CurationLocationDisplay({ item }: { item: any }) {
+  const { city, state, rawLocation } = parseCurationLocation(item);
+
+  if (!city && !state && !rawLocation) return null;
+
+  return (
+    <p className="curation-location-row">
+      <MapPin size={13} className="curation-location-icon" />
+      {city && (
+        <Link
+          href={`/hotels/search?location=${encodeURIComponent(city)}`}
+          className="curation-location-link"
+          onClick={(e) => e.stopPropagation()}
+          title={`View properties in ${city}`}
+        >
+          {city}
+        </Link>
+      )}
+      {city && state && <span className="curation-location-sep">, </span>}
+      {state && (
+        <Link
+          href={`/hotels/search?location=${encodeURIComponent(state)}`}
+          className="curation-location-link"
+          onClick={(e) => e.stopPropagation()}
+          title={`View properties in ${state}`}
+        >
+          {state}
+        </Link>
+      )}
+      {!city && !state && rawLocation && (
+        <Link
+          href={`/hotels/search?location=${encodeURIComponent(rawLocation)}`}
+          className="curation-location-link"
+          onClick={(e) => e.stopPropagation()}
+          title={`View properties in ${rawLocation}`}
+        >
+          {rawLocation}
+        </Link>
+      )}
+    </p>
+  );
+}
+
 export default function Home() {
+  const router = useRouter();
   const [activeService, setActiveService] = useState<ServiceId | null>(null);
   const [heroImageIndex, setHeroImageIndex] = useState(0);
   const [hotels, setHotels] = useState<any[]>([]);
@@ -143,7 +476,9 @@ export default function Home() {
   const [hiddenDestinations, setHiddenDestinations] = useState<any[]>([]);
   const [handpickedHotels, setHandpickedHotels] = useState<any[]>([]);
   const [handpickedHomestays, setHandpickedHomestays] = useState<any[]>([]);
+  const [blogs, setBlogs] = useState<any[]>([]);
   const [heroLocation, setHeroLocation] = useState("");
+  const [showReviewModal, setShowReviewModal] = useState(false);
 
   const heroSlides = [
     {
@@ -175,11 +510,14 @@ export default function Home() {
     Promise.allSettled([
       fetch("/api/hotels").then((r) => (r.ok ? r.json() : [])),
       fetch("/api/events").then((r) => (r.ok ? r.json() : [])),
-      fetch("/api/reviews?limit=4").then((r) => (r.ok ? r.json() : [])),
+      fetch("/api/testimonials").then((r) => (r.ok ? r.json() : [])),
       fetch("/api/destinations").then((r) => (r.ok ? r.json() : [])),
       fetch("/api/hotels?handpicked=true").then((r) => (r.ok ? r.json() : [])),
       fetch("/api/homestays?handpicked=true").then((r) =>
         r.ok ? r.json() : [],
+      ),
+      fetch("/api/blogs?limit=8").then((r) =>
+        r.ok ? r.json() : { blogs: [] },
       ),
     ]).then(
       ([
@@ -189,6 +527,7 @@ export default function Home() {
         destinationResult,
         handpickedHotelResult,
         handpickedHomestayResult,
+        blogResult,
       ]) => {
         if (hotelResult.status === "fulfilled") {
           const data = hotelResult.value;
@@ -199,13 +538,13 @@ export default function Home() {
         if (eventResult.status === "fulfilled") {
           const data = eventResult.value;
           setEvents(
-            (Array.isArray(data) ? data : data.events || []).slice(0, 4),
+            (Array.isArray(data) ? data : data.events || []).slice(0, 12),
           );
         }
         if (reviewResult.status === "fulfilled") {
           setReviews(
             Array.isArray(reviewResult.value)
-              ? reviewResult.value.slice(0, 3)
+              ? reviewResult.value
               : [],
           );
         }
@@ -219,14 +558,18 @@ export default function Home() {
         if (handpickedHotelResult.status === "fulfilled") {
           const data = handpickedHotelResult.value;
           setHandpickedHotels(
-            (Array.isArray(data) ? data : data.hotels || []).slice(0, 4),
+            (Array.isArray(data) ? data : data.hotels || []).slice(0, 8),
           );
         }
         if (handpickedHomestayResult.status === "fulfilled") {
           const data = handpickedHomestayResult.value;
           setHandpickedHomestays(
-            (Array.isArray(data) ? data : data.homestays || []).slice(0, 4),
+            (Array.isArray(data) ? data : data.homestays || []).slice(0, 8),
           );
+        }
+        if (blogResult && blogResult.status === "fulfilled") {
+          const data = blogResult.value;
+          setBlogs(Array.isArray(data) ? data : data.blogs || []);
         }
       },
     );
@@ -243,6 +586,40 @@ export default function Home() {
     });
     window.location.href = `/hotels/search?${params}`;
   };
+
+  const displayDestinations =
+    hiddenDestinations.length >= 4
+      ? hiddenDestinations
+      : gems.map((g, i) => ({
+          _id: `gem_${i}`,
+          name: g.title,
+          state: g.state,
+          image: g.image,
+        }));
+
+  const displayGetaways =
+    [...handpickedHotels, ...handpickedHomestays].length >= 4
+      ? [...handpickedHotels, ...handpickedHomestays]
+      : [...handpickedHotels, ...handpickedHomestays, ...hotels];
+
+  // Merge newly added database blogs with existing sample blogs so new blogs
+  // are shown together with existing blogs, not as a single card.
+  const displayBlogs = useMemo(() => {
+    const map = new Map<string, any>();
+    // Put newly added / database blogs first
+    blogs.forEach((b) => {
+      const key = String(b._id || b.id || b.title);
+      if (key) map.set(key, b);
+    });
+    // Add existing blogs so they always appear together
+    SAMPLE_BLOGS.forEach((sb) => {
+      const key = String(sb._id || sb.title);
+      if (!map.has(key)) {
+        map.set(key, sb);
+      }
+    });
+    return Array.from(map.values());
+  }, [blogs]);
 
   return (
     <div className="home-redesign">
@@ -352,19 +729,20 @@ export default function Home() {
               packages and personalized arrangements, we make travel planning
               simple, seamless and stress-free.
             </p>
-            <div className="why-marquee" aria-label="Why choose Travel Expertz">
-              <div className="why-marquee-track">
-                {[...whyUs, ...whyUs].map(
-                  ({ icon: Icon, title, text }, index) => (
-                    <article className="why-card" key={`${title}-${index}`}>
-                      <Icon size={27} />
-                      <h3>{title}</h3>
-                      <p>{text}</p>
-                    </article>
-                  ),
-                )}
-              </div>
-            </div>
+            <MarqueeSlider
+              className="why-marquee"
+              trackClassName="why-marquee-track"
+              ariaLabel="Why choose Travel Expertz"
+              secondsPerCard={17}
+            >
+              {whyUs.map(({ icon: Icon, title, text }, index) => (
+                <article className="why-card" key={`${title}-${index}`}>
+                  <Icon size={27} />
+                  <h3>{title}</h3>
+                  <p>{text}</p>
+                </article>
+              ))}
+            </MarqueeSlider>
           </div>
         </section>
 
@@ -383,11 +761,16 @@ export default function Home() {
             is happening across India and let Travel Expertz plan your visit.
           </p>
           {events.length > 0 ? (
-            <div className="event-grid">
-              {events.map((event) => (
+            <MarqueeSlider
+              className="events-marquee"
+              trackClassName="events-marquee-track"
+              ariaLabel="Upcoming Events"
+              secondsPerCard={17}
+            >
+              {events.map((event, index) => (
                 <article
                   className="event-card"
-                  key={event._id || event.id || event.eventName}
+                  key={`${event._id || event.id || event.eventName}-${index}`}
                 >
                   <div>
                     <Image
@@ -400,24 +783,13 @@ export default function Home() {
                   <span>{event.category || "Experience"}</span>
                   <h3>{event.eventName || event.name}</h3>
                   <p>
-                    <CalendarDays size={15} />
-                    {event.startDate
-                      ? new Date(event.startDate).toLocaleDateString("en-IN", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })
-                      : "Date to be announced"}
+                    <CalendarDays size={15} style={{ flexShrink: 0 }} />
+                    <span>{formatEventDateRange(event.startDate, event.endDate)}</span>
                   </p>
-                  <p>
-                    <MapPin size={15} />
-                    {[event.city, event.state].filter(Boolean).join(", ") ||
-                      event.location ||
-                      "India"}
-                  </p>
+                  <EventLocationDisplay event={event} />
                 </article>
               ))}
-            </div>
+            </MarqueeSlider>
           ) : (
             <div className="events-empty">
               No upcoming events are available right now. Please check back
@@ -431,6 +803,13 @@ export default function Home() {
             <div>
               <h2>Stories of Happy Journeys</h2>
             </div>
+            <button
+              type="button"
+              onClick={() => setShowReviewModal(true)}
+              className="write-review-heading-btn"
+            >
+              + Write a Review
+            </button>
           </div>
           <p className="section-description">
             At Travel Expertz, our greatest reward is the happiness and
@@ -440,37 +819,7 @@ export default function Home() {
             personalized travel assistance, discover what our customers have to
             say about their experiences with us.
           </p>
-          <div className="testimonial-grid">
-            {(reviews.length
-              ? reviews
-              : [
-                  {
-                    userName: "Aarav Mehta",
-                    reviewText:
-                      "Every detail was handled beautifully. Our family holiday felt effortless from takeoff to checkout.",
-                    rating: 5,
-                  },
-                  {
-                    userName: "Riya & Kabir",
-                    reviewText:
-                      "The team understood exactly what we wanted and found us a wonderful destination wedding venue.",
-                    rating: 5,
-                  },
-                  {
-                    userName: "Neha Sharma",
-                    reviewText:
-                      "Professional, responsive, and genuinely thoughtful. The whole trip felt personal and very well planned.",
-                    rating: 5,
-                  },
-                ]
-            ).map((review, index) => (
-              <article key={review._id || review.userName || index}>
-                <div className="stars">{"★".repeat(review.rating || 5)}</div>
-                <blockquote>“{review.reviewText || review.text}”</blockquote>
-                <p>{review.userName || review.name}</p>
-              </article>
-            ))}
-          </div>
+          <TestimonialCarousel testimonials={reviews} />
         </section>
 
         <section className="home-section database-curations">
@@ -479,6 +828,9 @@ export default function Home() {
               <h2>Beyond Famous Destinations Lies a World of Wonders</h2>
               <strong>Uncover India&apos;s Beauty</strong>
             </div>
+            <Link href="/destinations">
+              All destinations <ChevronRight size={18} />
+            </Link>
           </div>
           <p className="section-description">
             Explore the hidden treasures of India, from unexplored mountain
@@ -488,33 +840,47 @@ export default function Home() {
             and traditions of India with Travel Expertz. Every hidden
             destination has a story waiting to be discovered!
           </p>
-          {hiddenDestinations.length > 0 ? (
-            <div className="curation-grid">
-              {hiddenDestinations.slice(0, 6).map((destination, index) => (
-                <Link
-                  href="/destinations"
-                  className="curation-card"
-                  key={
-                    destination._id ||
-                    destination.id ||
-                    destination.name ||
-                    index
-                  }
-                >
-                  {destination.image && (
-                    <img
-                      src={destination.image}
-                      alt={destination.name || "Indian destination"}
-                    />
-                  )}
-                  <div>
-                    <span>Hidden India</span>
-                    <h3>{destination.name}</h3>
-                    {destination.state && <p>{destination.state}</p>}
+          {displayDestinations.length > 0 ? (
+            <MarqueeSlider
+              className="curation-marquee"
+              trackClassName="curation-marquee-track"
+              ariaLabel="Beyond Famous Destinations"
+              secondsPerCard={17}
+            >
+              {displayDestinations.map((destination, index) => {
+                const { city, state, rawLocation } = parseCurationLocation(destination);
+                const propertyTarget = city || state || rawLocation || destination.name;
+                const cardHref = `/hotels/search?location=${encodeURIComponent(propertyTarget)}`;
+
+                return (
+                  <div
+                    className="curation-card"
+                    key={`${destination._id || destination.name}-${index}`}
+                    role="button"
+                    tabIndex={0}
+                    style={{ cursor: "pointer" }}
+                    onClick={() => router.push(cardHref)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        router.push(cardHref);
+                      }
+                    }}
+                  >
+                    {destination.image && (
+                      <img
+                        src={destination.image}
+                        alt={destination.name || "Indian destination"}
+                      />
+                    )}
+                    <div>
+                      <span className="curation-badge">Hidden India</span>
+                      <h3>{destination.name}</h3>
+                      <CurationLocationDisplay item={destination} />
+                    </div>
                   </div>
-                </Link>
-              ))}
-            </div>
+                );
+              })}
+            </MarqueeSlider>
           ) : (
             <p className="curation-empty">
               No hidden destinations have been added yet.
@@ -540,20 +906,34 @@ export default function Home() {
             memories and experience every destination your way with Travel
             Expertz.
           </p>
-          {[...handpickedHotels, ...handpickedHomestays].length > 0 ? (
-            <div className="curation-grid">
-              {[...handpickedHotels, ...handpickedHomestays]
-                .slice(0, 6)
-                .map((property, index) => (
-                  <Link
-                    href={
-                      property.propertyType === "homestay" ||
-                      property.type === "homestay"
-                        ? `/homestays/${property._id}`
-                        : `/hotels/${property._id}`
-                    }
+          {displayGetaways.length > 0 ? (
+            <MarqueeSlider
+              className="curation-marquee"
+              trackClassName="curation-marquee-track"
+              ariaLabel="Specially Selected Getaways"
+              secondsPerCard={17}
+            >
+              {displayGetaways.map((property, index) => {
+                const isHomestay =
+                  property.propertyType === "homestay" ||
+                  property.type === "homestay";
+                const cardHref = isHomestay
+                  ? `/homestays/${property._id}`
+                  : `/hotels/${property._id}`;
+
+                return (
+                  <div
                     className="curation-card"
-                    key={property._id || property.id || property.name || index}
+                    key={`${property._id || property.name}-${index}`}
+                    role="button"
+                    tabIndex={0}
+                    style={{ cursor: "pointer" }}
+                    onClick={() => router.push(cardHref)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        router.push(cardHref);
+                      }
+                    }}
                   >
                     {(property.image || property.images?.[0]) && (
                       <img
@@ -562,18 +942,96 @@ export default function Home() {
                       />
                     )}
                     <div>
-                      <span>{property.propertyType || "Hotel"}</span>
+                      <span className="curation-badge">
+                        {property.propertyType || "Hotel"}
+                      </span>
                       <h3>{property.name}</h3>
-                      {(property.location || property.city) && (
-                        <p>{property.location || property.city}</p>
-                      )}
+                      <CurationLocationDisplay item={property} />
                     </div>
-                  </Link>
-                ))}
-            </div>
+                  </div>
+                );
+              })}
+            </MarqueeSlider>
           ) : (
             <p className="curation-empty">
               No handpicked hotels or homestays have been selected yet.
+            </p>
+          )}
+        </section>
+
+        <section className="home-section blogs-section" id="blogs">
+          <div className="section-heading">
+            <div>
+              <h2>Travel Stories &amp; Expert Guides</h2>
+              <p className="section-subheading">
+                Inspiration, destination guides and expert tips for your next journey.
+              </p>
+            </div>
+            <Link href="/blogs">
+              All blogs <ChevronRight size={18} />
+            </Link>
+          </div>
+          <p className="section-description">
+            Discover travel tips, expert guides, packing essentials, and captivating
+            stories from our travel specialists to help you plan your next
+            unforgettable journey.
+          </p>
+          {displayBlogs.length > 0 ? (
+            <MarqueeSlider
+              className="blogs-marquee"
+              trackClassName="blogs-marquee-track"
+              ariaLabel="Travel Blogs and Guides"
+              secondsPerCard={17}
+            >
+              {displayBlogs.map((blog, index) => {
+                const blogHref = blog._id ? `/blogs/${blog._id}` : `/blogs`;
+                const categoryName =
+                  Array.isArray(blog.categories) && blog.categories[0]
+                    ? blog.categories[0]
+                    : "Travel Guide";
+                const cleanDesc = blog.description
+                  ? blog.description.replace(/<[^>]*>/g, "")
+                  : "Explore comprehensive travel guides, recommended itineraries, and insider tips from Travel Expertz.";
+
+                return (
+                  <Link
+                    href={blogHref}
+                    className="blog-home-card"
+                    key={`${blog._id || blog.title}-${index}`}
+                  >
+                    <div className="blog-home-image-wrap">
+                      <img
+                        src={blog.image || "/hero1.jpeg"}
+                        alt={blog.title || "Travel blog"}
+                      />
+                      <span className="blog-home-badge">{categoryName}</span>
+                    </div>
+                    <div className="blog-home-body">
+                      {blog.date && (
+                        <div className="blog-home-date">
+                          <CalendarDays size={13} />
+                          <span>
+                            {new Date(blog.date).toLocaleDateString("en-IN", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </span>
+                        </div>
+                      )}
+                      <h3>{blog.title}</h3>
+                      <p>{cleanDesc}</p>
+                      <span className="blog-home-cta">
+                        Read Story <ArrowRight size={14} />
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </MarqueeSlider>
+          ) : (
+            <p className="curation-empty">
+              No blog posts available right now. Please check back soon.
             </p>
           )}
         </section>
@@ -600,6 +1058,11 @@ export default function Home() {
           onClose={() => setActiveService(null)}
         />
       )}
+
+      <AddReviewModal
+        isOpen={showReviewModal}
+        onClose={() => setShowReviewModal(false)}
+      />
     </div>
   );
 }
