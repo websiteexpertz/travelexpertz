@@ -11,6 +11,7 @@ interface Event {
   location: string;
   state: string;
   city: string;
+  locations?: Array<{ city?: string; state: string }>;
   startDate: string;
   endDate: string;
   profileImage: string;
@@ -940,12 +941,9 @@ export default function EventsPage() {
                 const isOngoing = daysUntil === "Ongoing";
 
                 return (
-                  <Link
+                  <div
                     key={event._id}
-                    href={`/events/${event._id}`}
                     style={{
-                      textDecoration: "none",
-                      color: "inherit",
                       opacity: animateCards ? 1 : 0,
                       transform: animateCards
                         ? "translateY(0)"
@@ -961,7 +959,7 @@ export default function EventsPage() {
                         boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
                         transition:
                           "all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
-                        cursor: "pointer",
+                        cursor: "default",
                         height: "100%",
                         display: "flex",
                         flexDirection: "column",
@@ -1093,7 +1091,7 @@ export default function EventsPage() {
                       {/* Content */}
                       <div
                         style={{
-                          padding: "1.2rem 1.2rem 1rem",
+                          padding: "1.2rem 1.2rem 1.3rem",
                           flex: 1,
                           display: "flex",
                           flexDirection: "column",
@@ -1158,9 +1156,102 @@ export default function EventsPage() {
                             >
                               location_on
                             </span>
-                            {event.city && event.state
-                              ? `${event.city}, ${event.state}`
-                              : event.location || event.state}
+                            {event.locations && event.locations.length > 0 ? (
+                              <span>
+                                {event.locations.map((l, idx) => (
+                                  <span key={idx}>
+                                    {idx > 0 && " • "}
+                                    {l.city && (
+                                      <Link
+                                        href={`/hotels/search?location=${encodeURIComponent(l.city)}`}
+                                        style={{
+                                          color: "#0b6dff",
+                                          textDecoration: "none",
+                                          fontWeight: 600,
+                                        }}
+                                        onMouseEnter={(e) =>
+                                          (e.currentTarget.style.textDecoration =
+                                            "underline")
+                                        }
+                                        onMouseLeave={(e) =>
+                                          (e.currentTarget.style.textDecoration =
+                                            "none")
+                                        }
+                                      >
+                                        {l.city}
+                                      </Link>
+                                    )}
+                                    {l.city && l.state && ", "}
+                                    {l.state && (
+                                      <Link
+                                        href={`/hotels/search?location=${encodeURIComponent(l.state)}`}
+                                        style={{
+                                          color: "#0b6dff",
+                                          textDecoration: "none",
+                                          fontWeight: 600,
+                                        }}
+                                        onMouseEnter={(e) =>
+                                          (e.currentTarget.style.textDecoration =
+                                            "underline")
+                                        }
+                                        onMouseLeave={(e) =>
+                                          (e.currentTarget.style.textDecoration =
+                                            "none")
+                                        }
+                                      >
+                                        {l.state}
+                                      </Link>
+                                    )}
+                                  </span>
+                                ))}
+                              </span>
+                            ) : event.city || event.state ? (
+                              <span>
+                                {event.city && (
+                                  <Link
+                                    href={`/hotels/search?location=${encodeURIComponent(event.city)}`}
+                                    style={{
+                                      color: "#0b6dff",
+                                      textDecoration: "none",
+                                      fontWeight: 600,
+                                    }}
+                                    onMouseEnter={(e) =>
+                                      (e.currentTarget.style.textDecoration =
+                                        "underline")
+                                    }
+                                    onMouseLeave={(e) =>
+                                      (e.currentTarget.style.textDecoration =
+                                        "none")
+                                    }
+                                  >
+                                    {event.city}
+                                  </Link>
+                                )}
+                                {event.city && event.state && ", "}
+                                {event.state && (
+                                  <Link
+                                    href={`/hotels/search?location=${encodeURIComponent(event.state)}`}
+                                    style={{
+                                      color: "#0b6dff",
+                                      textDecoration: "none",
+                                      fontWeight: 600,
+                                    }}
+                                    onMouseEnter={(e) =>
+                                      (e.currentTarget.style.textDecoration =
+                                        "underline")
+                                    }
+                                    onMouseLeave={(e) =>
+                                      (e.currentTarget.style.textDecoration =
+                                        "none")
+                                    }
+                                  >
+                                    {event.state}
+                                  </Link>
+                                )}
+                              </span>
+                            ) : (
+                              <span>{event.location || "India"}</span>
+                            )}
                           </div>
 
                           {/* Date Range */}
@@ -1187,51 +1278,8 @@ export default function EventsPage() {
                           </div>
                         </div>
                       </div>
-
-                      {/* Footer */}
-                      <div
-                        style={{
-                          padding: "0.8rem 1.2rem",
-                          borderTop: "1px solid var(--gray-100)",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: "0.8rem",
-                            color: "var(--gray-500)",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.3rem",
-                          }}
-                        >
-                          <span
-                            className="material-symbols-outlined"
-                            style={{ fontSize: "0.9rem" }}
-                          >
-                            person
-                          </span>
-                          {event.organizer || "TravelExpertz"}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "0.95rem",
-                            fontWeight: 700,
-                            color:
-                              event.ticketPrice > 0
-                                ? "var(--primary)"
-                                : "#10b981",
-                          }}
-                        >
-                          {event.ticketPrice > 0
-                            ? `₹${event.ticketPrice.toLocaleString("en-IN")}`
-                            : "Free"}
-                        </div>
-                      </div>
                     </div>
-                  </Link>
+                  </div>
                 );
               })}
             </div>

@@ -1,5 +1,6 @@
 import { MongoClient } from "mongodb";
 import { NextRequest, NextResponse } from "next/server";
+import { SAMPLE_BLOGS } from "@/app/data/sampleBlogs";
 
 const uri = process.env.MONGODB_URI || "mongodb://localhost:27017";
 const dbName = process.env.MONGODB_DB || "travelexpertz";
@@ -37,13 +38,9 @@ export async function GET(request: NextRequest) {
     if (sort === "oldest") sortOption = { date: 1, createdAt: 1 };
     if (sort === "title") sortOption = { title: 1 };
 
-    const skip = (page - 1) * limit;
-    const total = await blogsCollection.countDocuments(query);
-    const blogs = await blogsCollection
+    const dbBlogs = await blogsCollection
       .find(query)
       .sort(sortOption)
-      .skip(skip)
-      .limit(limit)
       .toArray();
 
     // Get all unique categories for filter
@@ -51,12 +48,45 @@ export async function GET(request: NextRequest) {
 
     await client.close();
 
+    // Merge database blogs with sample blogs so all blogs (new and existing) are shown
+    const map = new Map<string, any>();
+    dbBlogs.forEach((b) => {
+      map.set(String(b._id || b.title), b);
+    });
+
+    SAMPLE_BLOGS.forEach((sb) => {
+      if (search) {
+        const s = search.toLowerCase();
+        const matchesTitle = (sb.title || "").toLowerCase().includes(s);
+        const matchesDesc = (sb.description || "").toLowerCase().includes(s);
+        if (!matchesTitle && !matchesDesc) return;
+      }
+      if (category && (!sb.categories || !sb.categories.includes(category))) {
+        return;
+      }
+      if (!map.has(sb._id)) {
+        map.set(sb._id, sb);
+      }
+    });
+
+    const combinedBlogs = Array.from(map.values());
+    const total = combinedBlogs.length;
+    const skip = (page - 1) * limit;
+    const paginatedBlogs = combinedBlogs.slice(skip, skip + limit);
+
+    const mergedCategories = Array.from(
+      new Set([
+        ...allCategories.filter(Boolean),
+        ...SAMPLE_BLOGS.flatMap((s) => s.categories || []),
+      ])
+    ).sort();
+
     return NextResponse.json({
-      blogs,
+      blogs: paginatedBlogs,
       total,
       page,
-      totalPages: Math.ceil(total / limit),
-      categories: allCategories.filter(Boolean).sort(),
+      totalPages: Math.ceil(total / limit) || 1,
+      categories: mergedCategories,
     });
   } catch (error) {
     console.error("Error fetching blogs:", error);
