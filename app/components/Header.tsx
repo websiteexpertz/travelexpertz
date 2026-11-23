@@ -145,21 +145,28 @@ export default function Header({
       <header
         className={`${isHeroPage && !scrolled && !solidHeader ? "header-hero" : scrolled || solidHeader || !isHeroPage ? "header-scrolled" : ""} ${forceBlackText && !scrolled && !isHeroPage ? "header-black-text" : ""}`}
       >
-        <div className="max-w-7xl mx-auto" style={{ position: "relative" }}>
+        <div className="w-full max-w-[1440px] mx-auto px-6 sm:px-10 lg:px-14" style={{ position: "relative" }}>
           <div className="flex items-center travel-header-row">
             <Link
               href="/"
               aria-label="TravelExpertz Home"
-              className="inline-flex items-center gap-3 transition-transform hover:scale-105"
+              className="relative flex items-center justify-center shrink-0 overflow-hidden header-logo-link transition-transform hover:scale-105"
+              style={{
+                height: "40px",
+                width: "58px",
+                maxHeight: "40px",
+                maxWidth: "58px",
+                marginRight: "1.25rem",
+              }}
             >
               <Image
                 src="/logo.webp"
-                alt="TravelExpertz"
-                width={70}
-                height={70}
+                alt="TravelExpertz — Har Yatra Banaye Yadgaar"
+                fill
+                sizes="(max-width: 768px) 56px, 58px"
+                className="object-contain"
+                style={{ objectFit: "contain" }}
                 priority
-                className="h-10 w-10 rounded-lg object-contain"
-                unoptimized
               />
             </Link>
 
@@ -181,10 +188,10 @@ export default function Header({
                       fontSize: "0.95rem",
                       fontWeight: "600",
                       padding: "0.7rem 0.35rem",
-                      color: isActive
-                        ? "#0B6DFF"
-                        : isHeroPage && !scrolled
-                          ? "white"
+                      color: isHeroPage && !scrolled
+                        ? "white"
+                        : isActive
+                          ? "#0B6DFF"
                           : forceBlackText && !scrolled
                             ? "#000000"
                             : scrolled || !isHeroPage
@@ -472,17 +479,23 @@ export default function Header({
           align-items: center;
           justify-content: center;
           gap: 0.5rem;
-          min-height: 46px;
-          padding: 11px 24px;
-          border: 1px solid #ffffff;
-          border-radius: 12px;
+          min-height: 40px;
+          padding: 8px 24px;
+          border: 1.5px solid #ffffff;
+          border-radius: 10px;
           background: rgba(255, 255, 255, 0.12);
           color: #ffffff;
-          font-size: 1.15rem;
-          font-weight: 800;
-          letter-spacing: 0.02em;
+          font-size: 0.95rem;
+          font-weight: 700;
+          letter-spacing: 0.05em;
           text-decoration: none;
           white-space: nowrap;
+          transition: all 0.2s ease;
+        }
+
+        .header-login-button:hover {
+          background: #ffffff;
+          color: #0b6dff;
         }
 
         .header-scrolled .header-login-button,
@@ -490,6 +503,36 @@ export default function Header({
           border-color: #0b6dff;
           background: #ffffff;
           color: #0b6dff;
+        }
+
+        .header-scrolled .header-login-button:hover,
+        .header-black-text .header-login-button:hover {
+          background: #0b6dff;
+          color: #ffffff;
+        }
+
+        .header-logo-link {
+          position: relative !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          height: 40px !important;
+          width: 58px !important;
+          max-height: 40px !important;
+          max-width: 58px !important;
+          overflow: hidden !important;
+          flex-shrink: 0 !important;
+        }
+
+        .header-logo-link img {
+          position: absolute !important;
+          inset: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+          max-width: 100% !important;
+          max-height: 100% !important;
+          object-fit: contain !important;
+          object-position: center !important;
         }
 
         .desktop-auth-buttons {
@@ -507,25 +550,25 @@ export default function Header({
           align-items: center;
           justify-content: center;
           gap: 0.5rem;
-          min-height: 46px;
-          padding: 11px 24px;
-          border: 1px solid #0b6dff;
-          border-radius: 12px;
+          min-height: 40px;
+          padding: 8px 24px;
+          border: 1.5px solid #0b6dff;
+          border-radius: 10px;
           background: #0b6dff;
           color: #ffffff;
-          font-size: 1.15rem;
-          font-weight: 800;
+          font-size: 0.95rem;
+          font-weight: 700;
           text-decoration: none;
           white-space: nowrap;
         }
 
         .travel-header-nav {
-          gap: 0.55rem;
+          gap: 0.65rem;
           align-items: center;
           justify-content: flex-start;
           flex: 1 1 auto;
           min-width: 0;
-          margin: 0 1rem;
+          margin: 0;
           padding-left: 0;
           max-width: none;
           overflow-x: auto;
@@ -539,7 +582,7 @@ export default function Header({
         .travel-header-nav .nav-link {
           flex: 0 0 auto;
           padding: 0.7rem 0.35rem !important;
-          font-size: 1.1rem !important;
+          font-size: 0.95rem !important;
           line-height: 1.2;
           white-space: nowrap;
         }
@@ -559,74 +602,104 @@ export default function Header({
         }
 
         @media (min-width: 1024px) {
-          header > div.max-w-7xl {
-            width: calc(100% - 32px);
-            max-width: none !important;
+          header > div {
+            width: 100%;
+            max-width: 1440px !important;
+            padding-left: 3.5rem !important;
+            padding-right: 2rem !important;
           }
 
           .travel-header-row {
             position: relative;
             display: flex !important;
-            justify-content: flex-start;
+            align-items: center !important;
+            justify-content: flex-start !important;
             height: 76px !important;
+            width: 100% !important;
           }
 
           .travel-header-row > a {
-            justify-self: start;
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
           }
 
           .travel-header-row .travel-header-nav {
-            position: absolute;
-            left: 50%;
-            width: min(1180px, calc(100% - 220px));
-            max-width: none;
-            justify-content: center;
-            transform: translateX(-50%);
+            position: static !important;
+            transform: none !important;
+            width: auto !important;
+            max-width: none !important;
+            justify-content: flex-start !important;
+            margin: 0 !important;
+          }
+
+          .header-logo-link {
+            height: 44px !important;
+            width: 64px !important;
+            max-height: 44px !important;
+            max-width: 64px !important;
           }
 
           .desktop-auth-buttons {
-            display: flex;
+            display: flex !important;
             flex: 0 0 auto;
-            position: absolute;
-            right: 0;
-            margin-left: auto;
+            position: static !important;
+            margin-left: auto !important;
+            align-items: center;
           }
 
           .mobile-auth-button {
             display: none;
           }
+        }
 
+        @media (min-width: 1380px) {
           .travel-header-nav {
-            gap: 0.5rem;
+            gap: 0.75rem;
           }
-
           .travel-header-nav .nav-link {
-            padding-left: 0.25rem !important;
-            padding-right: 0.25rem !important;
-            font-size: 1.1rem !important;
+            font-size: 0.95rem !important;
+            padding-left: 0.35rem !important;
+            padding-right: 0.35rem !important;
+          }
+        }
+
+        @media (min-width: 1200px) and (max-width: 1379px) {
+          .travel-header-nav {
+            gap: 0.45rem;
+          }
+          .travel-header-nav .nav-link {
+            font-size: 0.88rem !important;
+            padding-left: 0.22rem !important;
+            padding-right: 0.22rem !important;
+          }
+        }
+
+        @media (min-width: 1024px) and (max-width: 1199px) {
+          .travel-header-row .travel-header-nav {
+            gap: 0.28rem;
+          }
+          .travel-header-nav .nav-link {
+            font-size: 0.78rem !important;
+            padding-left: 0.16rem !important;
+            padding-right: 0.16rem !important;
           }
         }
 
         @media (max-width: 1023px) {
+          .header-logo-link {
+            height: 38px !important;
+            width: 56px !important;
+            max-height: 38px !important;
+            max-width: 56px !important;
+          }
+
           .desktop-auth-buttons {
             display: none !important;
           }
 
           .header-mobile-menu-toggle {
             display: flex !important;
-          }
-        }
-
-        @media (min-width: 1024px) and (max-width: 1199px) {
-          .travel-header-row .travel-header-nav {
-            width: calc(100% - 220px);
-            gap: 0.25rem;
-          }
-
-          .travel-header-nav .nav-link {
-            padding-left: 0.2rem !important;
-            padding-right: 0.2rem !important;
-            font-size: 0.78rem !important;
           }
         }
       `}</style>

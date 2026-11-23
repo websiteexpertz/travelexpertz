@@ -13,17 +13,34 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Valid cab booking ID is required" }, { status: 400 });
     }
 
-    const appId = process.env.CASHFREE_APP_ID;
-    const secretKey = process.env.CASHFREE_SECRET_KEY;
-    if (!appId || !secretKey) {
-      return NextResponse.json({ error: "Cashfree credentials are not configured" }, { status: 500 });
-    }
-
     const db = await getDb();
     const bookings = db.collection("cabBookings");
     const booking = await bookings.findOne({ _id: new ObjectId(bookingId) });
     if (!booking?.cashfreeOrderId) {
       return NextResponse.json({ error: "Cab payment order not found" }, { status: 404 });
+    }
+
+    const appId = process.env.CASHFREE_APP_ID;
+    const secretKey = process.env.CASHFREE_SECRET_KEY;
+    if (booking.cashfreeOrderId.startsWith("DEV_CAB_") || !appId || !secretKey) {
+      if (process.env.NODE_ENV !== "production") {
+        await bookings.updateOne(
+          { _id: new ObjectId(bookingId) },
+          {
+            $set: {
+              paymentStatus: "paid",
+              bookingStatus: "confirmed",
+              paymentGateway: "cashfree_simulated",
+              paymentId: booking.cashfreeOrderId,
+              paymentMethod: "simulated",
+              paidAt: new Date(),
+              updatedAt: new Date(),
+            },
+          },
+        );
+        return NextResponse.json({ status: "PAID" });
+      }
+      return NextResponse.json({ error: "Cashfree credentials are not configured" }, { status: 500 });
     }
 
     const response = await fetch(`${cashfreeBaseUrl}/orders/${encodeURIComponent(booking.cashfreeOrderId)}`, {

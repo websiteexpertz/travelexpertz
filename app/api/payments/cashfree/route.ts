@@ -13,29 +13,46 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Valid booking ID is required" }, { status: 400 });
     }
 
-    const appId = process.env.CASHFREE_APP_ID;
-    const secretKey = process.env.CASHFREE_SECRET_KEY;
-    if (!appId || !secretKey) {
-      return NextResponse.json({ error: "Cashfree credentials are not configured" }, { status: 500 });
-    }
-
     const client = new MongoClient(process.env.MONGODB_URI || "mongodb://localhost:27017");
     await client.connect();
     const db = client.db(process.env.MONGODB_DB || "travelexpertz");
     const booking = await db.collection("bookings").findOne({ _id: new ObjectId(bookingId) });
-    await client.close();
 
     if (!booking) {
+      await client.close();
       return NextResponse.json({ error: "Booking not found" }, { status: 404 });
     }
+
+    const appId = process.env.CASHFREE_APP_ID;
+    const secretKey = process.env.CASHFREE_SECRET_KEY;
+    const origin = process.env.CASHFREE_ENV === "production"
+      ? (process.env.NEXT_PUBLIC_APP_URL || "https://travelexpertz.com").replace(/\/$/, "")
+      : (process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin).replace(/\/$/, "");
+
+    if (!appId || !secretKey) {
+      if (process.env.NODE_ENV !== "production") {
+        const orderId = `DEV_${bookingId}_${Date.now()}`;
+        await db.collection("bookings").updateOne(
+          { _id: new ObjectId(bookingId) },
+          { $set: { cashfreeOrderId: orderId, updatedAt: new Date() } }
+        );
+        await client.close();
+        return NextResponse.json({
+          mock: true,
+          bookingId,
+          orderId,
+          redirectUrl: `${origin}/booking/confirm?bookingId=${bookingId}&order_id=${orderId}`,
+        });
+      }
+      await client.close();
+      return NextResponse.json({ error: "Cashfree credentials are not configured" }, { status: 500 });
+    }
+    await client.close();
 
     const totalPrice = Number(booking.amountToPay ?? booking.totalPrice);
     if (!Number.isFinite(totalPrice) || totalPrice <= 0) {
       return NextResponse.json({ error: "Invalid booking payment amount" }, { status: 400 });
     }
-    const origin = process.env.CASHFREE_ENV === "production"
-      ? (process.env.NEXT_PUBLIC_APP_URL || "https://travelexpertz.com").replace(/\/$/, "")
-      : (process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin).replace(/\/$/, "");
     if (process.env.CASHFREE_ENV === "production" && !/^https:\/\/[^/]+/.test(origin)) {
       return NextResponse.json({ error: "Cashfree production requires an HTTPS return URL" }, { status: 400 });
     }

@@ -636,6 +636,11 @@ export default function CabsPage() {
         );
       }
 
+      if (orderData.mock && orderData.redirectUrl) {
+        window.location.href = orderData.redirectUrl;
+        return;
+      }
+
       const cashfree = await load({
         mode: (process.env.NEXT_PUBLIC_CASHFREE_ENV === "production"
           ? "production"

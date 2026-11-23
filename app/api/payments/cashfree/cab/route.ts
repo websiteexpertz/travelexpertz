@@ -13,12 +13,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Valid cab booking ID is required" }, { status: 400 });
     }
 
-    const appId = process.env.CASHFREE_APP_ID;
-    const secretKey = process.env.CASHFREE_SECRET_KEY;
-    if (!appId || !secretKey) {
-      return NextResponse.json({ error: "Cashfree credentials are not configured" }, { status: 500 });
-    }
-
     const db = await getDb();
     const booking = await db.collection("cabBookings").findOne({ _id: new ObjectId(bookingId) });
     if (!booking) {
@@ -33,6 +27,25 @@ export async function POST(request: Request) {
     const origin = process.env.CASHFREE_ENV === "production"
       ? (process.env.NEXT_PUBLIC_APP_URL || "https://travelexpertz.com").replace(/\/$/, "")
       : (process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin).replace(/\/$/, "");
+
+    const appId = process.env.CASHFREE_APP_ID;
+    const secretKey = process.env.CASHFREE_SECRET_KEY;
+    if (!appId || !secretKey) {
+      if (process.env.NODE_ENV !== "production") {
+        const orderId = `DEV_CAB_${bookingId}_${Date.now()}`;
+        await db.collection("cabBookings").updateOne(
+          { _id: new ObjectId(bookingId) },
+          { $set: { cashfreeOrderId: orderId, paymentStatus: "paid", updatedAt: new Date() } },
+        );
+        return NextResponse.json({
+          mock: true,
+          bookingId,
+          orderId,
+          redirectUrl: `${origin}/cabs?cabBookingId=${bookingId}&order_id=${orderId}`,
+        });
+      }
+      return NextResponse.json({ error: "Cashfree credentials are not configured" }, { status: 500 });
+    }
     if (process.env.CASHFREE_ENV === "production" && !/^https:\/\/[^/]+/.test(origin)) {
       return NextResponse.json({ error: "Cashfree production requires an HTTPS return URL" }, { status: 400 });
     }
