@@ -6,12 +6,14 @@ interface Destination {
   _id?: string;
   name: string;
   image: string;
+  description?: string;
   order: number;
 }
 
 const emptyDestination: Destination = {
   name: "",
   image: "",
+  description: "",
   order: 0,
 };
 
@@ -624,6 +626,18 @@ export default function DestinationsAdmin() {
                     style={styles.imagePreview}
                   />
                 )}
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Description</label>
+                <textarea
+                  name="description"
+                  value={formData.description || ""}
+                  onChange={handleInputChange}
+                  placeholder="Describe this destination..."
+                  style={styles.textarea}
+                  rows={5}
+                />
               </div>
 
               <div style={styles.formGroup}>

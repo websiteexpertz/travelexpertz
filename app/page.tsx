@@ -875,6 +875,13 @@ export default function Home() {
                     <div>
                       <span className="curation-badge">Hidden India</span>
                       <h3>{destination.name}</h3>
+                      {destination.description && (
+                        <p className="curation-description">
+                          {destination.description.length > 120
+                            ? `${destination.description.substring(0, 120)}...`
+                            : destination.description}
+                        </p>
+                      )}
                       <CurationLocationDisplay item={destination} />
                     </div>
                   </div>
