@@ -45,7 +45,7 @@ export async function sendSMS(
 }
 
 export async function sendOTP(mobile: string, otp: string): Promise<SMSResponse> {
-  const message = `Your TravelExpertz OTP is: ${otp}. Valid for 10 minutes. Do not share with anyone.`;
+  const message = `Your YatraExpertz OTP is: ${otp}. Valid for 10 minutes. Do not share with anyone.`;
   return sendSMS(mobile, message);
 }
 

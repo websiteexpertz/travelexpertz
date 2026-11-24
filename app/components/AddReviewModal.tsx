@@ -195,7 +195,7 @@ export default function AddReviewModal({
         rating,
         reviewText: reviewText.trim(),
         propertyId: propertyId || "homepage_review",
-        propertyName: propertyName.trim() || "TravelExpertz Journey",
+        propertyName: propertyName.trim() || "YatraExpertz Journey",
         propertyCity: propertyCity.trim(),
         propertyState: propertyState.trim(),
         propertyType,

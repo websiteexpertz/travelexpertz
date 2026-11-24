@@ -92,7 +92,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
 
         <p className={styles.subtitle}>
           {type === "login"
-            ? "Sign in to continue to TravelExpertz"
+            ? "Sign in to continue to YatraExpertz"
             : "Join us to start booking your next adventure"}
         </p>
 

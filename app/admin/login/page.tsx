@@ -92,7 +92,7 @@ export default function AdminLoginPage() {
             fontSize: "0.85rem",
           }}
         >
-          Sign in to manage TravelExpertz content
+          Sign in to manage YatraExpertz content
         </p>
 
         <form onSubmit={handleLogin}>
@@ -260,7 +260,7 @@ export default function AdminLoginPage() {
             marginBottom: 0,
           }}
         >
-          Secure Admin Portal • TravelExpertz
+          Secure Admin Portal • YatraExpertz
         </p>
       </div>
     </div>

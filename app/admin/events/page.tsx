@@ -291,27 +291,28 @@ export default function AdminEvents() {
     const newPreviews = [...galleryPreviews];
 
     try {
-      for (let i = 0; i < files.length; i++) {
+      const uploadPromises = Array.from(files).map(async (file) => {
         const formDataForUpload = new FormData();
-        formDataForUpload.append("file", files[i]);
-
+        formDataForUpload.append("file", file);
         const response = await fetch("/api/upload", {
           method: "POST",
           body: formDataForUpload,
         });
-
         if (response.ok) {
           const data = await response.json();
-          newGalleryImages.push(data.url);
-          newPreviews.push(data.url);
+          return data.url as string;
         }
-      }
+        return null;
+      });
+
+      const results = await Promise.all(uploadPromises);
+      const uploadedUrls = results.filter((url): url is string => Boolean(url));
 
       setFormData({
         ...formData,
-        galleryImages: newGalleryImages,
+        galleryImages: [...newGalleryImages, ...uploadedUrls],
       });
-      setGalleryPreviews(newPreviews);
+      setGalleryPreviews([...newPreviews, ...uploadedUrls]);
     } catch (error) {
       console.error("Failed to upload gallery images:", error);
     } finally {

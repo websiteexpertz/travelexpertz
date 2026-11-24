@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
-import { MongoClient, ObjectId } from "mongodb";
+import { getDb } from "@/lib/db";
+import { ObjectId } from "mongodb";
 
-const MONGODB_URI = process.env.MONGODB_URI || "";
 const MONGODB_DB = process.env.MONGODB_DB || "travelexpertz";
 
 const SAMPLE_EVENTS = [
@@ -85,36 +85,16 @@ const SAMPLE_EVENTS = [
 ];
 
 export async function GET(request: NextRequest) {
-  let client: MongoClient | null = null;
   try {
     const { searchParams } = new URL(request.url);
     const admin = searchParams.get("admin") === "true";
     const eventId = searchParams.get("id");
+    const limit = searchParams.get("limit")
+      ? parseInt(searchParams.get("limit")!, 10)
+      : null;
 
-    if (eventId) {
-      const sample = SAMPLE_EVENTS.find((e) => e._id === eventId);
-      if (sample && !MONGODB_URI) {
-        return NextResponse.json(sample);
-      }
-    }
-
-    if (!MONGODB_URI) {
-      if (admin) return NextResponse.json(SAMPLE_EVENTS);
-      return NextResponse.json(SAMPLE_EVENTS);
-    }
-
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-
-    const db = client.db(MONGODB_DB);
+    const db = await getDb(MONGODB_DB);
     const eventsCollection = db.collection("events");
-
-    // Auto-deactivate expired events
-    const now = new Date();
-    await eventsCollection.updateMany(
-      { endDate: { $lt: now }, active: true },
-      { $set: { active: false, updatedAt: new Date() } }
-    );
 
     if (eventId) {
       let event = null;
@@ -134,41 +114,38 @@ export async function GET(request: NextRequest) {
     }
 
     const query = admin ? {} : { active: true };
-    const events = await eventsCollection
-      .find(query)
-      .sort({ startDate: 1 })
-      .toArray();
+    let cursor = eventsCollection.find(query).sort({ startDate: 1 });
+    if (limit && limit > 0) {
+      cursor = cursor.limit(limit);
+    }
+    const events = await cursor.toArray();
 
     if (events.length === 0 && !admin) {
-      return NextResponse.json(SAMPLE_EVENTS);
+      const fallback = limit ? SAMPLE_EVENTS.slice(0, limit) : SAMPLE_EVENTS;
+      return NextResponse.json(fallback, {
+        headers: {
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+        },
+      });
     }
 
-    return NextResponse.json(events);
+    return NextResponse.json(events, {
+      headers: {
+        "Cache-Control": admin
+          ? "no-store"
+          : "public, s-maxage=60, stale-while-revalidate=300",
+      },
+    });
   } catch (error) {
     console.error("Error fetching events:", error);
     return NextResponse.json(SAMPLE_EVENTS);
-  } finally {
-    if (client) {
-      await client.close();
-    }
   }
 }
 
 export async function POST(request: NextRequest) {
-  let client: MongoClient | null = null;
   try {
-    if (!MONGODB_URI) {
-      return NextResponse.json(
-        { error: "Database not configured" },
-        { status: 500 }
-      );
-    }
-
     const body = await request.json();
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-
-    const db = client.db(MONGODB_DB);
+    const db = await getDb(MONGODB_DB);
     const eventsCollection = db.collection("events");
 
     const rawLocations = Array.isArray(body.locations) ? body.locations : [];
@@ -216,23 +193,11 @@ export async function POST(request: NextRequest) {
       { error: "Failed to create event" },
       { status: 500 }
     );
-  } finally {
-    if (client) {
-      await client.close();
-    }
   }
 }
 
 export async function PATCH(request: NextRequest) {
-  let client: MongoClient | null = null;
   try {
-    if (!MONGODB_URI) {
-      return NextResponse.json(
-        { error: "Database not configured" },
-        { status: 500 }
-      );
-    }
-
     const body = await request.json();
     const { _id, ...updateData } = body;
 
@@ -266,10 +231,7 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-
-    const db = client.db(MONGODB_DB);
+    const db = await getDb(MONGODB_DB);
     const eventsCollection = db.collection("events");
 
     const result = await eventsCollection.updateOne(
@@ -296,23 +258,11 @@ export async function PATCH(request: NextRequest) {
       { error: "Failed to update event" },
       { status: 500 }
     );
-  } finally {
-    if (client) {
-      await client.close();
-    }
   }
 }
 
 export async function DELETE(request: NextRequest) {
-  let client: MongoClient | null = null;
   try {
-    if (!MONGODB_URI) {
-      return NextResponse.json(
-        { error: "Database not configured" },
-        { status: 500 }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
     const eventId = searchParams.get("id");
 
@@ -323,10 +273,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-
-    const db = client.db(MONGODB_DB);
+    const db = await getDb(MONGODB_DB);
     const eventsCollection = db.collection("events");
 
     const result = await eventsCollection.deleteOne({
@@ -347,9 +294,5 @@ export async function DELETE(request: NextRequest) {
       { error: "Failed to delete event" },
       { status: 500 }
     );
-  } finally {
-    if (client) {
-      await client.close();
-    }
   }
 }

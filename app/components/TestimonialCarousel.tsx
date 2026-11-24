@@ -4,8 +4,6 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import {
   Star,
-  Camera,
-  Video,
   Play,
   Building2,
   MapPin,
@@ -61,7 +59,7 @@ const DEFAULT_TESTIMONIALS: TestimonialItem[] = [
     reviewerAvatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
     rating: 5,
     reviewText:
-      "Our family trip to Manali was truly unforgettable. The morning views of the snow-capped valley right from our balcony were breathtaking. Every detail was handled seamlessly by TravelExpertz from cab pickup to checkout.",
+      "Our family trip to Manali was truly unforgettable. The morning views of the snow-capped valley right from our balcony were breathtaking. Every detail was handled seamlessly by YatraExpertz from cab pickup to checkout.",
     propertyId: "prop_manali_retreat",
     propertyName: "The Himalayan Retreat Homestay",
     propertyCity: "Manali",
@@ -105,7 +103,7 @@ const DEFAULT_TESTIMONIALS: TestimonialItem[] = [
     reviewerAvatarUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80",
     rating: 5,
     reviewText:
-      "Waking up to the sound of ocean waves at this beachfront villa in Goa was bliss. Clean private pool, sunset drinks on the deck, and super helpful staff. Highly recommend booking through TravelExpertz!",
+      "Waking up to the sound of ocean waves at this beachfront villa in Goa was bliss. Clean private pool, sunset drinks on the deck, and super helpful staff. Highly recommend booking through YatraExpertz!",
     propertyId: "prop_goa_villa",
     propertyName: "Sea Breeze Luxury Beachfront Villa",
     propertyCity: "Calangute",
@@ -371,7 +369,7 @@ export default function TestimonialCarousel({
                       type: "photo",
                       url: "/hero4.jpeg",
                       thumbnailUrl: "/hero4.jpeg",
-                      altText: "TravelExpertz Happy Journey",
+                      altText: "YatraExpertz Happy Journey",
                     },
                   ];
 
@@ -430,6 +428,7 @@ export default function TestimonialCarousel({
                           src={activeMedia.url}
                           controls
                           playsInline
+                          preload="metadata"
                           className="card-media-video"
                           onEnded={() => setActiveVideoId(null)}
                         />
@@ -457,9 +456,6 @@ export default function TestimonialCarousel({
                               <Play size={22} fill="#0b6dff" color="#0b6dff" />
                             </div>
                           </div>
-                          <span className="media-badge video-badge">
-                            <Video size={12} /> Video
-                          </span>
                         </div>
                       )
                     ) : (
@@ -483,9 +479,6 @@ export default function TestimonialCarousel({
                           className="card-media-img"
                           loading="lazy"
                         />
-                        <span className="media-badge photo-badge">
-                          <Camera size={12} /> Photo
-                        </span>
                         <div className="photo-expand-hint" title="View full photo">
                           <Maximize2 size={14} />
                         </div>
@@ -556,7 +549,7 @@ export default function TestimonialCarousel({
                     ) : (
                       <div className="property-name-row">
                         <Building2 size={15} className="property-icon" />
-                        <span className="property-name-text">TravelExpertz Verified Stay</span>
+                        <span className="property-name-text">YatraExpertz Verified Stay</span>
                       </div>
                     )}
 

@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     const propertyName = (
       body.propertyName ||
       body.property ||
-      "TravelExpertz Journey"
+      "YatraExpertz Journey"
     ).trim();
 
     // Normalize media

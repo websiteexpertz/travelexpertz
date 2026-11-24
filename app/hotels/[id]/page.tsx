@@ -885,6 +885,7 @@ export default function HotelDetails() {
           5. MAIN CONTENT TWO-COLUMN GRID (LEFT: CONTENT, RIGHT: STICKY BOOKING)
           ========================================================================= */}
       <div
+        className="property-details-grid"
         style={{
           maxWidth: "1280px",
           margin: "1.5rem auto 3rem",
@@ -1434,8 +1435,9 @@ export default function HotelDetails() {
         {/* =====================================================================
             RIGHT COLUMN: MAKEMYTRIP STICKY BOOKING CARD
             ===================================================================== */}
-        <div id="sidebar-booking" style={{ position: "sticky", top: "75px" }}>
+        <div id="sidebar-booking" className="sidebar-booking-card" style={{ position: "sticky", top: "80px" }}>
           <div
+            className="sidebar-booking-scroll"
             style={{
               background: "#ffffff",
               borderRadius: "16px",

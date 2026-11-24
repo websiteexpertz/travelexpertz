@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { MongoClient, ObjectId } from "mongodb";
+import { ObjectId } from "mongodb";
+import { getDb } from "@/lib/db";
 
-const MONGODB_URI = process.env.MONGODB_URI || "";
 const MONGODB_DB = process.env.MONGODB_DB || "travelexpertz";
+
+// Module-level in-memory cache for locations and destinations
+let cachedLocations: LocationEntry[] | null = null;
+let cacheExpiry = 0;
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache
 
 type PhotonFeature = {
   properties?: {
@@ -312,7 +317,7 @@ async function searchPhotonLocations(search: string) {
 
   const response = await fetch(url, {
     headers: { Accept: "application/json" },
-    signal: AbortSignal.timeout(4000),
+    signal: AbortSignal.timeout(800),
     next: { revalidate: 300 },
   });
   if (!response.ok) {
@@ -395,264 +400,259 @@ async function searchPhotonLocations(search: string) {
   return results;
 }
 
+async function getAllLocations(): Promise<LocationEntry[]> {
+  if (cachedLocations && Date.now() < cacheExpiry) {
+    return cachedLocations;
+  }
+
+  try {
+    const db = await getDb(MONGODB_DB);
+    const locationsCollection = db.collection<LocationRecord>("locations");
+    const hotelDestinationStatesCollection = db.collection<DestinationRecord>("hotel_destination_states");
+    const hotelDestinationsCollection = db.collection<DestinationRecord>("hotel_destinations");
+    const hotelsCollection = db.collection<HotelRecord>("hotels");
+    const homestaysCollection = db.collection<any>("homestays");
+
+    const [explicitLocations, hotelDestinationStates, hotelDestinations, hotels, homestays] = await Promise.all([
+      locationsCollection.find({ active: { $ne: false } }).toArray().catch(() => []),
+      hotelDestinationStatesCollection.find({}).toArray().catch(() => []),
+      hotelDestinationsCollection.find({}).toArray().catch(() => []),
+      hotelsCollection.find({ active: { $ne: false } }).toArray().catch(() => []),
+      homestaysCollection.find({ active: { $ne: false } }).toArray().catch(() => []),
+    ]);
+
+    const statesMap = new Map<string, LocationEntry>();
+    const citiesMap = new Map<string, LocationEntry>();
+    const areasMap = new Map<string, LocationEntry>();
+    const propertiesMap = new Map<string, LocationEntry>();
+
+    // 1. Process Destination States & Cities
+    for (const dest of [...hotelDestinationStates, ...hotelDestinations]) {
+      if (dest.stateName) {
+        const stateKey = dest.stateName.toLowerCase().trim();
+        if (!statesMap.has(stateKey)) {
+          statesMap.set(stateKey, {
+            _id: dest._id || new ObjectId(),
+            name: dest.stateName,
+            state: dest.stateName,
+            country: "India",
+            type: "state",
+            displayName: dest.stateName + ", India",
+          });
+        }
+      }
+      if (dest.cityName) {
+        const cityKey = dest.cityName.toLowerCase().trim();
+        if (!citiesMap.has(cityKey)) {
+          const state = dest.stateName || "";
+          citiesMap.set(cityKey, {
+            _id: dest._id || new ObjectId(),
+            name: dest.cityName,
+            city: dest.cityName,
+            state,
+            country: "India",
+            type: "city",
+            displayName: dest.cityName + (state ? ", " + state : "") + ", India",
+          });
+        }
+      }
+    }
+
+    // 2. Process Hotels & Homestays (extract properties and their areas)
+    for (const item of [...hotels, ...homestays]) {
+      const itemCity = (item.city || "").trim();
+      const itemState = (item.state || "").trim();
+      const itemArea = (item.location || "").trim();
+      const isHomestay = Boolean(item.propertyType || item.hostName);
+
+      // Add property itself
+      if (item.name) {
+        const propKey = item.name.toLowerCase().trim();
+        if (!propertiesMap.has(propKey)) {
+          const flowParts = [itemArea, itemCity, itemState, "India"].filter(Boolean);
+          propertiesMap.set(propKey, {
+            _id: item._id,
+            name: item.name,
+            area: itemArea,
+            city: itemCity,
+            state: itemState,
+            country: "India",
+            type: isHomestay ? "homestay" : "hotel",
+            displayName: item.name + (flowParts.length ? ", " + flowParts.join(", ") : ""),
+          });
+        }
+      }
+
+      // Add area: Area - City - State - Country
+      if (itemArea && itemCity) {
+        const areaKey = (itemArea + "-" + itemCity).toLowerCase();
+        if (!areasMap.has(areaKey)) {
+          const flowParts = [itemCity, itemState, "India"].filter(Boolean);
+          areasMap.set(areaKey, {
+            _id: new ObjectId(),
+            name: itemArea,
+            area: itemArea,
+            city: itemCity,
+            state: itemState,
+            country: "India",
+            type: "area",
+            displayName: itemArea + ", " + flowParts.join(", "),
+          });
+        }
+      }
+
+      // Add city if missing
+      if (itemCity) {
+        const cityKey = itemCity.toLowerCase();
+        if (!citiesMap.has(cityKey)) {
+          citiesMap.set(cityKey, {
+            _id: new ObjectId(),
+            name: itemCity,
+            city: itemCity,
+            state: itemState,
+            country: "India",
+            type: "city",
+            displayName: itemCity + (itemState ? ", " + itemState : "") + ", India",
+          });
+        }
+      }
+    }
+
+    const explicitList: LocationEntry[] = explicitLocations.map((loc: any) => ({
+      _id: loc._id,
+      name: loc.name,
+      displayName: loc.displayName || loc.name,
+      area: loc.area || "",
+      city: loc.city || "",
+      state: loc.state || "",
+      country: loc.country || "India",
+      type: (loc.type || "city") as any,
+    }));
+
+    cachedLocations = [
+      ...Array.from(citiesMap.values()),
+      ...Array.from(areasMap.values()),
+      ...Array.from(propertiesMap.values()),
+      ...Array.from(statesMap.values()),
+      ...explicitList,
+      ...POPULAR_DESTINATIONS,
+    ];
+    cacheExpiry = Date.now() + CACHE_TTL_MS;
+    return cachedLocations;
+  } catch (err) {
+    console.error("Error loading locations from DB, falling back to popular destinations:", err);
+    return POPULAR_DESTINATIONS;
+  }
+}
+
 export async function GET(request: NextRequest) {
-  let client: MongoClient | null = null;
-  let search = "";
-  let providerLocations: Awaited<ReturnType<typeof searchPhotonLocations>> = [];
-  let providerError: string | null = null;
-  let providerPromise: Promise<void> | null = null;
   try {
     const { searchParams } = new URL(request.url);
-    search = searchParams.get("search")?.toLowerCase().trim() || "";
+    const search = searchParams.get("search")?.toLowerCase().trim() || "";
     const id = searchParams.get("id");
     const providerOnly = searchParams.get("source") === "photon";
 
-    if (search) {
-      providerPromise = searchPhotonLocations(search)
-        .then((locations) => {
-          providerLocations = locations;
-        })
-        .catch((error) => {
-          providerError =
-            error instanceof Error ? error.message : String(error);
-          console.error("Location provider search failed:", providerError);
-        });
+    if (id) {
+      const db = await getDb(MONGODB_DB);
+      const locationsCollection = db.collection<LocationRecord>("locations");
+      const location = await locationsCollection.findOne({ _id: new ObjectId(id) });
+      if (location) return NextResponse.json(location);
+      return NextResponse.json({ error: "Location not found" }, { status: 404 });
     }
 
     if (providerOnly) {
-      if (providerPromise) await providerPromise;
-      if (providerError) {
-        return NextResponse.json(
-          { error: "Location suggestions are temporarily unavailable." },
-          { status: 502 },
-        );
-      }
-      return NextResponse.json(providerLocations);
-    }
-
-    // Initialize list with seed destinations & areas
-    let dbLocations: LocationEntry[] = [...POPULAR_DESTINATIONS];
-
-    if (MONGODB_URI) {
       try {
-        client = new MongoClient(MONGODB_URI, { serverSelectionTimeoutMS: 2000 });
-        await client.connect();
-        const db = client.db(MONGODB_DB);
-
-        if (id) {
-          const locationsCollection = db.collection<LocationRecord>("locations");
-          const location = await locationsCollection.findOne({
-            _id: new ObjectId(id),
-          });
-          if (location) return NextResponse.json(location);
-        }
-
-        const locationsCollection = db.collection<LocationRecord>("locations");
-        const hotelDestinationStatesCollection = db.collection<DestinationRecord>("hotel_destination_states");
-        const hotelDestinationsCollection = db.collection<DestinationRecord>("hotel_destinations");
-        const hotelsCollection = db.collection<HotelRecord>("hotels");
-        const homestaysCollection = db.collection<any>("homestays");
-
-        const [explicitLocations, hotelDestinationStates, hotelDestinations, hotels, homestays] = await Promise.all([
-          locationsCollection.find({ active: { $ne: false } }).toArray().catch(() => []),
-          hotelDestinationStatesCollection.find({}).toArray().catch(() => []),
-          hotelDestinationsCollection.find({}).toArray().catch(() => []),
-          hotelsCollection.find({ active: { $ne: false } }).toArray().catch(() => []),
-          homestaysCollection.find({ active: { $ne: false } }).toArray().catch(() => []),
-        ]);
-
-        const statesMap = new Map<string, LocationEntry>();
-        const citiesMap = new Map<string, LocationEntry>();
-        const areasMap = new Map<string, LocationEntry>();
-        const propertiesMap = new Map<string, LocationEntry>();
-
-        // 1. Process Destination States & Cities
-        for (const dest of [...hotelDestinationStates, ...hotelDestinations]) {
-          if (dest.stateName) {
-            const stateKey = dest.stateName.toLowerCase().trim();
-            if (!statesMap.has(stateKey)) {
-              statesMap.set(stateKey, {
-                _id: dest._id || new ObjectId(),
-                name: dest.stateName,
-                state: dest.stateName,
-                country: "India",
-                type: "state",
-                displayName: dest.stateName + ", India",
-              });
-            }
-          }
-          if (dest.cityName) {
-            const cityKey = dest.cityName.toLowerCase().trim();
-            if (!citiesMap.has(cityKey)) {
-              const state = dest.stateName || "";
-              citiesMap.set(cityKey, {
-                _id: dest._id || new ObjectId(),
-                name: dest.cityName,
-                city: dest.cityName,
-                state,
-                country: "India",
-                type: "city",
-                displayName: dest.cityName + (state ? ", " + state : "") + ", India",
-              });
-            }
-          }
-        }
-
-        // 2. Process Hotels & Homestays (extract properties and their areas)
-        for (const item of [...hotels, ...homestays]) {
-          const itemCity = (item.city || "").trim();
-          const itemState = (item.state || "").trim();
-          const itemArea = (item.location || "").trim();
-          const isHomestay = Boolean(item.propertyType || item.hostName);
-
-          // Add property itself
-          if (item.name) {
-            const propKey = item.name.toLowerCase().trim();
-            if (!propertiesMap.has(propKey)) {
-              const flowParts = [itemArea, itemCity, itemState, "India"].filter(Boolean);
-              propertiesMap.set(propKey, {
-                _id: item._id,
-                name: item.name,
-                area: itemArea,
-                city: itemCity,
-                state: itemState,
-                country: "India",
-                type: isHomestay ? "homestay" : "hotel",
-                displayName: item.name + (flowParts.length ? ", " + flowParts.join(", ") : ""),
-              });
-            }
-          }
-
-          // Add area: Area - City - State - Country
-          if (itemArea && itemCity) {
-            const areaKey = (itemArea + "-" + itemCity).toLowerCase();
-            if (!areasMap.has(areaKey)) {
-              const flowParts = [itemCity, itemState, "India"].filter(Boolean);
-              areasMap.set(areaKey, {
-                _id: new ObjectId(),
-                name: itemArea,
-                area: itemArea,
-                city: itemCity,
-                state: itemState,
-                country: "India",
-                type: "area",
-                displayName: itemArea + ", " + flowParts.join(", "),
-              });
-            }
-          }
-
-          // Add city if missing
-          if (itemCity) {
-            const cityKey = itemCity.toLowerCase();
-            if (!citiesMap.has(cityKey)) {
-              citiesMap.set(cityKey, {
-                _id: new ObjectId(),
-                name: itemCity,
-                city: itemCity,
-                state: itemState,
-                country: "India",
-                type: "city",
-                displayName: itemCity + (itemState ? ", " + itemState : "") + ", India",
-              });
-            }
-          }
-        }
-
-        // Merge DB locations
-        dbLocations = [
-          ...Array.from(citiesMap.values()),
-          ...Array.from(areasMap.values()),
-          ...Array.from(propertiesMap.values()),
-          ...Array.from(statesMap.values()),
-          ...POPULAR_DESTINATIONS,
-        ];
-      } catch (dbErr) {
-        console.warn("MongoDB query skipped, using popular destinations:", (dbErr as Error).message);
+        const photonResults = await searchPhotonLocations(search);
+        return NextResponse.json(photonResults);
+      } catch {
+        return NextResponse.json([], { status: 200 });
       }
     }
 
-    let finalLocations = dbLocations;
-
-    // Apply smart search matching across Name, Area, City, State, and DisplayName
-    if (search) {
-      const searchLower = search.toLowerCase().trim();
-      const scored: Array<LocationEntry & { score: number }> = [];
-
-      for (const loc of dbLocations) {
-        const nameLower = (loc.name || "").toLowerCase();
-        const areaLower = (loc.area || loc.location || "").toLowerCase();
-        const cityLower = (loc.city || "").toLowerCase();
-        const stateLower = (loc.state || "").toLowerCase();
-        const displayLower = (loc.displayName || "").toLowerCase();
-
-        // 1. Exact match on city, area, or name
-        if (cityLower === searchLower || nameLower === searchLower || areaLower === searchLower) {
-          scored.push({ ...loc, score: 1 });
-        }
-        // 2. Starts-with on city, area, or name
-        else if (cityLower.startsWith(searchLower) || nameLower.startsWith(searchLower) || areaLower.startsWith(searchLower)) {
-          scored.push({ ...loc, score: 10 });
-        }
-        // 3. Substring in city, area, or name
-        else if (cityLower.includes(searchLower) || areaLower.includes(searchLower) || nameLower.includes(searchLower)) {
-          scored.push({ ...loc, score: 50 });
-        }
-        // 4. Substring in full display hierarchy
-        else if (displayLower.includes(searchLower) || stateLower.includes(searchLower)) {
-          scored.push({ ...loc, score: 100 });
-        }
-      }
-
-      scored.sort((a, b) => a.score - b.score);
-      finalLocations = scored;
+    // If search is empty, return empty list (do not show suggestions without typing)
+    if (!search) {
+      return NextResponse.json([]);
     }
 
-    if (providerPromise) await providerPromise;
+    // In-memory lookup: < 1ms response
+    const allLocations = await getAllLocations();
+    const searchLower = search.toLowerCase().trim();
+    const scored: Array<LocationEntry & { score: number }> = [];
 
-    // Merge database/seed locations with OpenStreetMap Photon results
+    for (const loc of allLocations) {
+      const nameLower = (loc.name || "").toLowerCase();
+      const areaLower = (loc.area || loc.location || "").toLowerCase();
+      const cityLower = (loc.city || "").toLowerCase();
+      const stateLower = (loc.state || "").toLowerCase();
+      const displayLower = (loc.displayName || "").toLowerCase();
+
+      // 1. Exact match on city, area, or name
+      if (cityLower === searchLower || nameLower === searchLower || areaLower === searchLower) {
+        scored.push({ ...loc, score: 1 });
+      }
+      // 2. Starts-with on city, area, or name
+      else if (cityLower.startsWith(searchLower) || nameLower.startsWith(searchLower) || areaLower.startsWith(searchLower)) {
+        scored.push({ ...loc, score: 10 });
+      }
+      // 3. Substring in city, area, or name
+      else if (cityLower.includes(searchLower) || areaLower.includes(searchLower) || nameLower.includes(searchLower)) {
+        scored.push({ ...loc, score: 50 });
+      }
+      // 4. Substring in full display hierarchy
+      else if (displayLower.includes(searchLower) || stateLower.includes(searchLower)) {
+        scored.push({ ...loc, score: 100 });
+      }
+    }
+
+    scored.sort((a, b) => a.score - b.score);
+
     const seen = new Set<string>();
-    const combined = [...finalLocations, ...providerLocations]
+    const deduplicated = scored.filter((loc) => {
+      const key = (loc.displayName || `${loc.name}, ${loc.city || ""}, ${loc.state || ""}`).toLowerCase().trim();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    // If we have at least 5 good matches from DB & popular destinations, return immediately without waiting for Photon!
+    if (deduplicated.length >= 5) {
+      return NextResponse.json(deduplicated.slice(0, 15), {
+        headers: { "Cache-Control": "public, s-maxage=120, stale-while-revalidate=600" },
+      });
+    }
+
+    // Otherwise, fast-query Photon with 800ms timeout
+    let providerLocations: LocationEntry[] = [];
+    try {
+      providerLocations = await searchPhotonLocations(search);
+    } catch {
+      // Ignore photon timeout
+    }
+
+    const combined = [...deduplicated, ...providerLocations]
       .filter((loc) => {
-        const key = (loc.displayName || (loc.name + ", " + (loc.city || "") + ", " + (loc.state || ""))).toLowerCase().trim();
+        const key = (loc.displayName || `${loc.name}, ${loc.city || ""}, ${loc.state || ""}`).toLowerCase().trim();
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
       })
       .slice(0, 15);
 
-    return NextResponse.json(combined);
+    return NextResponse.json(combined, {
+      headers: { "Cache-Control": "public, s-maxage=120, stale-while-revalidate=600" },
+    });
   } catch (error) {
     console.error("Error in locations API:", error);
-    if (providerPromise) await providerPromise;
-    if (providerLocations.length > 0) {
-      return NextResponse.json(providerLocations);
-    }
     return NextResponse.json(POPULAR_DESTINATIONS.slice(0, 10));
-  } finally {
-    if (client) {
-      await client.close().catch(() => {});
-    }
   }
 }
 
 export async function POST(request: NextRequest) {
-  let client: MongoClient | null = null;
   try {
-    if (!MONGODB_URI) {
-      return NextResponse.json(
-        { error: "Database not configured" },
-        { status: 500 }
-      );
-    }
-
     const body = await request.json();
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-
-    const db = client.db(MONGODB_DB);
+    const db = await getDb(MONGODB_DB);
     const locationsCollection = db.collection("locations");
 
-    // Check if location with same name already exists
     const existingLocation = await locationsCollection.findOne({
       name: { $regex: `^${body.name}$`, $options: "i" },
     });
@@ -669,6 +669,9 @@ export async function POST(request: NextRequest) {
       updatedAt: now,
     });
 
+    // Invalidate in-memory cache
+    cachedLocations = null;
+
     return NextResponse.json({ _id: result.insertedId, ...body }, { status: 201 });
   } catch (error) {
     console.error("Failed to create location:", error);
@@ -676,23 +679,11 @@ export async function POST(request: NextRequest) {
       { error: "Failed to create location" },
       { status: 500 }
     );
-  } finally {
-    if (client) {
-      await client.close();
-    }
   }
 }
 
 export async function PATCH(request: NextRequest) {
-  let client: MongoClient | null = null;
   try {
-    if (!MONGODB_URI) {
-      return NextResponse.json(
-        { error: "Database not configured" },
-        { status: 500 }
-      );
-    }
-
     const body = await request.json();
     const id = body.id;
 
@@ -704,10 +695,7 @@ export async function PATCH(request: NextRequest) {
     delete updateData.id;
     delete updateData._id;
 
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-
-    const db = client.db(MONGODB_DB);
+    const db = await getDb(MONGODB_DB);
     const locationsCollection = db.collection("locations");
 
     const result = await locationsCollection.updateOne(
@@ -719,6 +707,9 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Location not found" }, { status: 404 });
     }
 
+    // Invalidate in-memory cache
+    cachedLocations = null;
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to update location:", error);
@@ -726,23 +717,11 @@ export async function PATCH(request: NextRequest) {
       { error: "Failed to update location" },
       { status: 500 }
     );
-  } finally {
-    if (client) {
-      await client.close();
-    }
   }
 }
 
 export async function DELETE(request: NextRequest) {
-  let client: MongoClient | null = null;
   try {
-    if (!MONGODB_URI) {
-      return NextResponse.json(
-        { error: "Database not configured" },
-        { status: 500 }
-      );
-    }
-
     const body = await request.json();
     const id = body.id;
 
@@ -750,10 +729,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Location ID required" }, { status: 400 });
     }
 
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-
-    const db = client.db(MONGODB_DB);
+    const db = await getDb(MONGODB_DB);
     const locationsCollection = db.collection("locations");
 
     const result = await locationsCollection.deleteOne({ _id: new ObjectId(id) });
@@ -762,6 +738,9 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Location not found" }, { status: 404 });
     }
 
+    // Invalidate in-memory cache
+    cachedLocations = null;
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to delete location:", error);
@@ -769,9 +748,5 @@ export async function DELETE(request: NextRequest) {
       { error: "Failed to delete location" },
       { status: 500 }
     );
-  } finally {
-    if (client) {
-      await client.close();
-    }
   }
 }

@@ -86,7 +86,7 @@ const defaultServices: Service[] = [
     id: "8",
     icon: "🛡️",
     image: "/travel-insurance.png",
-    title: "Travel Insurance",
+    title: "Yatra Insurance",
     description: "Get travel insurance coverage",
     href: "/insurance",
   },

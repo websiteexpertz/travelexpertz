@@ -327,7 +327,7 @@ export default function AdminReviews() {
                       marginBottom: "0.25rem",
                     }}
                   >
-                    {review.propertyName || "TravelExpertz Journey"}
+                    {review.propertyName || "YatraExpertz Journey"}
                   </div>
                   <div style={{ color: "#666", fontSize: "0.9rem" }}>
                     {[review.propertyCity, review.propertyState]

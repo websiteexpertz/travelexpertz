@@ -36,43 +36,43 @@ const services: Array<{
   cta: string;
   image: string;
 }> = [
-  {
-    id: "visa",
-    title: "Visa Assistance",
-    tagline: "Your Visa. Your Destination. Your World of Possibilities.",
-    description:
-      "Make international travel easier with visa assistance. Get guidance on visa requirements, documentation, application procedures and appointment support for your chosen destination.",
-    cta: "Get Visa Assistance",
-    image: "/New-images/Visa Assitance.jpg",
-  },
-  {
-    id: "forex",
-    title: "Forex Card & Currency",
-    tagline: "Travel Globally. Exchange Easily.",
-    description:
-      "Travel internationally with confidence using foreign exchange services. Get assistance with forex cards and foreign currency for convenient and secure overseas transactions.",
-    cta: "Explore Forex Services",
-    image: "/New-images/Forex and Currency.jpg",
-  },
-  {
-    id: "insurance",
-    title: "Travel Insurance",
-    tagline: "Travel with Confidence. We've Got You Covered.",
-    description:
-      "Travel with greater peace of mind through suitable travel insurance options. Get coverage assistance for medical emergencies, trip cancellations, baggage loss and other travel-related uncertainties, as per policy terms.",
-    cta: "Get Insurance Assistance",
-    image: "/New-images/Travel Insurance.jpg",
-  },
-  {
-    id: "wedding",
-    title: "Destination Wedding",
-    tagline: "Your Dream Wedding. A Perfect Destination. Memories Forever.",
-    description:
-      "Turn your dream wedding into an unforgettable celebration at a beautiful destination. From venue selection and accommodation to guest transportation and travel coordination, we help plan seamless destination wedding experiences.",
-    cta: "Plan Your Wedding",
-    image: "/New-images/Destination Wedding.jpg",
-  },
-];
+    {
+      id: "visa",
+      title: "Visa Assistance",
+      tagline: "Your Visa. Your Destination. Your World of Possibilities.",
+      description:
+        "Make international travel easier with visa assistance. Get guidance on visa requirements, documentation, application procedures and appointment support for your chosen destination.",
+      cta: "Get Visa Assistance",
+      image: "/New-images/Visa Assitance.jpg",
+    },
+    {
+      id: "forex",
+      title: "Forex Card & Currency",
+      tagline: "Travel Globally. Exchange Easily.",
+      description:
+        "Travel internationally with confidence using foreign exchange services. Get assistance with forex cards and foreign currency for convenient and secure overseas transactions.",
+      cta: "Explore Forex Services",
+      image: "/New-images/Forex and Currency.jpg",
+    },
+    {
+      id: "insurance",
+      title: "Yatra Insurance",
+      tagline: "Travel with Confidence. We've Got You Covered.",
+      description:
+        "Travel with greater peace of mind through suitable travel insurance options. Get coverage assistance for medical emergencies, trip cancellations, baggage loss and other travel-related uncertainties, as per policy terms.",
+      cta: "Get Insurance Assistance",
+      image: "/New-images/Travel Insurance.jpg",
+    },
+    {
+      id: "wedding",
+      title: "Destination Wedding",
+      tagline: "Your Dream Wedding. A Perfect Destination. Memories Forever.",
+      description:
+        "Turn your dream wedding into an unforgettable celebration at a beautiful destination. From venue selection and accommodation to guest transportation and travel coordination, we help plan seamless destination wedding experiences.",
+      cta: "Plan Your Wedding",
+      image: "/New-images/Destination Wedding.jpg",
+    },
+  ];
 
 const collections = [
   {
@@ -107,7 +107,7 @@ const gems = [
 const whyUs = [
   {
     icon: ShieldCheck,
-    title: "Complete Travel Solutions",
+    title: "Complete Yatra Solutions",
     text: "From flights, hotels and cabs to visas, forex, insurance and customized holiday packages, find all your travel essentials in one place.",
   },
   {
@@ -508,12 +508,12 @@ export default function Home() {
 
   useEffect(() => {
     Promise.allSettled([
-      fetch("/api/hotels").then((r) => (r.ok ? r.json() : [])),
-      fetch("/api/events").then((r) => (r.ok ? r.json() : [])),
-      fetch("/api/testimonials").then((r) => (r.ok ? r.json() : [])),
-      fetch("/api/destinations").then((r) => (r.ok ? r.json() : [])),
-      fetch("/api/hotels?handpicked=true").then((r) => (r.ok ? r.json() : [])),
-      fetch("/api/homestays?handpicked=true").then((r) =>
+      fetch("/api/hotels?limit=4").then((r) => (r.ok ? r.json() : [])),
+      fetch("/api/events?limit=12").then((r) => (r.ok ? r.json() : [])),
+      fetch("/api/testimonials?limit=10").then((r) => (r.ok ? r.json() : [])),
+      fetch("/api/destinations?limit=8").then((r) => (r.ok ? r.json() : [])),
+      fetch("/api/hotels?handpicked=true&limit=8").then((r) => (r.ok ? r.json() : [])),
+      fetch("/api/homestays?handpicked=true&limit=8").then((r) =>
         r.ok ? r.json() : [],
       ),
       fetch("/api/blogs?limit=8").then((r) =>
@@ -591,11 +591,11 @@ export default function Home() {
     hiddenDestinations.length >= 4
       ? hiddenDestinations
       : gems.map((g, i) => ({
-          _id: `gem_${i}`,
-          name: g.title,
-          state: g.state,
-          image: g.image,
-        }));
+        _id: `gem_${i}`,
+        name: g.title,
+        state: g.state,
+        image: g.image,
+      }));
 
   const displayGetaways =
     [...handpickedHotels, ...handpickedHomestays].length >= 4
@@ -692,7 +692,7 @@ export default function Home() {
         <section className="home-section" id="services">
           <div className="section-heading">
             <div>
-              <h2>Explore Our Travel Solutions</h2>
+              <h2>Explore Our Yatra Solutions</h2>
               <p>One trusted team for every important part of your journey.</p>
             </div>
           </div>
@@ -720,11 +720,11 @@ export default function Home() {
           <div className="home-section">
             <div className="section-heading">
               <div>
-                <h2>Why Choose Travel Expertz</h2>
+                <h2>Why Choose Yatra Expertz</h2>
               </div>
             </div>
             <p className="section-description">
-              At Travel Expertz, we believe every journey should be exciting,
+              At Yatra Expertz, we believe every journey should be exciting,
               comfortable and memorable. From flights and hotels to holiday
               packages and personalized arrangements, we make travel planning
               simple, seamless and stress-free.
@@ -732,7 +732,7 @@ export default function Home() {
             <MarqueeSlider
               className="why-marquee"
               trackClassName="why-marquee-track"
-              ariaLabel="Why choose Travel Expertz"
+              ariaLabel="Why choose Yatra Expertz"
               secondsPerCard={17}
             >
               {whyUs.map(({ icon: Icon, title, text }, index) => (
@@ -758,7 +758,7 @@ export default function Home() {
           <p className="section-description">
             From vibrant festivals and cultural celebrations to concerts,
             exhibitions, sporting events and grand celebrations, discover what
-            is happening across India and let Travel Expertz plan your visit.
+            is happening across India and let Yatra Expertz plan your visit.
           </p>
           {events.length > 0 ? (
             <MarqueeSlider
@@ -812,7 +812,7 @@ export default function Home() {
             </button>
           </div>
           <p className="section-description">
-            At Travel Expertz, our greatest reward is the happiness and
+            At Yatra Expertz, our greatest reward is the happiness and
             satisfaction of our travellers. Every journey tells a story, and
             every happy traveller inspires us to do better. From memorable
             holidays and exciting adventures to seamless bookings and
@@ -837,7 +837,7 @@ export default function Home() {
             villages and peaceful valleys to secret beaches, charming heritage
             towns and breathtaking natural landscapes. Discover destinations
             beyond the usual tourist trails and experience the beauty, culture
-            and traditions of India with Travel Expertz. Every hidden
+            and traditions of India with Yatra Expertz. Every hidden
             destination has a story waiting to be discovered!
           </p>
           {displayDestinations.length > 0 ? (
@@ -910,7 +910,7 @@ export default function Home() {
             holidays to romantic getaways, family vacations, adventure treks and
             spiritual journeys, explore our handpicked collections designed to
             inspire your next adventure. Find the perfect trip, create beautiful
-            memories and experience every destination your way with Travel
+            memories and experience every destination your way with Yatra
             Expertz.
           </p>
           {displayGetaways.length > 0 ? (
@@ -969,7 +969,7 @@ export default function Home() {
         <section className="home-section blogs-section" id="blogs">
           <div className="section-heading">
             <div>
-              <h2>Travel Stories &amp; Expert Guides</h2>
+              <h2>Yatra Stories &amp; Expert Guides</h2>
               <p className="section-subheading">
                 Inspiration, destination guides and expert tips for your next journey.
               </p>
@@ -987,7 +987,7 @@ export default function Home() {
             <MarqueeSlider
               className="blogs-marquee"
               trackClassName="blogs-marquee-track"
-              ariaLabel="Travel Blogs and Guides"
+              ariaLabel="Yatra Blogs and Guides"
               secondsPerCard={17}
             >
               {displayBlogs.map((blog, index) => {
@@ -998,7 +998,7 @@ export default function Home() {
                     : "Travel Guide";
                 const cleanDesc = blog.description
                   ? blog.description.replace(/<[^>]*>/g, "")
-                  : "Explore comprehensive travel guides, recommended itineraries, and insider tips from Travel Expertz.";
+                  : "Explore comprehensive travel guides, recommended itineraries, and insider tips from Yatra Expertz.";
 
                 return (
                   <Link
@@ -1049,7 +1049,7 @@ export default function Home() {
             <span>Where to next?</span>
             <h2>Let&apos;s turn your travel dreams into plans.</h2>
             <p>
-              Speak with a Travel Expertz specialist and start your journey
+              Speak with a Yatra Expertz specialist and start your journey
               today.
             </p>
           </div>

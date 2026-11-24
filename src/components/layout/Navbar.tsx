@@ -22,7 +22,7 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
-  logo = "TravelExpertz",
+  logo = "YatraExpertz",
   navItems = [],
   userMenu,
   onMenuToggle,

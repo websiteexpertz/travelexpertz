@@ -1,23 +1,15 @@
 import { NextResponse, NextRequest } from "next/server";
-import { MongoClient } from "mongodb";
+import { getDb } from "@/lib/db";
+import { ObjectId } from "mongodb";
 
-const MONGODB_URI = process.env.MONGODB_URI || "";
 const MONGODB_DB = process.env.MONGODB_DB || "travelexpertz";
 
 export async function GET(request: NextRequest) {
-  let client: MongoClient | null = null;
   try {
-    if (!MONGODB_URI) {
-      return NextResponse.json([], { status: 500 });
-    }
-
     const { searchParams } = new URL(request.url);
     const admin = searchParams.get("admin") === "true";
 
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-
-    const db = client.db(MONGODB_DB);
+    const db = await getDb(MONGODB_DB);
     const whyusCollection = db.collection("whyus");
 
     const query = admin ? {} : { active: true };
@@ -30,25 +22,13 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Error fetching Why Us:", error);
     return NextResponse.json([], { status: 500 });
-  } finally {
-    if (client) {
-      await client.close();
-    }
   }
 }
 
 export async function POST(request: NextRequest) {
-  let client: MongoClient | null = null;
   try {
-    if (!MONGODB_URI) {
-      return NextResponse.json({ error: "Database not configured" }, { status: 500 });
-    }
-
     const body = await request.json();
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-
-    const db = client.db(MONGODB_DB);
+    const db = await getDb(MONGODB_DB);
     const whyusCollection = db.collection("whyus");
 
     const result = await whyusCollection.insertOne({
@@ -64,21 +44,11 @@ export async function POST(request: NextRequest) {
       { error: "Failed to create Why Us" },
       { status: 500 }
     );
-  } finally {
-    if (client) {
-      await client.close();
-    }
   }
 }
 
 export async function PATCH(request: NextRequest) {
-  let client: MongoClient | null = null;
   try {
-    if (!MONGODB_URI) {
-      return NextResponse.json({ error: "Database not configured" }, { status: 500 });
-    }
-
-    const { ObjectId } = await import("mongodb");
     const body = await request.json();
     const { _id, ...updateData } = body;
 
@@ -86,10 +56,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Why Us ID is required" }, { status: 400 });
     }
 
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-
-    const db = client.db(MONGODB_DB);
+    const db = await getDb(MONGODB_DB);
     const whyusCollection = db.collection("whyus");
 
     const result = await whyusCollection.updateOne(
@@ -113,21 +80,11 @@ export async function PATCH(request: NextRequest) {
       { error: "Failed to update Why Us" },
       { status: 500 }
     );
-  } finally {
-    if (client) {
-      await client.close();
-    }
   }
 }
 
 export async function DELETE(request: NextRequest) {
-  let client: MongoClient | null = null;
   try {
-    if (!MONGODB_URI) {
-      return NextResponse.json({ error: "Database not configured" }, { status: 500 });
-    }
-
-    const { ObjectId } = await import("mongodb");
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
@@ -135,10 +92,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Why Us ID is required" }, { status: 400 });
     }
 
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-
-    const db = client.db(MONGODB_DB);
+    const db = await getDb(MONGODB_DB);
     const whyusCollection = db.collection("whyus");
 
     const result = await whyusCollection.deleteOne({
@@ -156,9 +110,5 @@ export async function DELETE(request: NextRequest) {
       { error: "Failed to delete Why Us" },
       { status: 500 }
     );
-  } finally {
-    if (client) {
-      await client.close();
-    }
   }
 }

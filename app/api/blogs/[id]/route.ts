@@ -1,8 +1,8 @@
-import { MongoClient, ObjectId } from "mongodb";
+import { ObjectId } from "mongodb";
 import { NextRequest, NextResponse } from "next/server";
 import { SAMPLE_BLOGS } from "@/app/data/sampleBlogs";
+import { getDb } from "@/lib/db";
 
-const uri = process.env.MONGODB_URI || "mongodb://localhost:27017";
 const dbName = process.env.MONGODB_DB || "travelexpertz";
 
 export async function GET(
@@ -29,15 +29,12 @@ export async function GET(
       return NextResponse.json({ error: "Invalid blog ID" }, { status: 400 });
     }
 
-    const client = new MongoClient(uri);
-    await client.connect();
-    const db = client.db(dbName);
+    const db = await getDb(dbName);
     const blogsCollection = db.collection("blogs");
 
     const blog = await blogsCollection.findOne({ _id: new ObjectId(id) });
 
     if (!blog) {
-      await client.close();
       if (sample) {
         return NextResponse.json({
           blog: sample,
@@ -54,8 +51,6 @@ export async function GET(
       .limit(5)
       .project({ title: 1, image: 1, date: 1, categories: 1, createdAt: 1 })
       .toArray();
-
-    await client.close();
 
     // If fewer than 5 latest blogs, fill from sample blogs
     const mergedLatest = [...latestBlogs];

@@ -4,7 +4,7 @@ import React from "react";
 
 export default function WhatsAppChat() {
   const whatsappNumber = "918923992522"; // +91-8923992522 without symbols
-  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=Hello%20TravelExpertz%2C%20I%20need%20assistance`;
+  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=Hello%20YatraExpertz%2C%20I%20need%20assistance`;
 
   return (
     <a

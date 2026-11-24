@@ -780,7 +780,7 @@ export default function BusEnquiryForm() {
                   className="mt-1 w-4 h-4 rounded border-[#DFE7F1] text-[#008F87] focus:ring-[#008F87] cursor-pointer"
                 />
                 <span className="text-xs sm:text-sm text-[#475569] leading-relaxed">
-                  I agree to be contacted by TravelExpertz regarding my bus ticket enquiry and accept the{" "}
+                  I agree to be contacted by YatraExpertz regarding my bus ticket enquiry and accept the{" "}
                   <Link
                     href="/privacy-policy"
                     target="_blank"

@@ -2147,3 +2147,22 @@
 .blog-home-card:hover .blog-home-cta {
     gap: 10px;
 }
+
+/* Reduced spacing for Yatra Stories section */
+.blogs-section .section-heading {
+    margin-bottom: 10px;
+}
+
+.blogs-section .section-subheading {
+    margin: 6px 0 0;
+}
+
+.blogs-section .section-description {
+    margin: 0 0 12px;
+    line-height: 1.6;
+}
+
+.blogs-section .blogs-marquee {
+    margin-top: 6px;
+    padding-top: 4px;
+}

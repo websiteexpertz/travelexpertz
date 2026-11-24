@@ -7,10 +7,10 @@ import "./service-enquiry.css";
 export type ServiceId = "visa" | "forex" | "insurance" | "wedding";
 
 const details: Record<ServiceId, { title: string; tagline: string; support: string; serviceType: string }> = {
-  visa: { title: "Visa Assistance", tagline: "Your Visa. Your Destination. Your World of Possibilities.", support: "From visa guidance and documentation to application assistance and travel preparation, let Travel Expertz make your international travel journey smoother and hassle-free.", serviceType: "visa" },
+  visa: { title: "Visa Assistance", tagline: "Your Visa. Your Destination. Your World of Possibilities.", support: "From visa guidance and documentation to application assistance and travel preparation, let Yatra Expertz make your international travel journey smoother and hassle-free.", serviceType: "visa" },
   forex: { title: "Forex Card & Currency", tagline: "Travel Globally. Exchange Easily.", support: "Get your foreign currency and forex card requirements sorted before you take off!", serviceType: "forex" },
-  insurance: { title: "Travel Insurance", tagline: "Travel with Confidence. We've Got You Covered.", support: "Enjoy your journey while staying prepared for life's unexpected travel moments.", serviceType: "insurance" },
-  wedding: { title: "Destination Wedding", tagline: "Your Dream Wedding. A Perfect Destination. Memories Forever.", support: "From breathtaking venues and luxurious stays to guest travel and seamless event coordination, let Travel Expertz make your special day truly unforgettable.", serviceType: "destination-wedding" },
+  insurance: { title: "Yatra Insurance", tagline: "Travel with Confidence. We've Got You Covered.", support: "Enjoy your journey while staying prepared for life's unexpected travel moments.", serviceType: "insurance" },
+  wedding: { title: "Destination Wedding", tagline: "Your Dream Wedding. A Perfect Destination. Memories Forever.", support: "From breathtaking venues and luxurious stays to guest travel and seamless event coordination, let Yatra Expertz make your special day truly unforgettable.", serviceType: "destination-wedding" },
 };
 
 type Props = { service: ServiceId; onClose: () => void };
@@ -90,7 +90,7 @@ export default function ServiceEnquiryModal({ service, onClose }: Props) {
     <div className="enquiry-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <section className="enquiry-modal" role="dialog" aria-modal="true" aria-labelledby="enquiry-title">
         <button ref={closeRef} className="enquiry-close" type="button" onClick={onClose} aria-label="Close enquiry"><X /></button>
-        {submitted ? <div className="enquiry-success"><CheckCircle2 /><h2>Enquiry received</h2><p>Thank you. A Travel Expertz specialist will contact you shortly.</p><button onClick={onClose}>Done</button></div> : <>
+        {submitted ? <div className="enquiry-success"><CheckCircle2 /><h2>Enquiry received</h2><p>Thank you. A Yatra Expertz specialist will contact you shortly.</p><button onClick={onClose}>Done</button></div> : <>
           <div className="enquiry-heading"><span>{config.title}</span><h2 id="enquiry-title">Plan your enquiry</h2><p>{config.tagline}</p><small>{config.support}</small></div>
           {service === "wedding" && <div className="enquiry-progress"><span className={step === 0 ? "active" : ""}>1. Couple</span><span className={step === 1 ? "active" : ""}>2. Celebration</span></div>}
           <form onSubmit={submit} className="enquiry-form">
@@ -113,11 +113,11 @@ export default function ServiceEnquiryModal({ service, onClose }: Props) {
             </>}
             {service !== "wedding" && area(service === "visa" ? "Additional Details" : service === "forex" ? "Additional Requirements" : "Additional Requirements", "additionalDetails")}
             {service === "wedding" && step === 1 && area("Additional Information — Tell Us More About Your Dream Wedding", "additionalInformation")}
-            <label className="enquiry-consent enquiry-full"><input type="checkbox" name="consent" required /><span>{service === "wedding" ? "I agree to be contacted by Travel Expertz regarding my destination wedding enquiry. *" : `I agree to be contacted by Travel Expertz regarding my ${service === "visa" ? "visa" : service === "forex" ? "forex" : "travel insurance"} enquiry. *`}</span></label>
+            <label className="enquiry-consent enquiry-full"><input type="checkbox" name="consent" required /><span>{service === "wedding" ? "I agree to be contacted by Yatra Expertz regarding my destination wedding enquiry. *" : `I agree to be contacted by Yatra Expertz regarding my ${service === "visa" ? "visa" : service === "forex" ? "forex" : "travel insurance"} enquiry. *`}</span></label>
             {service === "wedding" && <p className="enquiry-important-note enquiry-full"><strong>Important Note:</strong> All destination wedding arrangements are subject to venue availability, vendor confirmation, applicable permissions and final booking terms. A customized proposal and quotation will be shared based on your requirements and budget.</p>}
-            {service === "visa" && <p className="enquiry-important-note enquiry-full"><strong>Important Note:</strong> Visa approval is solely at the discretion of the respective embassy or consulate. Travel Expertz provides guidance and application assistance but does not guarantee visa approval.</p>}
+            {service === "visa" && <p className="enquiry-important-note enquiry-full"><strong>Important Note:</strong> Visa approval is solely at the discretion of the respective embassy or consulate. Yatra Expertz provides guidance and application assistance but does not guarantee visa approval.</p>}
             {service === "forex" && <p className="enquiry-important-note enquiry-full"><strong>Important Note:</strong> Forex card issuance and currency exchange are subject to RBI/FEMA regulations, KYC documentation, availability and provider policies. Rates are subject to change and confirmed at the time of transaction.</p>}
-            {service === "insurance" && <p className="enquiry-important-note enquiry-full"><strong>Important Note:</strong> Coverage, benefits, exclusions, eligibility and claim settlements are subject to the selected policy terms and insurer approval. Travel Expertz does not guarantee policy issuance or claim approval.</p>}
+            {service === "insurance" && <p className="enquiry-important-note enquiry-full"><strong>Important Note:</strong> Coverage, benefits, exclusions, eligibility and claim settlements are subject to the selected policy terms and insurer approval. Yatra Expertz does not guarantee policy issuance or claim approval.</p>}
             {error && <p className="enquiry-error enquiry-full" role="alert">{error}</p>}
             <div className="enquiry-actions enquiry-full">
               {service === "wedding" && step > 0 && <button type="button" className="enquiry-secondary" onClick={() => setStep(0)}><ChevronLeft size={18} /> Back</button>}

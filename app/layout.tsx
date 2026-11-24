@@ -4,7 +4,7 @@ import "../src/styles/modern.css";
 import RootLayoutClient from "./layout-client";
 
 export const metadata: Metadata = {
-  title: "TravelExpertz - Travel & Hotel Booking",
+  title: "YatraExpertz - Travel & Hotel Booking",
   description: "Your ultimate travel booking platform",
   icons: {
     icon: "/logo.ico",

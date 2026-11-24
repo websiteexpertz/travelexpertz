@@ -1,6 +1,10 @@
 import { MongoClient, ObjectId } from "mongodb";
 import { NextResponse } from "next/server";
 import { sendEmail } from "@/lib/services/email";
+import {
+  enqueueBookingConfirmedNotifications,
+  cancelPendingNotificationsForBooking,
+} from "@/lib/services/notifications/queue";
 
 const uri = process.env.MONGODB_URI || "mongodb://localhost:27017";
 const dbName = "travelexpertz";
@@ -466,7 +470,7 @@ export async function POST(request: Request) {
                 
                 <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
                 <p style="color: #9ca3af; font-size: 0.85rem; text-align: center; margin: 0;">
-                  This is an automated notification from TravelExpertz. Please do not reply to this email.<br>
+                  This is an automated notification from YatraExpertz. Please do not reply to this email.<br>
                   For support, contact: support@travelexpertz.com
                 </p>
               </div>
@@ -487,6 +491,14 @@ export async function POST(request: Request) {
       } catch (error) {
         console.error("Error creating owner notification:", error);
         // Don't throw error - booking was still created successfully
+      }
+    }
+
+    if (booking.bookingStatus === "confirmed") {
+      try {
+        await enqueueBookingConfirmedNotifications(result.insertedId.toString(), { database: db });
+      } catch (queueErr) {
+        console.error("Error enqueuing booking confirmed notifications:", queueErr);
       }
     }
 
@@ -544,6 +556,20 @@ export async function PATCH(request: Request) {
         { error: "Booking not found" },
         { status: 404 }
       );
+    }
+
+    if (updateData.bookingStatus === "cancelled") {
+      try {
+        await cancelPendingNotificationsForBooking(id, db);
+      } catch (cancelErr) {
+        console.error("Error cancelling pending notifications:", cancelErr);
+      }
+    } else if (updateData.bookingStatus === "confirmed") {
+      try {
+        await enqueueBookingConfirmedNotifications(id, { database: db });
+      } catch (queueErr) {
+        console.error("Error enqueuing booking confirmed notifications on update:", queueErr);
+      }
     }
 
     return NextResponse.json(result);
@@ -636,6 +662,12 @@ export async function DELETE(request: Request) {
     } catch (error) {
       console.error("Error restoring room availability:", error);
       // Don't throw error - booking was still cancelled successfully
+    }
+
+    try {
+      await cancelPendingNotificationsForBooking(id, db);
+    } catch (cancelErr) {
+      console.error("Error cancelling pending notifications on delete:", cancelErr);
     }
 
     return NextResponse.json({ message: "Booking cancelled successfully" });

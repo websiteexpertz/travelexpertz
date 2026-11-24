@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
-import { MongoClient, ObjectId } from "mongodb";
+import { getDb } from "@/lib/db";
+import { ObjectId } from "mongodb";
 
-const MONGODB_URI = process.env.MONGODB_URI || "";
 const MONGODB_DB = process.env.MONGODB_DB || "travelexpertz";
 
 export interface TestimonialMedia {
@@ -40,7 +40,7 @@ const SAMPLE_TESTIMONIALS: TestimonialItem[] = [
     reviewerAvatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
     rating: 5,
     reviewText:
-      "Our family trip to Manali was truly unforgettable. The morning views of the snow-capped valley right from our balcony were breathtaking. Every detail was handled seamlessly by TravelExpertz from cab pickup to check-in.",
+      "Our family trip to Manali was truly unforgettable. The morning views of the snow-capped valley right from our balcony were breathtaking. Every detail was handled seamlessly by YatraExpertz from cab pickup to check-in.",
     propertyId: "prop_manali_retreat",
     propertyName: "The Himalayan Retreat Homestay",
     propertyCity: "Manali",
@@ -86,7 +86,7 @@ const SAMPLE_TESTIMONIALS: TestimonialItem[] = [
     reviewerAvatarUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80",
     rating: 5,
     reviewText:
-      "Waking up to the sound of ocean waves at this beachfront villa in Goa was bliss. Clean private pool, sunset drinks on the deck, and super helpful staff. Highly recommend booking through TravelExpertz!",
+      "Waking up to the sound of ocean waves at this beachfront villa in Goa was bliss. Clean private pool, sunset drinks on the deck, and super helpful staff. Highly recommend booking through YatraExpertz!",
     propertyId: "prop_goa_villa",
     propertyName: "Sea Breeze Luxury Beachfront Villa",
     propertyCity: "Calangute",
@@ -152,22 +152,13 @@ const SAMPLE_TESTIMONIALS: TestimonialItem[] = [
 ];
 
 export async function GET(request: NextRequest) {
-  let client: MongoClient | null = null;
   try {
     const adminView = request.nextUrl.searchParams.get("admin") === "true";
+    const limit = request.nextUrl.searchParams.get("limit")
+      ? parseInt(request.nextUrl.searchParams.get("limit")!, 10)
+      : null;
 
-    if (!MONGODB_URI) {
-      return NextResponse.json(
-        adminView
-          ? SAMPLE_TESTIMONIALS
-          : SAMPLE_TESTIMONIALS.filter((t) => t.isPublished),
-      );
-    }
-
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-
-    const db = client.db(MONGODB_DB);
+    const db = await getDb(MONGODB_DB);
     const testimonialsCollection = db.collection("testimonials");
 
     const query = adminView
@@ -238,7 +229,7 @@ export async function GET(request: NextRequest) {
             r.propertyId !== "homepage_review"
               ? r.propertyId
               : "",
-          propertyName: r.propertyName || "TravelExpertz Journey",
+          propertyName: r.propertyName || "YatraExpertz Journey",
           propertyCity: r.propertyCity || r.city || "",
           propertyState: r.propertyState || r.state || "",
           propertyType: r.propertyType || "Property",
@@ -280,17 +271,34 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    const allCombined = Array.from(combinedMap.values());
+    let allCombined = Array.from(combinedMap.values());
+    if (limit && limit > 0) {
+      allCombined = allCombined.slice(0, limit);
+    }
 
     if (allCombined.length === 0) {
+      const fallback = adminView
+        ? SAMPLE_TESTIMONIALS
+        : SAMPLE_TESTIMONIALS.filter((t) => t.isPublished);
       return NextResponse.json(
-        adminView
-          ? SAMPLE_TESTIMONIALS
-          : SAMPLE_TESTIMONIALS.filter((t) => t.isPublished),
+        limit ? fallback.slice(0, limit) : fallback,
+        {
+          headers: {
+            "Cache-Control": adminView
+              ? "no-store"
+              : "public, s-maxage=60, stale-while-revalidate=300",
+          },
+        }
       );
     }
 
-    return NextResponse.json(allCombined);
+    return NextResponse.json(allCombined, {
+      headers: {
+        "Cache-Control": adminView
+          ? "no-store"
+          : "public, s-maxage=60, stale-while-revalidate=300",
+      },
+    });
   } catch (error) {
     console.error("Error fetching testimonials, serving fallback:", error);
     const adminView = request.nextUrl.searchParams.get("admin") === "true";
@@ -299,19 +307,10 @@ export async function GET(request: NextRequest) {
         ? SAMPLE_TESTIMONIALS
         : SAMPLE_TESTIMONIALS.filter((t) => t.isPublished),
     );
-  } finally {
-    if (client) {
-      try {
-        await client.close();
-      } catch (e) {
-        // ignore close error
-      }
-    }
   }
 }
 
 export async function POST(request: NextRequest) {
-  let client: MongoClient | null = null;
   try {
     const body = await request.json();
 
@@ -351,17 +350,7 @@ export async function POST(request: NextRequest) {
       verified: body.isPublished !== undefined ? Boolean(body.isPublished) : true,
     };
 
-    if (!MONGODB_URI) {
-      return NextResponse.json(
-        { _id: `mock_${Date.now()}`, ...newRecord },
-        { status: 201 },
-      );
-    }
-
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-
-    const db = client.db(MONGODB_DB);
+    const db = await getDb(MONGODB_DB);
     const testimonialsCollection = db.collection("testimonials");
 
     const result = await testimonialsCollection.insertOne(newRecord);
@@ -376,17 +365,10 @@ export async function POST(request: NextRequest) {
       { error: "Failed to create testimonial" },
       { status: 500 },
     );
-  } finally {
-    if (client) {
-      try {
-        await client.close();
-      } catch (e) {}
-    }
   }
 }
 
 export async function PATCH(request: NextRequest) {
-  let client: MongoClient | null = null;
   try {
     const body = await request.json();
     const { _id, ...updateData } = body;
@@ -414,18 +396,7 @@ export async function PATCH(request: NextRequest) {
       normalizedUpdates.active = updateData.isPublished;
     }
 
-    if (!MONGODB_URI) {
-      return NextResponse.json({
-        message: "Testimonial updated (mock)",
-        _id,
-        ...normalizedUpdates,
-      });
-    }
-
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-
-    const db = client.db(MONGODB_DB);
+    const db = await getDb(MONGODB_DB);
     const testimonialsCollection = db.collection("testimonials");
 
     const query: any = ObjectId.isValid(_id) ? { _id: new ObjectId(_id) } : { _id };
@@ -452,17 +423,10 @@ export async function PATCH(request: NextRequest) {
       { error: "Failed to update testimonial" },
       { status: 500 },
     );
-  } finally {
-    if (client) {
-      try {
-        await client.close();
-      } catch (e) {}
-    }
   }
 }
 
 export async function DELETE(request: NextRequest) {
-  let client: MongoClient | null = null;
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
@@ -474,14 +438,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    if (!MONGODB_URI) {
-      return NextResponse.json({ message: "Testimonial deleted (mock)" });
-    }
-
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-
-    const db = client.db(MONGODB_DB);
+    const db = await getDb(MONGODB_DB);
     const testimonialsCollection = db.collection("testimonials");
 
     const query: any = ObjectId.isValid(id) ? { _id: new ObjectId(id) } : { _id: id };
@@ -501,11 +458,5 @@ export async function DELETE(request: NextRequest) {
       { error: "Failed to delete testimonial" },
       { status: 500 },
     );
-  } finally {
-    if (client) {
-      try {
-        await client.close();
-      } catch (e) {}
-    }
   }
 }

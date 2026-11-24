@@ -450,23 +450,23 @@ export default function AdminHotels() {
     if (!files || files.length === 0) return;
 
     setUploadingImages(true);
-    const uploadedUrls: string[] = [];
-
     try {
-      for (let i = 0; i < files.length; i++) {
+      const uploadPromises = Array.from(files).map(async (file) => {
         const formDataForUpload = new FormData();
-        formDataForUpload.append("file", files[i]);
-
+        formDataForUpload.append("file", file);
         const response = await fetch("/api/upload", {
           method: "POST",
           body: formDataForUpload,
         });
-
         if (response.ok) {
           const data = await response.json();
-          uploadedUrls.push(data.url);
+          return data.url as string;
         }
-      }
+        return null;
+      });
+
+      const results = await Promise.all(uploadPromises);
+      const uploadedUrls = results.filter((url): url is string => Boolean(url));
 
       setFormData((prev) => ({
         ...prev,
@@ -520,23 +520,23 @@ export default function AdminHotels() {
     if (!files || files.length === 0) return;
 
     setUploadingRoomImages(true);
-    const uploadedUrls: string[] = [];
-
     try {
-      for (let i = 0; i < files.length; i++) {
+      const uploadPromises = Array.from(files).map(async (file) => {
         const formDataForUpload = new FormData();
-        formDataForUpload.append("file", files[i]);
-
+        formDataForUpload.append("file", file);
         const response = await fetch("/api/upload", {
           method: "POST",
           body: formDataForUpload,
         });
-
         if (response.ok) {
           const data = await response.json();
-          uploadedUrls.push(data.url);
+          return data.url as string;
         }
-      }
+        return null;
+      });
+
+      const results = await Promise.all(uploadPromises);
+      const uploadedUrls = results.filter((url): url is string => Boolean(url));
 
       setRoomFormData((prev) => ({
         ...prev,
@@ -1036,7 +1036,7 @@ export default function AdminHotels() {
                           fontSize: "0.9rem",
                         }}
                       >
-                        TravelExpertz commission (%) *
+                        YatraExpertz commission (%) *
                       </label>
                       <input
                         name="commissionRate"

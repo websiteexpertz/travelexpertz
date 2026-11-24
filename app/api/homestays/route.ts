@@ -1,29 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { MongoClient, ObjectId } from "mongodb";
+import { getDb } from "@/lib/db";
+import { ObjectId } from "mongodb";
 
-const MONGODB_URI = process.env.MONGODB_URI || "";
 const MONGODB_DB = process.env.MONGODB_DB || "travelexpertz";
 
 export async function GET(request: NextRequest) {
-  let client: MongoClient | null = null;
   try {
-    if (!MONGODB_URI) {
-      console.error("MONGODB_URI is not configured");
-      return NextResponse.json(
-        { error: "Database not configured", homestays: [] },
-        { status: 503 }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
     const admin = searchParams.get("admin") === "true";
     const handpicked = searchParams.get("handpicked") === "true";
+    const limit = searchParams.get("limit")
+      ? parseInt(searchParams.get("limit")!, 10)
+      : null;
 
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-
-    const db = client.db(MONGODB_DB);
+    const db = await getDb(MONGODB_DB);
     const homestaysCollection = db.collection("homestays");
     const ownerPropertiesCollection = db.collection("ownerproperties");
 
@@ -119,9 +110,18 @@ export async function GET(request: NextRequest) {
       hostPhone: p.hostPhone || "",
     }));
 
-    const allHomestays = [...homestays, ...mappedOwnerHomestays];
+    let allHomestays = [...homestays, ...mappedOwnerHomestays];
+    if (limit && limit > 0) {
+      allHomestays = allHomestays.slice(0, limit);
+    }
 
-    return NextResponse.json(allHomestays);
+    return NextResponse.json(allHomestays, {
+      headers: {
+        "Cache-Control": admin
+          ? "no-store"
+          : "public, s-maxage=60, stale-while-revalidate=300",
+      },
+    });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("Error fetching homestays:", errorMessage);
@@ -129,28 +129,13 @@ export async function GET(request: NextRequest) {
       { error: "Failed to fetch homestays", details: errorMessage, homestays: [] },
       { status: 500 }
     );
-  } finally {
-    if (client) {
-      await client.close();
-    }
   }
 }
 
 export async function POST(request: NextRequest) {
-  let client: MongoClient | null = null;
   try {
-    if (!MONGODB_URI) {
-      return NextResponse.json(
-        { error: "Database not configured" },
-        { status: 500 }
-      );
-    }
-
     const body = await request.json();
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-
-    const db = client.db(MONGODB_DB);
+    const db = await getDb(MONGODB_DB);
     const homestaysCollection = db.collection("homestays");
 
     const now = new Date();
@@ -170,24 +155,11 @@ export async function POST(request: NextRequest) {
       { error: "Failed to create homestay" },
       { status: 500 }
     );
-  } finally {
-    if (client) {
-      await client.close();
-    }
   }
 }
 
 export async function PATCH(request: NextRequest) {
-  let client: MongoClient | null = null;
   try {
-    if (!MONGODB_URI) {
-      return NextResponse.json(
-        { error: "Database not configured" },
-        { status: 500 }
-      );
-    }
-
-    const { ObjectId } = await import("mongodb");
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
     const body = await request.json();
@@ -198,10 +170,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "ID is required" }, { status: 400 });
     }
 
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-
-    const db = client.db(MONGODB_DB);
+    const db = await getDb(MONGODB_DB);
     const homestaysCollection = db.collection("homestays");
     const ownerPropertiesCollection = db.collection("ownerproperties");
 
@@ -244,24 +213,11 @@ export async function PATCH(request: NextRequest) {
       { error: "Failed to update homestay" },
       { status: 500 }
     );
-  } finally {
-    if (client) {
-      await client.close();
-    }
   }
 }
 
 export async function DELETE(request: NextRequest) {
-  let client: MongoClient | null = null;
   try {
-    if (!MONGODB_URI) {
-      console.error("MONGODB_URI is not configured");
-      return NextResponse.json(
-        { error: "Database not configured" },
-        { status: 500 }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
     const source = searchParams.get("source") || "builtin";
@@ -270,10 +226,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "ID is required" }, { status: 400 });
     }
 
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-
-    const db = client.db(MONGODB_DB);
+    const db = await getDb(MONGODB_DB);
     const homestaysCollection = db.collection("homestays");
     const ownerPropertiesCollection = db.collection("ownerproperties");
 
@@ -321,9 +274,5 @@ export async function DELETE(request: NextRequest) {
       { error: "Failed to delete homestay", details: errorMessage },
       { status: 500 }
     );
-  } finally {
-    if (client) {
-      await client.close();
-    }
   }
 }

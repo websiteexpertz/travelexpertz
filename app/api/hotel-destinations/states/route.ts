@@ -1,23 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { MongoClient } from "mongodb";
+import { getDb } from "@/lib/db";
 
-const MONGODB_URI = process.env.MONGODB_URI || "";
 const MONGODB_DB = process.env.MONGODB_DB || "travelexpertz";
 
 export async function GET(request: NextRequest) {
-  let client: MongoClient | null = null;
   try {
-    if (!MONGODB_URI) {
-      return NextResponse.json(
-        { error: "Database not configured", data: [] },
-        { status: 503 }
-      );
-    }
-
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-
-    const db = client.db(MONGODB_DB);
+    const db = await getDb(MONGODB_DB);
     const statesCollection = db.collection("hotel_destination_states");
 
     // Get all states
@@ -38,23 +26,11 @@ export async function GET(request: NextRequest) {
       { error: "Failed to fetch states", data: [] },
       { status: 500 }
     );
-  } finally {
-    if (client) {
-      await client.close();
-    }
   }
 }
 
 export async function POST(request: NextRequest) {
-  let client: MongoClient | null = null;
   try {
-    if (!MONGODB_URI) {
-      return NextResponse.json(
-        { error: "Database not configured" },
-        { status: 503 }
-      );
-    }
-
     const body = await request.json();
     const { stateName, cityName } = body;
 
@@ -65,10 +41,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-
-    const db = client.db(MONGODB_DB);
+    const db = await getDb(MONGODB_DB);
     const statesCollection = db.collection("hotel_destination_states");
 
     // Check if state-city combination already exists (not just state)
@@ -101,9 +74,5 @@ export async function POST(request: NextRequest) {
       { error: "Failed to add state", details: String(error) },
       { status: 500 }
     );
-  } finally {
-    if (client) {
-      await client.close();
-    }
   }
 }
