@@ -67,7 +67,7 @@ export const Layout: React.FC<LayoutProps> = ({
     <div className={styles.layout}>
       {showNavbar && (
         <Navbar
-          logo="🏨 TravelExpertz"
+          logo="🏨 YatraExpertz"
           navItems={customNavItems || navItems}
           userMenu={
             <div className={styles.userMenu}>

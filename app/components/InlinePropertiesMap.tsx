@@ -22,6 +22,7 @@ export interface PropertyMapItem {
 interface InlinePropertiesMapProps {
   properties: PropertyMapItem[];
   onClose: () => void;
+  baseRoute?: string;
 }
 
 const CITY_COORDINATES: Record<string, [number, number]> = {
@@ -141,7 +142,11 @@ async function getLeafletInstance(): Promise<any> {
   }
 }
 
-export default function InlinePropertiesMap({ properties, onClose }: InlinePropertiesMapProps) {
+export default function InlinePropertiesMap({
+  properties,
+  onClose,
+  baseRoute,
+}: InlinePropertiesMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersGroupRef = useRef<any>(null);
@@ -224,13 +229,12 @@ export default function InlinePropertiesMap({ properties, onClose }: InlinePrope
           scrollWheelZoom: true,
         });
 
-        // High quality CartoDB Voyager tiles matching HolidayExpertz aesthetic
+        // Standard OpenStreetMap tiles (free, reliable, no API key required)
         L.tileLayer(
-          "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+          "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
           {
             maxZoom: 19,
-            subdomains: "abcd",
-            attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
           }
         ).addTo(map);
 
@@ -318,16 +322,26 @@ export default function InlinePropertiesMap({ properties, onClose }: InlinePrope
 
         const ratingVal = Number(hotel.rating) > 0 ? Number(hotel.rating).toFixed(1) : "4.8";
 
+        const isHomestay =
+          baseRoute === "/homestays" ||
+          (baseRoute && baseRoute.includes("homestay")) ||
+          (typeof window !== "undefined" && window.location.pathname.includes("/homestay")) ||
+          (hotel.propertyType || "").toLowerCase().includes("homestay") ||
+          (hotel.type || "").toLowerCase().includes("homestay");
+
+        const targetBaseRoute = baseRoute || (isHomestay ? "/homestays" : "/hotels");
+        const propertyHref = `${targetBaseRoute}/${hotel._id || encodeURIComponent(hotel.name)}`;
+
         const popupContent = `
           <div style="width: 280px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-            <div style="position: relative; width: 100%; height: 130px; overflow: hidden; background: #e2e8f0;">
+            <a href="${propertyHref}" style="display: block; position: relative; width: 100%; height: 130px; overflow: hidden; background: #e2e8f0; text-decoration: none; cursor: pointer;">
               <img
                 src="${imageSrc}"
                 alt="${hotel.name}"
                 style="width: 100%; height: 100%; object-fit: cover; display: block;"
                 onerror="this.src='https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&auto=format&fit=crop'"
               />
-            </div>
+            </a>
             <div style="padding: 12px 14px 14px;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                 <span style="
@@ -345,18 +359,20 @@ export default function InlinePropertiesMap({ properties, onClose }: InlinePrope
                   <span style="color: #f59e0b; font-size: 0.95rem;">★</span> ${ratingVal}
                 </span>
               </div>
-              <h4 style="
-                margin: 0 0 3px;
-                font-size: 0.975rem;
-                font-weight: 800;
-                color: #0f172a;
-                line-height: 1.3;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-              ">
-                ${hotel.name}
-              </h4>
+              <a href="${propertyHref}" style="text-decoration: none; color: inherit; display: block; cursor: pointer;">
+                <h4 style="
+                  margin: 0 0 3px;
+                  font-size: 0.975rem;
+                  font-weight: 800;
+                  color: #0f172a;
+                  line-height: 1.3;
+                  white-space: nowrap;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                ">
+                  ${hotel.name}
+                </h4>
+              </a>
               <p style="
                 margin: 0 0 10px;
                 font-size: 0.78rem;
@@ -383,7 +399,8 @@ export default function InlinePropertiesMap({ properties, onClose }: InlinePrope
                   </div>
                 </div>
                 <a
-                  href="/hotels/${hotel._id || ""}"
+                  href="${propertyHref}"
+                  onclick="event.stopPropagation();"
                   style="
                     display: inline-flex;
                     align-items: center;
@@ -396,6 +413,7 @@ export default function InlinePropertiesMap({ properties, onClose }: InlinePrope
                     border-radius: 8px;
                     text-decoration: none;
                     box-shadow: 0 2px 6px rgba(0, 130, 127, 0.3);
+                    cursor: pointer;
                   "
                 >
                   View

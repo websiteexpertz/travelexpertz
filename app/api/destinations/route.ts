@@ -1,32 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import { MongoClient, ObjectId } from "mongodb";
+import { ObjectId } from "mongodb";
+import { getDb } from "@/lib/db";
 
-const MONGODB_URI = process.env.MONGODB_URI || "";
 const MONGODB_DB = process.env.MONGODB_DB || "travelexpertz";
 
 export async function GET(request: NextRequest) {
-  let client: MongoClient | null = null;
   try {
-    if (!MONGODB_URI) {
-      console.error("MONGODB_URI is not configured");
-      return NextResponse.json(
-        { error: "Database not configured", destinations: [] },
-        { status: 503 }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
     const all = searchParams.get("all"); // For admin - fetch all including inactive
+    const limit = searchParams.get("limit")
+      ? parseInt(searchParams.get("limit")!, 10)
+      : null;
 
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-
-    const db = client.db(MONGODB_DB);
+    const db = await getDb(MONGODB_DB);
     const destinationsCollection = db.collection("destinations");
 
     // If ID is provided, fetch single destination
     if (id) {
+      if (!ObjectId.isValid(id)) {
+        return NextResponse.json({ error: "Invalid destination ID" }, { status: 400 });
+      }
       const destination = await destinationsCollection.findOne({
         _id: new ObjectId(id),
       });
@@ -40,12 +34,19 @@ export async function GET(request: NextRequest) {
 
     // Otherwise, fetch destinations (all for admin, active only for public)
     const query = all === "true" ? {} : { active: { $ne: false } };
-    const destinations = await destinationsCollection
-      .find(query)
-      .sort({ order: 1, name: 1 })
-      .toArray();
+    let cursor = destinationsCollection.find(query).sort({ order: 1, name: 1 });
+    if (limit && limit > 0) {
+      cursor = cursor.limit(limit);
+    }
+    const destinations = await cursor.toArray();
 
-    return NextResponse.json(destinations);
+    return NextResponse.json(destinations, {
+      headers: {
+        "Cache-Control": all === "true"
+          ? "no-store"
+          : "public, s-maxage=60, stale-while-revalidate=300",
+      },
+    });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("Error fetching destinations:", errorMessage);
@@ -53,28 +54,13 @@ export async function GET(request: NextRequest) {
       { error: "Failed to fetch destinations", details: errorMessage, destinations: [] },
       { status: 500 }
     );
-  } finally {
-    if (client) {
-      await client.close();
-    }
   }
 }
 
 export async function POST(request: NextRequest) {
-  let client: MongoClient | null = null;
   try {
-    if (!MONGODB_URI) {
-      return NextResponse.json(
-        { error: "Database not configured" },
-        { status: 500 }
-      );
-    }
-
     const body = await request.json();
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-
-    const db = client.db(MONGODB_DB);
+    const db = await getDb(MONGODB_DB);
     const destinationsCollection = db.collection("destinations");
     const locationsCollection = db.collection("locations");
 
@@ -113,40 +99,22 @@ export async function POST(request: NextRequest) {
       { error: "Failed to create destination" },
       { status: 500 }
     );
-  } finally {
-    if (client) {
-      await client.close();
-    }
   }
 }
 
 export async function PATCH(request: NextRequest) {
-  let client: MongoClient | null = null;
   try {
-    if (!MONGODB_URI) {
-      return NextResponse.json(
-        { error: "Database not configured" },
-        { status: 500 }
-      );
-    }
-
     const body = await request.json();
-    console.log("PATCH body received:", body);
     const id = body.id;
 
-    if (!id) {
-      console.log("No ID found in body");
-      return NextResponse.json({ error: "Destination ID required" }, { status: 400 });
+    if (!id || !ObjectId.isValid(id)) {
+      return NextResponse.json({ error: "Valid destination ID required" }, { status: 400 });
     }
 
     // Remove id and _id from the update payload (MongoDB doesn't allow updating _id)
     const { id: _id1, _id: _id2, ...updateData } = body;
-    console.log("Update data:", updateData);
 
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-
-    const db = client.db(MONGODB_DB);
+    const db = await getDb(MONGODB_DB);
     const destinationsCollection = db.collection("destinations");
     const locationsCollection = db.collection("locations");
 
@@ -160,15 +128,12 @@ export async function PATCH(request: NextRequest) {
       { $set: { ...updateData, updatedAt: new Date() } }
     );
 
-    console.log("Update result:", result);
-
     if (result.matchedCount === 0) {
       return NextResponse.json({ error: "Destination not found" }, { status: 404 });
     }
 
     // If name changed, update or create location
     if (originalDestination && updateData.name && originalDestination.name !== updateData.name) {
-      // Try to find and update existing location for this destination
       const existingLocation = await locationsCollection.findOne({
         destinationId: new ObjectId(id),
       });
@@ -179,7 +144,6 @@ export async function PATCH(request: NextRequest) {
           { $set: { name: updateData.name, updatedAt: new Date() } }
         );
       } else {
-        // Create new location if doesn't exist
         const nameExists = await locationsCollection.findOne({
           name: { $regex: `^${updateData.name}$`, $options: "i" },
         });
@@ -194,21 +158,6 @@ export async function PATCH(request: NextRequest) {
           });
         }
       }
-    } else if (!originalDestination && updateData.name) {
-      // If original not found but name is provided, create location
-      const nameExists = await locationsCollection.findOne({
-        name: { $regex: `^${updateData.name}$`, $options: "i" },
-      });
-
-      if (!nameExists) {
-        await locationsCollection.insertOne({
-          name: updateData.name,
-          destinationId: new ObjectId(id),
-          active: true,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
-      }
     }
 
     return NextResponse.json({ success: true });
@@ -218,34 +167,19 @@ export async function PATCH(request: NextRequest) {
       { error: "Failed to update destination" },
       { status: 500 }
     );
-  } finally {
-    if (client) {
-      await client.close();
-    }
   }
 }
 
 export async function DELETE(request: NextRequest) {
-  let client: MongoClient | null = null;
   try {
-    if (!MONGODB_URI) {
-      return NextResponse.json(
-        { error: "Database not configured" },
-        { status: 500 }
-      );
-    }
-
     const body = await request.json();
     const id = body.id;
 
-    if (!id) {
-      return NextResponse.json({ error: "Destination ID required" }, { status: 400 });
+    if (!id || !ObjectId.isValid(id)) {
+      return NextResponse.json({ error: "Valid destination ID required" }, { status: 400 });
     }
 
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-
-    const db = client.db(MONGODB_DB);
+    const db = await getDb(MONGODB_DB);
     const destinationsCollection = db.collection("destinations");
     const locationsCollection = db.collection("locations");
 
@@ -265,9 +199,5 @@ export async function DELETE(request: NextRequest) {
       { error: "Failed to delete destination" },
       { status: 500 }
     );
-  } finally {
-    if (client) {
-      await client.close();
-    }
   }
 }

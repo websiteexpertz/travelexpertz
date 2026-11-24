@@ -102,7 +102,7 @@ export default function AboutPage() {
               whiteSpace: "nowrap",
             }}
           >
-            {hero?.title || "About TravelExpertz"}
+            {hero?.title || "About YatraExpertz"}
           </h1>
           <p
             style={{

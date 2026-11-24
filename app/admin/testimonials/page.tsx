@@ -193,28 +193,28 @@ export default function AdminTestimonials() {
 
     setUploadingMedia(true);
     try {
-      const newMediaList: TestimonialMedia[] = [...formData.media];
-
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+      const uploadPromises = Array.from(files).map(async (file) => {
         const body = new FormData();
         body.append("file", file);
-
         const res = await fetch("/api/upload", { method: "POST", body });
         if (res.ok) {
           const data = await res.json();
-          newMediaList.push({
+          return {
             type,
-            url: data.url,
-            thumbnailUrl: type === "photo" ? data.url : "/hero4.jpeg",
+            url: data.url as string,
+            thumbnailUrl: type === "photo" ? (data.url as string) : "/hero4.jpeg",
             altText: `${formData.propertyName || "Property"} ${type} review`,
-          });
+          };
         }
-      }
+        return null;
+      });
+
+      const results = await Promise.all(uploadPromises);
+      const validMedia = results.filter((item): item is NonNullable<typeof item> => Boolean(item));
 
       setFormData((prev) => ({
         ...prev,
-        media: newMediaList,
+        media: [...prev.media, ...validMedia],
       }));
     } catch (err) {
       console.error("Media upload error:", err);

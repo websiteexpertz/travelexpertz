@@ -68,7 +68,7 @@ const services = [
   },
   {
     id: "insurance" as ServiceType,
-    name: "Travel Insurance",
+    name: "Yatra Insurance",
     icon: "🛡️",
     description: "Comprehensive travel insurance for peace of mind",
     gradient: "linear-gradient(135deg, #1e40af 0%, #6366f1 100%)",
@@ -232,7 +232,7 @@ function ServicesContent() {
         <main style={{ backgroundColor: "#0B1D31", minHeight: "100vh" }}>
           <ComingSoonServicePage
             title="The Journey Is Almost Here"
-            description="Train ticket booking is coming soon to TravelExpertz. We're working on making your railway journeys simpler and more convenient."
+            description="Train ticket booking is coming soon to YatraExpertz. We're working on making your railway journeys simpler and more convenient."
             statusLabel="Coming Soon"
             imageSrc="/New-images/Trains.jpg"
             imageAlt="Scenic train journey through mountains"
@@ -989,7 +989,7 @@ function ServicesContent() {
             </div>
             <ComingSoonServicePage
               title="The Journey Is Almost Here"
-              description="Train ticket booking is coming soon to TravelExpertz. We're working on making your railway journeys simpler and more convenient."
+              description="Train ticket booking is coming soon to YatraExpertz. We're working on making your railway journeys simpler and more convenient."
               statusLabel="Coming Soon"
               imageSrc="/New-images/Trains.jpg"
               imageAlt="Scenic train journey through mountains"
@@ -1193,7 +1193,7 @@ function ServicesContent() {
                     fontWeight: 600,
                   }}
                 >
-                  Why Travel Expertz
+                  Why Yatra Expertz
                 </div>
                 <h2
                   style={{

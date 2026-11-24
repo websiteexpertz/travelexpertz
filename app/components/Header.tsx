@@ -27,20 +27,6 @@ type HeaderProps = {
   solidHeader?: boolean;
 };
 
-interface Package {
-  _id: string;
-  title?: string;
-  name?: string;
-  description: string;
-  duration: string;
-  location: string;
-  category?: string;
-  badge: string;
-  image: string;
-  price?: number;
-  comingSoon?: boolean;
-}
-
 const navItems: Array<{
   key: string;
   label: string;
@@ -73,26 +59,8 @@ export default function Header({
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState("User");
   const [mounted, setMounted] = useState(false);
-  const [packages, setPackages] = useState<Package[]>([]);
-  const [packagesLoading, setPackagesLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-
-  // Fetch packages from packages_list collection
-  const fetchPackages = async () => {
-    try {
-      setPackagesLoading(true);
-      const response = await fetch("/api/packages");
-      if (response.ok) {
-        const data = await response.json();
-        setPackages(Array.isArray(data) ? data : []);
-      }
-    } catch (error) {
-      console.error("Error fetching packages:", error);
-    } finally {
-      setPackagesLoading(false);
-    }
-  };
 
   useEffect(() => {
     setMounted(true);
@@ -106,8 +74,6 @@ export default function Header({
         setIsLoggedIn(false);
       }
     }
-    // Fetch packages on mount
-    fetchPackages();
 
     // Scroll listener for header background
     const handleScroll = () => {
@@ -148,7 +114,7 @@ export default function Header({
           <div className="flex items-center travel-header-row">
             <Link
               href="/"
-              aria-label="TravelExpertz Home"
+              aria-label="YatraExpertz Home"
               className="relative flex items-center justify-center shrink-0 overflow-hidden header-logo-link transition-transform hover:scale-105"
               style={{
                 height: "40px",
@@ -160,7 +126,7 @@ export default function Header({
             >
               <Image
                 src="/logo.webp"
-                alt="TravelExpertz — Har Yatra Banaye Yadgaar"
+                alt="YatraExpertz — Har Yatra Banaye Yadgaar"
                 fill
                 sizes="(max-width: 768px) 56px, 58px"
                 className="object-contain"

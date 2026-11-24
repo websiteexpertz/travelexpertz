@@ -1,10 +1,43 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import Header from "../components/Header";
 import DatePicker from "../components/DatePicker";
 import { formatDateShort } from "@/lib/utils/dateFormat";
 import ImageSlideshow from "../components/ImageSlideshow";
+import MapSidebarCard from "../components/MapSidebarCard";
+
+const InlinePropertiesMap = dynamic(
+  () => import("../components/InlinePropertiesMap"),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        style={{
+          width: "100%",
+          height: "calc(100vh - 6.5rem)",
+          minHeight: "560px",
+          borderRadius: "16px",
+          border: "1px solid #e2e8f0",
+          background: "#f8fafc",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "0.5rem",
+          color: "#64748b",
+          fontWeight: 600,
+        }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: "2rem", color: "#0066cc" }}>
+          map
+        </span>
+        <span>Loading interactive map...</span>
+      </div>
+    ),
+  }
+);
 
 interface Homestay {
   _id?: string;
@@ -150,49 +183,42 @@ const homestayHeroStyles = `
     50% { opacity: 0.5; }
   }
 
-  /* Two Column Layout */
+  /* Layout: Filters + Homestays + Map */
   .hotels-layout {
     display: grid;
-    grid-template-columns: 1fr 320px;
-    gap: 2rem;
+    grid-template-areas: "filters main";
+    grid-template-columns: 280px 1fr;
+    gap: 1.5rem;
     width: 100%;
     align-items: start;
   }
 
   .hotels-main {
-    grid-column: 1;
+    grid-area: main;
+    min-width: 0;
     width: 100%;
   }
 
   .filter-sidebar {
-    grid-column: 2;
-    width: 100%;
+    grid-area: filters;
+    width: 280px;
     height: fit-content;
     position: sticky;
     top: 100px;
   }
 
-  @media (max-width: 1200px) {
+  @media (max-width: 1024px) {
     .hotels-layout {
-      grid-template-columns: 1fr 280px;
-      gap: 1.5rem;
-    }
-  }
-
-  @media (max-width: 768px) {
-    .hotels-layout {
-      grid-template-columns: 1fr;
+      grid-template-areas: "main" !important;
+      grid-template-columns: 1fr !important;
       gap: 1.5rem;
     }
 
     .filter-sidebar {
-      grid-column: 1;
+      grid-area: auto !important;
+      width: 100% !important;
       position: static;
       order: -1;
-    }
-
-    .hotels-main {
-      grid-column: 1;
     }
   }
 `;
@@ -223,6 +249,7 @@ export default function Homestays() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<string>("featured");
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
 
   // Sidebar filter states
   const [selectedStars, setSelectedStars] = useState<number[]>([]);
@@ -664,28 +691,142 @@ export default function Homestays() {
             ></div>
           </div>
 
-          {/* Two Column Layout: Homestays + Filter Sidebar */}
-          <div className="hotels-layout">
-            {/* Left: Homestays Section */}
-            <div className="hotels-main">
+          {/* Layout: Homestays + Filter Sidebar + Inline Map */}
+          <div
+            className="hotels-layout"
+            style={{
+              display: "grid",
+              gridTemplateAreas: isMapModalOpen
+                ? `"filters main map"`
+                : `"filters main"`,
+              gridTemplateColumns: isMapModalOpen
+                ? "280px minmax(340px, 1fr) minmax(420px, 1.25fr)"
+                : "280px 1fr",
+              gap: "1.5rem",
+              alignItems: "flex-start",
+              marginTop: "1rem",
+              transition: "all 0.3s ease",
+            }}
+          >
+            {/* Middle: Homestays Section */}
+            <div className="hotels-main" style={{ gridArea: "main", minWidth: 0 }}>
               <div
                 style={{
-                  width: "100%",
-                  background:
-                    "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
-                  borderRadius: "16px",
-                  padding: "1.5rem",
-                  boxShadow: "0 2px 12px rgba(0, 0, 0, 0.08)",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "1.25rem",
+                  gap: "1rem",
+                  flexWrap: "wrap",
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", gap: "1rem" }}>
-                  <h2 style={{ fontSize: "1.3rem", fontWeight: 700, color: "#1f2937" }}>Featured Homestays</h2>
-                  <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} aria-label="Sort homestays" style={{ padding: "0.5rem 0.75rem", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
-                    <option value="featured">Featured</option>
-                    <option value="price-low">Price: Low to High</option>
-                    <option value="price-high">Price: High to Low</option>
-                    <option value="rating">Highest Rated</option>
-                  </select>
+                  <div>
+                    <h2
+                      style={{
+                        fontSize: "1.3rem",
+                        fontWeight: 700,
+                        color: "#1f2937",
+                        margin: "0 0 0.25rem",
+                      }}
+                    >
+                      Featured Homestays
+                    </h2>
+                    <p style={{ margin: 0, fontSize: "0.875rem", color: "#64748b" }}>
+                      <strong style={{ color: "#0f172a" }}>{filteredHomestays.length}</strong>{" "}
+                      {filteredHomestays.length === 1 ? "stay" : "stays"} found
+                    </p>
+                  </div>
+
+                  {/* Sort & Map Toggle Header Controls */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                    <select
+                      value={sortBy}
+                      onChange={(event) => setSortBy(event.target.value)}
+                      aria-label="Sort homestays"
+                      style={{
+                        padding: "0.6rem 0.95rem",
+                        borderRadius: "10px",
+                        border: "1.5px solid #cbd5e1",
+                        fontSize: "0.85rem",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        backgroundColor: "#ffffff",
+                        color: "#1e293b",
+                        boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+                      }}
+                    >
+                      <option value="featured">Newest</option>
+                      <option value="price-low">Price: Low to High</option>
+                      <option value="price-high">Price: High to Low</option>
+                      <option value="rating">Highest Rated</option>
+                    </select>
+
+                    {isMapModalOpen ? (
+                      <button
+                        onClick={() => setIsMapModalOpen(false)}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "0.35rem",
+                          padding: "0.6rem 0.95rem",
+                          background: "#ffffff",
+                          border: "1.5px solid #cbd5e1",
+                          borderRadius: "10px",
+                          color: "#334155",
+                          fontSize: "0.825rem",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+                          transition: "all 0.15s ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "#f8fafc";
+                          e.currentTarget.style.borderColor = "#94a3b8";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "#ffffff";
+                          e.currentTarget.style.borderColor = "#cbd5e1";
+                        }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: "1rem", color: "#64748b" }}>
+                          close
+                        </span>
+                        <span>Close Map</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setIsMapModalOpen(true)}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "0.35rem",
+                          padding: "0.6rem 0.95rem",
+                          background: "#ffffff",
+                          border: "1.5px solid #cbd5e1",
+                          borderRadius: "10px",
+                          color: "#0066cc",
+                          fontSize: "0.825rem",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+                          transition: "all 0.15s ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "#eff6ff";
+                          e.currentTarget.style.borderColor = "#93c5fd";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "#ffffff";
+                          e.currentTarget.style.borderColor = "#cbd5e1";
+                        }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: "1rem", color: "#0066cc" }}>
+                          map
+                        </span>
+                        <span>Show Map</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div
                   className="homestays-grid"
@@ -910,11 +1051,18 @@ export default function Homestays() {
                       </a>
                     ))}
                 </div>
-              </div>
             </div>
 
-            {/* Right: Filter Sidebar */}
-            <div className="filter-sidebar">
+            {/* Filter Sidebar */}
+            <div className="filter-sidebar" style={{ gridArea: "filters", width: "280px" }}>
+              {/* MAP TOGGLE CARD (Only when map is closed - Matches Hotel page) */}
+              {!isMapModalOpen && (
+                <MapSidebarCard
+                  pinnedCount={filteredHomestays.length || homestays.length}
+                  onOpenMap={() => setIsMapModalOpen(true)}
+                />
+              )}
+
               <div
                 style={{
                   background: "#ffffff",
@@ -1335,6 +1483,29 @@ export default function Homestays() {
                 )}
               </div>
             </div>
+
+            {/* INLINE PROPERTIES MAP ON SAME PAGE (Sticky in viewport while scrolling through homestay cards) */}
+            {isMapModalOpen && (
+              <div
+                style={{
+                  gridArea: "map",
+                  minWidth: 0,
+                  width: "100%",
+                  position: "sticky",
+                  top: "5rem",
+                  height: "calc(100vh - 6.5rem)",
+                  maxHeight: "calc(100vh - 6.5rem)",
+                  alignSelf: "flex-start",
+                  zIndex: 20,
+                }}
+              >
+                <InlinePropertiesMap
+                  properties={filteredHomestays.length > 0 ? (filteredHomestays as any) : (homestays as any)}
+                  onClose={() => setIsMapModalOpen(false)}
+                  baseRoute="/homestays"
+                />
+              </div>
+            )}
           </div>
         </div>
       </main>

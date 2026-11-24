@@ -45,7 +45,7 @@ function generateEmailTemplate(booking: any): string {
     train: "Train Ticket",
     visa: "Visa Application",
     forex: "Forex & Currency Exchange",
-    insurance: "Travel Insurance",
+    insurance: "Yatra Insurance",
   };
 
   const serviceName = serviceLabels[booking.serviceType] || booking.serviceType;
@@ -132,7 +132,7 @@ function generateEmailTemplate(booking: any): string {
                     Received on ${new Date(booking.createdAt).toLocaleString()}
                   </p>
                   <p style="margin: 10px 0 0 0; color: #9ca3af; font-size: 12px;">
-                    © ${new Date().getFullYear()} TravelExpertz. All rights reserved.
+                    © ${new Date().getFullYear()} YatraExpertz. All rights reserved.
                   </p>
                 </td>
               </tr>

@@ -29,7 +29,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
     const transporter = createTransporter();
 
     const mailOptions = {
-      from: `"TravelExpertz" <${process.env.SMTP_USER}>`,
+      from: `"YatraExpertz" <${process.env.SMTP_USER}>`,
       to: options.to,
       subject: options.subject,
       html: options.html,
@@ -57,7 +57,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
 export async function sendOTP(email: string, otp: string): Promise<boolean> {
   console.log("🔐 GENERATED OTP:", otp, "for email:", email);
   
-  const subject = 'Your OTP for TravelExpertz';
+  const subject = 'Your OTP for YatraExpertz';
   const html = `
     <!DOCTYPE html>
     <html>
@@ -76,13 +76,13 @@ export async function sendOTP(email: string, otp: string): Promise<boolean> {
     <body>
       <div class="container">
         <div class="header">
-          <h1 style="margin: 0;">🌍 TravelExpertz</h1>
-          <p style="margin: 10px 0 0 0;">Your Travel, Our Expertise</p>
+          <h1 style="margin: 0;">🌍 YatraExpertz</h1>
+          <p style="margin: 10px 0 0 0;">Your Yatra, Our Expertise</p>
         </div>
         <div class="content">
           <h2 style="color: #1f2937; margin-top: 0;">Email Verification</h2>
           <p>Hello,</p>
-          <p>Thank you for registering with TravelExpertz. Please use the following OTP to verify your email address:</p>
+          <p>Thank you for registering with YatraExpertz. Please use the following OTP to verify your email address:</p>
           
           <div class="otp-box">
             <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 14px;">Your OTP Code</p>
@@ -91,15 +91,15 @@ export async function sendOTP(email: string, otp: string): Promise<boolean> {
           </div>
           
           <div class="warning">
-            <strong>⚠️ Security Notice:</strong> Never share this OTP with anyone. TravelExpertz will never ask for your OTP via phone or email.
+            <strong>⚠️ Security Notice:</strong> Never share this OTP with anyone. YatraExpertz will never ask for your OTP via phone or email.
           </div>
           
           <p>If you didn't request this OTP, please ignore this email or contact our support team.</p>
           
-          <p style="margin-top: 20px;">Best regards,<br><strong>TravelExpertz Team</strong></p>
+          <p style="margin-top: 20px;">Best regards,<br><strong>YatraExpertz Team</strong></p>
         </div>
         <div class="footer">
-          <p style="margin: 0;">© 2026 TravelExpertz. All rights reserved.</p>
+          <p style="margin: 0;">© 2026 YatraExpertz. All rights reserved.</p>
           <p style="margin: 5px 0 0 0;">This is an automated email. Please do not reply.</p>
         </div>
       </div>
@@ -107,7 +107,7 @@ export async function sendOTP(email: string, otp: string): Promise<boolean> {
     </html>
   `;
   
-  const text = `Your OTP for TravelExpertz is: ${otp}. Valid for 10 minutes. Do not share this OTP with anyone.`;
+  const text = `Your OTP for YatraExpertz is: ${otp}. Valid for 10 minutes. Do not share this OTP with anyone.`;
   
   return sendEmail({ to: email, subject, html, text });
 }

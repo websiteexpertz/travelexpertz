@@ -22,7 +22,7 @@ export default function Footer() {
             <h2>
               <Image
                 src="/logo.webp"
-                alt="TravelExpertz"
+                alt="YatraExpertz"
                 width={120}
                 height={120}
                 className="footer-logo-img object-contain"
@@ -129,7 +129,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="footer-bottom">
           <p className="footer-copyright">
-            © {new Date().getFullYear()} TravelExpertz. All rights reserved.
+            © {new Date().getFullYear()} YatraExpertz. All rights reserved.
           </p>
           <p className="footer-tagline">
             Made with ❤️ for travelers everywhere

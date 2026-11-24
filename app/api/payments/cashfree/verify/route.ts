@@ -1,5 +1,6 @@
 import { MongoClient, ObjectId } from "mongodb";
 import { NextResponse } from "next/server";
+import { enqueueBookingConfirmedNotifications } from "@/lib/services/notifications/queue";
 
 const cashfreeBaseUrl =
   process.env.CASHFREE_ENV === "production"
@@ -29,22 +30,24 @@ export async function POST(request: Request) {
 
     if (booking.cashfreeOrderId.startsWith("DEV_") || !appId || !secretKey) {
       if (process.env.NODE_ENV !== "production") {
-        await bookings.updateOne(
-          { _id: new ObjectId(bookingId) },
-          {
-            $set: {
-              paymentStatus: "paid",
-              bookingStatus: "confirmed",
-              paymentGateway: "cashfree_simulated",
-              paymentId: booking.cashfreeOrderId,
-              paymentMethod: "simulated",
-              paidAt: new Date(),
-              updatedAt: new Date(),
-            },
-          }
-        );
+        const isAlreadyPaid = booking.paymentStatus === "paid" && booking.bookingStatus === "confirmed";
 
-        if (booking.paymentStatus !== "paid") {
+        if (!isAlreadyPaid) {
+          await bookings.updateOne(
+            { _id: new ObjectId(bookingId) },
+            {
+              $set: {
+                paymentStatus: "paid",
+                bookingStatus: "confirmed",
+                paymentGateway: "cashfree_simulated",
+                paymentId: booking.cashfreeOrderId,
+                paymentMethod: "simulated",
+                paidAt: new Date(),
+                updatedAt: new Date(),
+              },
+            }
+          );
+
           const propertyId = booking.hotelId || booking.homestayId;
           const propertyCollection = booking.hotelId ? "hotels" : "homestays";
           if (propertyId && booking.roomId) {
@@ -53,6 +56,12 @@ export async function POST(request: Request) {
               { $inc: { "rooms.$.availability": -1 } }
             );
           }
+        }
+
+        try {
+          await enqueueBookingConfirmedNotifications(bookingId, { database: db });
+        } catch (queueErr) {
+          console.error("Error enqueuing simulated booking notifications:", queueErr);
         }
 
         await client.close();
@@ -79,40 +88,50 @@ export async function POST(request: Request) {
     }
 
     if (order.order_status === "PAID") {
-      const paymentsResponse = await fetch(`${cashfreeBaseUrl}/orders/${encodeURIComponent(booking.cashfreeOrderId)}/payments`, {
-        headers: {
-          "x-client-id": appId,
-          "x-client-secret": secretKey,
-          "x-api-version": "2023-08-01",
-        },
-      });
-      const payments = await paymentsResponse.json();
-      const successfulPayment = Array.isArray(payments)
-        ? payments.find((payment: { payment_status?: string }) => payment.payment_status === "SUCCESS")
-        : undefined;
+      const isAlreadyPaid = booking.paymentStatus === "paid" && booking.bookingStatus === "confirmed";
 
-      await bookings.updateOne(
-        { _id: new ObjectId(bookingId) },
-        {
-          $set: {
-            paymentStatus: "paid",
-            bookingStatus: "confirmed",
-            paymentGateway: "cashfree",
-            paymentId: successfulPayment?.cf_payment_id?.toString() || booking.cashfreeOrderId,
-            paymentMethod: successfulPayment?.payment_group || "cashfree",
-            paidAt: new Date(),
-            updatedAt: new Date(),
+      if (!isAlreadyPaid) {
+        const paymentsResponse = await fetch(`${cashfreeBaseUrl}/orders/${encodeURIComponent(booking.cashfreeOrderId)}/payments`, {
+          headers: {
+            "x-client-id": appId,
+            "x-client-secret": secretKey,
+            "x-api-version": "2023-08-01",
           },
-        }
-      );
+        });
+        const payments = await paymentsResponse.json();
+        const successfulPayment = Array.isArray(payments)
+          ? payments.find((payment: { payment_status?: string }) => payment.payment_status === "SUCCESS")
+          : undefined;
 
-      if (booking.paymentStatus !== "paid") {
+        await bookings.updateOne(
+          { _id: new ObjectId(bookingId) },
+          {
+            $set: {
+              paymentStatus: "paid",
+              bookingStatus: "confirmed",
+              paymentGateway: "cashfree",
+              paymentId: successfulPayment?.cf_payment_id?.toString() || booking.cashfreeOrderId,
+              paymentMethod: successfulPayment?.payment_group || "cashfree",
+              paidAt: new Date(),
+              updatedAt: new Date(),
+            },
+          }
+        );
+
         const propertyId = booking.hotelId || booking.homestayId;
         const propertyCollection = booking.hotelId ? "hotels" : "homestays";
-        await db.collection(propertyCollection).updateOne(
-          { _id: new ObjectId(propertyId), "rooms.id": booking.roomId },
-          { $inc: { "rooms.$.availability": -1 } }
-        );
+        if (propertyId && booking.roomId) {
+          await db.collection(propertyCollection).updateOne(
+            { _id: new ObjectId(propertyId), "rooms.id": booking.roomId },
+            { $inc: { "rooms.$.availability": -1 } }
+          );
+        }
+      }
+
+      try {
+        await enqueueBookingConfirmedNotifications(bookingId, { database: db });
+      } catch (queueErr) {
+        console.error("Error enqueuing booking notifications on Cashfree verify:", queueErr);
       }
 
       await client.close();

@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { MongoClient, GridFSBucket, ObjectId } from "mongodb";
+import { getGridFSBucket } from "@/lib/db";
 import { Readable } from "stream";
 
-const MONGODB_URI = process.env.MONGODB_URI || "";
-const MONGODB_DB = process.env.MONGODB_DB || "travelexpertz";
-
+export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
-  let client: MongoClient | null = null;
-  
+  const startTime = Date.now();
   try {
     const formData = await request.formData();
     const files = formData.getAll("file") as File[];
@@ -21,67 +18,73 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!MONGODB_URI) {
-      return NextResponse.json(
-        { error: "Database not configured" },
-        { status: 500 }
-      );
-    }
+    // 1. Reuse shared MongoDB connection pool
+    const bucket = await getGridFSBucket("uploads");
 
-    // Connect to MongoDB
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-    const db = client.db(MONGODB_DB);
+    // 2. Upload each file concurrently to GridFS with streaming
+    const uploadedFiles = await Promise.all(
+      files.map(async (file) => {
+        const timestamp = Date.now();
+        const randomStr = Math.random().toString(36).substring(7);
+        const safeName = file.name
+          .toLowerCase()
+          .replace(/\s+/g, "-")
+          .replace(/[^a-z0-9.-]/g, "");
+        const filename = `${timestamp}-${randomStr}-${safeName}`;
 
-    // Create GridFS bucket
-    const bucket = new GridFSBucket(db, { bucketName: "uploads" });
+        const uploadStream = bucket.openUploadStream(filename, {
+          metadata: {
+            contentType: file.type || "application/octet-stream",
+            originalName: file.name,
+            uploadedAt: new Date(),
+            size: file.size,
+          },
+        });
 
-    const uploadedFiles = [];
+        await new Promise<void>((resolve, reject) => {
+          uploadStream.on("error", reject);
+          uploadStream.on("finish", () => resolve());
 
-    // Upload each file
-    for (const file of files) {
-      // Generate unique filename
-      const timestamp = Date.now();
-      const randomStr = Math.random().toString(36).substring(7);
-      const safeName = file.name
-        .toLowerCase()
-        .replace(/\s+/g, "-")
-        .replace(/[^a-z0-9.-]/g, "");
-      const filename = `${timestamp}-${randomStr}-${safeName}`;
+          // Pipe directly from Web ReadableStream without buffering full file into memory
+          if (typeof file.stream === "function") {
+            try {
+              const nodeStream = Readable.fromWeb(file.stream() as any);
+              nodeStream.pipe(uploadStream);
+              return;
+            } catch {
+              // Fallback below
+            }
+          }
 
-      // Convert file to buffer
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
+          file
+            .arrayBuffer()
+            .then((bytes) => {
+              uploadStream.end(Buffer.from(bytes));
+            })
+            .catch(reject);
+        });
 
-      // Create readable stream from buffer
-      const readableStream = Readable.from(buffer);
+        const url = `/api/files/${uploadStream.id}`;
+        return { url, fileId: uploadStream.id };
+      })
+    );
 
-      // Upload to GridFS
-      const uploadStream = bucket.openUploadStream(filename, {
-        metadata: {
-          contentType: file.type,
-          originalName: file.name,
-          uploadedAt: new Date(),
-        },
-      });
-
-      // Pipe the file to GridFS
-      await new Promise((resolve, reject) => {
-        readableStream.pipe(uploadStream)
-          .on("error", reject)
-          .on("finish", resolve);
-      });
-
-      const url = `/api/files/${uploadStream.id}`;
-      uploadedFiles.push({ url, fileId: uploadStream.id });
-      console.log(`File uploaded successfully to GridFS: ${url}`);
-    }
+    const duration = Date.now() - startTime;
+    const responseHeaders = {
+      "Server-Timing": `upload;dur=${duration}`,
+    };
 
     // Return single file or array based on input
     if (uploadedFiles.length === 1) {
-      return NextResponse.json(uploadedFiles[0], { status: 200 });
+      return NextResponse.json(uploadedFiles[0], {
+        status: 200,
+        headers: responseHeaders,
+      });
     } else {
-      return NextResponse.json({ files: uploadedFiles }, { status: 200 });
+      return NextResponse.json(
+        { files: uploadedFiles },
+        { status: 200, headers: responseHeaders }
+      );
     }
   } catch (error) {
     console.error("Upload error:", error);
@@ -89,9 +92,5 @@ export async function POST(request: NextRequest) {
       { error: "Failed to upload file" },
       { status: 500 }
     );
-  } finally {
-    if (client) {
-      await client.close();
-    }
   }
 }

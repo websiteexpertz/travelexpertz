@@ -735,10 +735,10 @@ export default function CabsPage() {
         <Header currentPage="cabs" solidHeader />
         <ComingSoonServicePage
           title="Your Next Road Trip Starts Soon"
-          description="We're preparing an easier way to book outstation cabs, airport transfers, and comfortable journeys with TravelExpertz."
+          description="We're preparing an easier way to book outstation cabs, airport transfers, and comfortable journeys with YatraExpertz."
           statusLabel="Coming Soon"
           imageSrc="/New-images/Taxi.jpg"
-          imageAlt="TravelExpertz Road Trip and Outstation Cabs"
+          imageAlt="YatraExpertz Road Trip and Outstation Cabs"
           ctaLabel="Explore Hotels"
           ctaHref="/hotels"
           note="Cab booking is not available yet."

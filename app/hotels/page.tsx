@@ -505,7 +505,7 @@ function HotelsContent() {
                 }}
               >
                 {searchParams.get("verified") === "1"
-                  ? "Quality Checked. Travel Expertz Approved"
+                  ? "Quality Checked. Yatra Expertz Approved"
                   : "Experience Comfort Beyond Expectations."}
               </h1>
 
@@ -671,24 +671,14 @@ function HotelsContent() {
             <div className="hotels-main" style={{ gridArea: "main", minWidth: 0 }}>
               <div
                 style={{
-                  width: "100%",
-                  background:
-                    "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
-                  borderRadius: "16px",
-                  padding: "1.5rem",
-                  boxShadow: "0 2px 12px rgba(0, 0, 0, 0.08)",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "1.25rem",
+                  gap: "1rem",
+                  flexWrap: "wrap",
                 }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: "1.5rem",
-                    gap: "1rem",
-                    flexWrap: "wrap",
-                  }}
-                >
                   <div>
                     <h2
                       style={{
@@ -1055,7 +1045,6 @@ function HotelsContent() {
                       </a>
                     ))}
                 </div>
-              </div>
             </div>
 
             {/* Right: Filter Sidebar */}
@@ -1521,6 +1510,7 @@ function HotelsContent() {
                 <InlinePropertiesMap
                   properties={filteredHotels.length > 0 ? filteredHotels : hotels}
                   onClose={() => setIsMapModalOpen(false)}
+                  baseRoute="/hotels"
                 />
               </div>
             )}

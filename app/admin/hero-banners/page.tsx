@@ -1069,8 +1069,8 @@ export default function HeroBannersAdmin() {
             </h3>
             <p style={{ color: "#64748b", fontSize: "0.9rem", maxWidth: "450px", margin: "0 auto 1.5rem" }}>
               {activeTab === "city"
-                ? `When no custom city slides are active, TravelExpertz automatically falls back to ${selectedState}'s state slides.`
-                : `When no custom slides are active, TravelExpertz shows the generic destination banner. Click below to add the first slide!`}
+                ? `When no custom city slides are active, YatraExpertz automatically falls back to ${selectedState}'s state slides.`
+                : `When no custom slides are active, YatraExpertz shows the generic destination banner. Click below to add the first slide!`}
             </p>
             <button
               onClick={handleOpenAddModal}

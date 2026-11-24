@@ -411,7 +411,7 @@ export default function HomestayDetailPage() {
 
   return (
     <div className="relative flex min-h-screen w-full flex-col bg-[#f4f5f7] font-sans antialiased text-[#1f2937]">
-      {/* TravelExpertz Header */}
+      {/* YatraExpertz Header */}
       <Header currentPage="homestays" />
 
       {/* =========================================================================
@@ -853,7 +853,7 @@ export default function HomestayDetailPage() {
           alignItems: "start",
           width: "100%",
         }}
-        className="max-lg:!grid-cols-1"
+        className="max-lg:!grid-cols-1 property-details-grid"
       >
         {/* =====================================================================
             LEFT COLUMN
@@ -889,7 +889,7 @@ export default function HomestayDetailPage() {
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 700, color: "#003b7a" }}>
-                TravelExpertz Best Rate &amp; Verified Stay Guarantee
+                YatraExpertz Best Rate &amp; Verified Stay Guarantee
               </h3>
               <p style={{ margin: "0.15rem 0 0", fontSize: "0.8rem", color: "#0052a3" }}>
                 Enjoy transparent pricing, 100% verified accommodations, and zero traveler service fees.
@@ -1856,8 +1856,9 @@ export default function HomestayDetailPage() {
         {/* =====================================================================
             RIGHT COLUMN: STICKY ENQUIRY & BOOKING CARD (MATCHING REFERENCE EXACTLY)
             ===================================================================== */}
-        <div id="sidebar-booking" style={{ position: "sticky", top: "75px" }}>
+        <div id="sidebar-booking" className="sidebar-booking-card" style={{ position: "sticky", top: "80px" }}>
           <div
+            className="sidebar-booking-scroll"
             style={{
               background: "#ffffff",
               borderRadius: "16px",

@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { MongoClient, GridFSBucket } from "mongodb";
+import { getGridFSBucket } from "./db";
 import { Readable } from "stream";
 
 const MONGODB_URI = process.env.MONGODB_URI || "";
@@ -122,45 +122,34 @@ export async function uploadImage({
   }
 
   // 2. Fallback to MongoDB GridFS (existing media storage in project)
-  if (!MONGODB_URI) {
-    throw new Error("Neither Cloudinary nor MongoDB storage is available.");
-  }
+  const bucket = await getGridFSBucket("uploads");
 
-  const client = new MongoClient(MONGODB_URI);
-  await client.connect();
-  try {
-    const db = client.db(MONGODB_DB);
-    const bucket = new GridFSBucket(db, { bucketName: "uploads" });
+  const safeName = filename
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9.-]/g, "");
+  const uniqueName = `${Date.now()}-${safeName}`;
 
-    const safeName = filename
-      .toLowerCase()
-      .replace(/\s+/g, "-")
-      .replace(/[^a-z0-9.-]/g, "");
-    const uniqueName = `${Date.now()}-${safeName}`;
+  const readableStream = Readable.from(buffer);
+  const uploadStream = bucket.openUploadStream(uniqueName, {
+    metadata: {
+      contentType: mimeType,
+      originalName: filename,
+      country,
+      state,
+      uploadedAt: new Date(),
+    },
+  });
 
-    const readableStream = Readable.from(buffer);
-    const uploadStream = bucket.openUploadStream(uniqueName, {
-      metadata: {
-        contentType: mimeType,
-        originalName: filename,
-        country,
-        state,
-        uploadedAt: new Date(),
-      },
-    });
+  await new Promise((resolve, reject) => {
+    readableStream.pipe(uploadStream).on("error", reject).on("finish", resolve);
+  });
 
-    await new Promise((resolve, reject) => {
-      readableStream.pipe(uploadStream).on("error", reject).on("finish", resolve);
-    });
-
-    return {
-      url: `/api/files/${uploadStream.id}`,
-      publicId: uploadStream.id.toString(),
-      provider: "gridfs",
-    };
-  } finally {
-    await client.close();
-  }
+  return {
+    url: `/api/files/${uploadStream.id}`,
+    publicId: uploadStream.id.toString(),
+    provider: "gridfs",
+  };
 }
 
 /**

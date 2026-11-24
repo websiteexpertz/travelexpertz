@@ -12,7 +12,7 @@ export default function PrivacyPolicy() {
           1. Introduction
         </h2>
         <p style={{ color: "#555", lineHeight: "1.6" }}>
-          TravelExpertz ("we," "us," "our," or "Company") respects the privacy
+          YatraExpertz ("we," "us," "our," or "Company") respects the privacy
           of our users ("user" or "you"). This Privacy Policy explains how we
           collect, use, disclose, and safeguard your information when you visit
           our website.
@@ -172,7 +172,7 @@ export default function PrivacyPolicy() {
             <strong>Email:</strong> privacy@travelexpertz.com
           </p>
           <p>
-            <strong>Address:</strong> TravelExpertz, [Your Address Here]
+            <strong>Address:</strong> YatraExpertz, [Your Address Here]
           </p>
         </div>
       </section>

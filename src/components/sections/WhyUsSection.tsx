@@ -61,7 +61,7 @@ const defaultFeatures: Feature[] = [
 ];
 
 export const WhyUsSection: React.FC<WhyUsSectionProps> = ({
-  title = "Why Choose TravelExpertz?",
+  title = "Why Choose YatraExpertz?",
   subtitle = "We make travel booking simple, secure, and affordable",
   features = defaultFeatures,
 }) => {

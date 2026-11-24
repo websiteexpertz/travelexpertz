@@ -2359,3 +2359,52 @@ footer::after {
     margin-top: 2rem;
   }
 }
+
+/* Property Details Page Responsive Grid & Independent Sidebar Scroll */
+@media (max-width: 1024px) {
+  .property-details-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.sidebar-booking-card {
+  position: sticky;
+  top: 80px;
+  z-index: 20;
+}
+
+.sidebar-booking-scroll {
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.sidebar-booking-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sidebar-booking-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-booking-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.sidebar-booking-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+@media (max-width: 1024px) {
+  .sidebar-booking-card {
+    position: static !important;
+    top: auto !important;
+  }
+  .sidebar-booking-scroll {
+    max-height: none !important;
+    overflow-y: visible !important;
+  }
+}

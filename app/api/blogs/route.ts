@@ -1,8 +1,7 @@
-import { MongoClient } from "mongodb";
+import { getDb } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { SAMPLE_BLOGS } from "@/app/data/sampleBlogs";
 
-const uri = process.env.MONGODB_URI || "mongodb://localhost:27017";
 const dbName = process.env.MONGODB_DB || "travelexpertz";
 
 export async function GET(request: NextRequest) {
@@ -14,9 +13,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "12");
     const sort = searchParams.get("sort") || "newest";
 
-    const client = new MongoClient(uri);
-    await client.connect();
-    const db = client.db(dbName);
+    const db = await getDb(dbName);
     const blogsCollection = db.collection("blogs");
 
     // Build query
@@ -45,8 +42,6 @@ export async function GET(request: NextRequest) {
 
     // Get all unique categories for filter
     const allCategories = await blogsCollection.distinct("categories");
-
-    await client.close();
 
     // Merge database blogs with sample blogs so all blogs (new and existing) are shown
     const map = new Map<string, any>();

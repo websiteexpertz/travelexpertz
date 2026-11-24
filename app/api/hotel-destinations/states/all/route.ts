@@ -1,23 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { MongoClient, ObjectId } from "mongodb";
+import { getDb } from "@/lib/db";
 
-const MONGODB_URI = process.env.MONGODB_URI || "";
 const MONGODB_DB = process.env.MONGODB_DB || "travelexpertz";
 
 export async function GET(request: NextRequest) {
-  let client: MongoClient | null = null;
   try {
-    if (!MONGODB_URI) {
-      return NextResponse.json(
-        { error: "Database not configured" },
-        { status: 503 }
-      );
-    }
-
-    client = new MongoClient(MONGODB_URI);
-    await client.connect();
-
-    const db = client.db(MONGODB_DB);
+    const db = await getDb(MONGODB_DB);
     const statesCollection = db.collection("hotel_destination_states");
 
     // Get all states with full data
@@ -40,9 +28,5 @@ export async function GET(request: NextRequest) {
       { error: "Failed to fetch states" },
       { status: 500 }
     );
-  } finally {
-    if (client) {
-      await client.close();
-    }
   }
 }

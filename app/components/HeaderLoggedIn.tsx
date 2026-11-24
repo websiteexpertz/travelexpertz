@@ -89,7 +89,7 @@ export default function HeaderLoggedIn({
           <div className="flex items-center travel-header-row" style={{ height: "76px", width: "100%" }}>
             <Link
               href="/"
-              aria-label="TravelExpertz Home"
+              aria-label="YatraExpertz Home"
               className="relative flex items-center justify-center shrink-0 overflow-hidden header-logo-link"
               style={{
                 height: "40px",
@@ -101,7 +101,7 @@ export default function HeaderLoggedIn({
             >
               <Image
                 src="/logo.webp"
-                alt="TravelExpertz — Har Yatra Banaye Yadgaar"
+                alt="YatraExpertz — Har Yatra Banaye Yadgaar"
                 fill
                 sizes="(max-width: 768px) 56px, 58px"
                 className="object-contain"

@@ -30,7 +30,7 @@ interface FooterProps {
 
 export const Footer: React.FC<FooterProps> = ({
   columns = [],
-  copyright = `© ${new Date().getFullYear()} TravelExpertz. All rights reserved.`,
+  copyright = `© ${new Date().getFullYear()} YatraExpertz. All rights reserved.`,
   socialLinks = [],
 }) => {
   return (

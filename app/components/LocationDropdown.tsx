@@ -55,6 +55,14 @@ export const LocationDropdown: React.FC<LocationDropdownProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const locationsCacheRef = useRef(new Map<string, Location[]>());
+  const lastClickRef = useRef<{ id: string; time: number } | null>(null);
+  const clickTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     setInputValue(value);
@@ -76,7 +84,7 @@ export const LocationDropdown: React.FC<LocationDropdownProps> = ({
 
   useEffect(() => {
     const query = inputValue.trim();
-    if (!isOpen || query.length < 2) {
+    if (!isOpen || query.length < 1) {
       setLocations([]);
       setLoading(false);
       setError("");
@@ -97,10 +105,8 @@ export const LocationDropdown: React.FC<LocationDropdownProps> = ({
     setError("");
     const timeout = window.setTimeout(async () => {
       try {
-        const response = await fetch(
-          `/api/locations?search=${encodeURIComponent(query)}${providerOnly ? "&source=photon" : ""}`,
-          { signal: controller.signal },
-        );
+        const url = `/api/locations?search=${encodeURIComponent(query)}${providerOnly ? "&source=photon" : ""}`;
+        const response = await fetch(url, { signal: controller.signal });
         const data = await response.json();
         if (!response.ok) {
           throw new Error(
@@ -127,7 +133,7 @@ export const LocationDropdown: React.FC<LocationDropdownProps> = ({
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
-    }, 100);
+    }, 80);
 
     return () => {
       window.clearTimeout(timeout);
@@ -146,7 +152,7 @@ export const LocationDropdown: React.FC<LocationDropdownProps> = ({
     const nextValue = event.target.value;
     setInputValue(nextValue);
     setHighlightedIndex(-1);
-    setIsOpen(nextValue.trim().length >= 2);
+    setIsOpen(nextValue.trim().length >= 1);
     onChange(nextValue);
   };
 
@@ -216,19 +222,66 @@ export const LocationDropdown: React.FC<LocationDropdownProps> = ({
     return parts.join(", ");
   };
 
+  const openPropertyPage = (location: Location, selectedValue: string) => {
+    if (
+      location.type === "hotel" &&
+      location._id &&
+      !String(location._id).startsWith("seed:")
+    ) {
+      window.location.href = `/hotels/${location._id}`;
+      return;
+    }
+    if (
+      location.type === "homestay" &&
+      location._id &&
+      !String(location._id).startsWith("seed:")
+    ) {
+      window.location.href = `/homestays/${location._id}`;
+      return;
+    }
+
+    // Destination (city, state, area, or seed destination): open property search page for that destination
+    const locQuery = location.city || location.name || selectedValue;
+    window.location.href = `/hotels/search?location=${encodeURIComponent(locQuery)}`;
+  };
+
   /**
-   * When user selects an item, populate the input with the full flow:
-   * Area - City - State - Country (or Property, Area, City, State, Country)
+   * 1 Click = Select destination into the search input
+   * 2 Clicks / Twice = Open the property page for that destination
    */
-  const selectLocation = (location: Location) => {
+  const selectOrOpenLocation = (location: Location) => {
     const context = getContext(location);
     const selectedValue =
       location.displayName ||
       (context ? `${location.name}, ${context}` : location.name);
-    setInputValue(selectedValue);
-    onChange(selectedValue);
-    setIsOpen(false);
-    setHighlightedIndex(-1);
+
+    const locId = String(location._id || location.name);
+    const now = Date.now();
+    const isDouble =
+      (lastClickRef.current &&
+        lastClickRef.current.id === locId &&
+        now - lastClickRef.current.time < 600) ||
+      inputValue.trim().toLowerCase() === selectedValue.trim().toLowerCase();
+
+    if (isDouble) {
+      // 2nd click or double click -> Open property page for this destination
+      if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+      lastClickRef.current = null;
+      setIsOpen(false);
+      openPropertyPage(location, selectedValue);
+    } else {
+      // 1st click -> Select destination
+      lastClickRef.current = { id: locId, time: now };
+      setInputValue(selectedValue);
+      onChange(selectedValue);
+      setHighlightedIndex(-1);
+
+      // Keep dropdown responsive for a second click before closing
+      if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = setTimeout(() => {
+        setIsOpen(false);
+      }, 450);
+    }
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -260,7 +313,7 @@ export const LocationDropdown: React.FC<LocationDropdownProps> = ({
     if (event.key === "Enter" && isOpen) {
       if (highlightedIndex >= 0 && locations[highlightedIndex]) {
         event.preventDefault();
-        selectLocation(locations[highlightedIndex]);
+        selectOrOpenLocation(locations[highlightedIndex]);
       } else if (loading || locations.length > 0) {
         event.preventDefault();
       }
@@ -283,7 +336,9 @@ export const LocationDropdown: React.FC<LocationDropdownProps> = ({
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
         onFocus={() => {
-          if (inputValue.trim().length >= 2) setIsOpen(true);
+          if (inputValue.trim().length >= 1) {
+            setIsOpen(true);
+          }
         }}
         onBlur={() => {
           window.setTimeout(() => setIsOpen(false), 150);
@@ -407,7 +462,17 @@ export const LocationDropdown: React.FC<LocationDropdownProps> = ({
                     role="option"
                     aria-selected={highlightedIndex === index}
                     onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => selectLocation(location)}
+                    onClick={() => selectOrOpenLocation(location)}
+                    onDoubleClick={(e) => {
+                      e.preventDefault();
+                      if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+                      const context = getContext(location);
+                      const selectedValue =
+                        location.displayName ||
+                        (context ? `${location.name}, ${context}` : location.name);
+                      setIsOpen(false);
+                      openPropertyPage(location, selectedValue);
+                    }}
                     onMouseEnter={() => setHighlightedIndex(index)}
                     style={{
                       display: "flex",
