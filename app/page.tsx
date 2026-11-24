@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
   CalendarDays,
+  ChevronDown,
   ChevronRight,
   Compass,
   Headphones,
@@ -16,9 +17,11 @@ import {
   ShieldCheck,
   Sparkles,
   Star,
+  Users,
 } from "lucide-react";
 import Header from "./components/Header";
 import { LocationDropdown } from "./components/LocationDropdown";
+import GuestsDropdown, { GuestsValue } from "./components/GuestsDropdown";
 import ServiceEnquiryModal, {
   ServiceId,
 } from "./components/ServiceEnquiryModal";
@@ -478,6 +481,12 @@ export default function Home() {
   const [handpickedHomestays, setHandpickedHomestays] = useState<any[]>([]);
   const [blogs, setBlogs] = useState<any[]>([]);
   const [heroLocation, setHeroLocation] = useState("");
+  const [searchCategory, setSearchCategory] = useState<"hotel" | "homestay" | "package">("hotel");
+  const [guestsData, setGuestsData] = useState<GuestsValue>({
+    adults: 2,
+    children: 0,
+    rooms: 1,
+  });
   const [showReviewModal, setShowReviewModal] = useState(false);
 
   const heroSlides = [
@@ -578,13 +587,53 @@ export default function Home() {
   const searchStay = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
-    const params = new URLSearchParams({
-      location: String(data.get("location") || ""),
-      checkIn: String(data.get("checkIn") || ""),
-      checkOut: String(data.get("checkOut") || ""),
-      guests: "2",
-    });
-    window.location.href = `/hotels/search?${params}`;
+    const location = String(data.get("location") || heroLocation || "").trim();
+    const checkIn = String(data.get("checkIn") || "");
+    const checkOut = String(data.get("checkOut") || "");
+    const category = String(data.get("category") || searchCategory || "hotel");
+    const adults = guestsData.adults;
+    const children = guestsData.children;
+    const rooms = guestsData.rooms;
+    const totalGuests = adults + children;
+
+    if (category === "package") {
+      const params = new URLSearchParams();
+      if (location) params.set("search", location);
+      if (checkIn) params.set("checkIn", checkIn);
+      if (checkOut) params.set("checkOut", checkOut);
+      params.set("guests", String(totalGuests));
+      params.set("adults", String(adults));
+      params.set("children", String(children));
+      params.set("rooms", String(rooms));
+      window.location.href = `/packages?${params.toString()}`;
+      return;
+    }
+
+    if (category === "homestay") {
+      const params = new URLSearchParams();
+      if (location) params.set("location", location);
+      if (checkIn) params.set("checkIn", checkIn);
+      if (checkOut) params.set("checkOut", checkOut);
+      params.set("guests", String(totalGuests));
+      params.set("adults", String(adults));
+      params.set("children", String(children));
+      params.set("rooms", String(rooms));
+      params.set("type", "homestays");
+      window.location.href = `/hotels/search?${params.toString()}`;
+      return;
+    }
+
+    // Default: hotel
+    const params = new URLSearchParams();
+    if (location) params.set("location", location);
+    if (checkIn) params.set("checkIn", checkIn);
+    if (checkOut) params.set("checkOut", checkOut);
+    params.set("guests", String(totalGuests));
+    params.set("adults", String(adults));
+    params.set("children", String(children));
+    params.set("rooms", String(rooms));
+    params.set("type", "hotels");
+    window.location.href = `/hotels/search?${params.toString()}`;
   };
 
   const displayDestinations =
@@ -654,37 +703,74 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="stay-search-wrap" aria-label="Search stays">
+        <section className="stay-search-wrap" aria-label="Search stays and packages">
           <form className="stay-search" onSubmit={searchStay}>
-            <label>
-              <span>
-                <MapPin size={17} /> Destination
+            <div className="stay-search-field stay-search-field-destination">
+              <span className="stay-search-label">
+                <MapPin size={15} /> Destination
               </span>
-              <LocationDropdown
-                value={heroLocation}
-                onChange={setHeroLocation}
-                placeholder="Where do you want to go?"
-                transparent
-                variant="hero"
-                inputId="hero-destination"
-                required
-              />
+              <div className="stay-search-control">
+                <LocationDropdown
+                  value={heroLocation}
+                  onChange={setHeroLocation}
+                  placeholder="Where do you want to go?"
+                  transparent
+                  variant="hero"
+                  inputId="hero-destination"
+                  required
+                />
+              </div>
               <input type="hidden" name="location" value={heroLocation} />
-            </label>
-            <label>
-              <span>
-                <CalendarDays size={17} /> Check in
+            </div>
+
+            <div className="stay-search-field stay-search-field-category">
+              <span className="stay-search-label">
+                <Hotel size={15} /> Type
               </span>
-              <input name="checkIn" type="date" />
-            </label>
-            <label>
-              <span>
-                <CalendarDays size={17} /> Check out
+              <div className="stay-search-control stay-search-select-wrap">
+                <select
+                  name="category"
+                  value={searchCategory}
+                  onChange={(e) => setSearchCategory(e.target.value as any)}
+                  aria-label="Select booking category"
+                >
+                  <option value="hotel">Hotels</option>
+                  <option value="homestay">Homestays</option>
+                  <option value="package">Packages</option>
+                </select>
+                <ChevronDown size={15} className="stay-search-select-arrow" />
+              </div>
+            </div>
+
+            <div className="stay-search-field stay-search-field-checkin">
+              <span className="stay-search-label">
+                <CalendarDays size={15} /> Check in
               </span>
-              <input name="checkOut" type="date" />
-            </label>
-            <button type="submit">
-              Search stays <ArrowRight size={18} />
+              <div className="stay-search-control">
+                <input name="checkIn" type="date" />
+              </div>
+            </div>
+
+            <div className="stay-search-field stay-search-field-checkout">
+              <span className="stay-search-label">
+                <CalendarDays size={15} /> Check out
+              </span>
+              <div className="stay-search-control">
+                <input name="checkOut" type="date" />
+              </div>
+            </div>
+
+            <div className="stay-search-field stay-search-field-guests">
+              <span className="stay-search-label">
+                <Users size={15} /> Guests & Rooms
+              </span>
+              <div className="stay-search-control">
+                <GuestsDropdown value={guestsData} onChange={setGuestsData} />
+              </div>
+            </div>
+
+            <button type="submit" className="stay-search-btn">
+              Search <ArrowRight size={18} />
             </button>
           </form>
         </section>
