@@ -4,6 +4,7 @@ import { Readable } from "stream";
 import { getGridFSBucket } from "@/lib/db";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 // In-memory metadata cache to eliminate repetitive MongoDB Atlas roundtrips
 interface CachedFileMeta {

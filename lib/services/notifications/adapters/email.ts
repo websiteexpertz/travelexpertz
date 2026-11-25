@@ -1,10 +1,13 @@
 /**
  * Email Notification Adapter
- * Uses Nodemailer SMTP via lib/services/email.ts
+ * Uses Nodemailer & Gmail SMTP via lib/services/email.ts
+ * Integrates professional branded email templates from lib/services/notifications/email-templates.ts
  */
 
 import { NotificationAdapter, SendNotificationInput, SendNotificationResult } from "./types";
-import { sendEmail } from "../../email";
+import { sendMailWithResult, EmailAttachment } from "../../email";
+import { renderNotificationEmail } from "../email-templates";
+import { isEmailEnabled } from "../config";
 
 export class EmailNotificationAdapter implements NotificationAdapter {
   channel: "EMAIL" = "EMAIL";
@@ -12,25 +15,52 @@ export class EmailNotificationAdapter implements NotificationAdapter {
   async send(input: SendNotificationInput): Promise<SendNotificationResult> {
     const { recipient, type, bookingData } = input;
 
-    // 1. Validate email syntax
+    // 1. Validate email recipient syntax
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!recipient || !emailRegex.test(recipient)) {
       return {
         success: false,
         status: "BLOCKED",
         errorCode: "INVALID_EMAIL_RECIPIENT",
-        errorMessage: `Invalid email recipient address: ${recipient}`,
+        errorMessage: `Invalid email recipient address format: ${recipient}`,
         retryable: false,
       };
     }
 
-    // 2. Safe testing mode check (prevents real emails during Phase 2 / testing)
+    // 2. Check independent channel flag
+    const channelEnabled = isEmailEnabled();
+
+    // If channel is explicitly disabled, mark as BLOCKED without retry waste
+    if (!channelEnabled) {
+      return {
+        success: false,
+        status: "BLOCKED",
+        errorCode: "EMAIL_CHANNEL_DISABLED",
+        errorMessage: "Email notification channel is currently disabled by administrator configuration",
+        retryable: false,
+      };
+    }
+
+    // 3. Render branded template
+    let rendered;
+    try {
+      rendered = renderNotificationEmail(type, bookingData);
+    } catch (renderError: any) {
+      return {
+        success: false,
+        status: "FAILED",
+        errorCode: "EMAIL_TEMPLATE_RENDER_ERROR",
+        errorMessage: renderError?.message || "Failed rendering email template",
+        retryable: false,
+      };
+    }
+
+    // 4. Safe testing mode / mock fixture
     const isTestMode =
       process.env.NOTIFICATION_TEST_MODE === "true" ||
       process.env.NODE_ENV === "test";
 
     if (isTestMode) {
-      console.log(`[EmailAdapter:TEST_MODE] Mocked email send to ${recipient} for type ${type}`);
       return {
         success: true,
         status: "ACCEPTED",
@@ -39,59 +69,73 @@ export class EmailNotificationAdapter implements NotificationAdapter {
       };
     }
 
-    // 3. Render basic responsive template for Phase 2
-    const subject = `Booking Confirmation: ${bookingData.propertyName} (${bookingData.bookingReference}) - Yatra Expertz`;
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1f2937;">
-        <div style="background: #0066cc; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
-          <h1 style="margin: 0; font-size: 24px;">🌍 ${bookingData.brandName}</h1>
-          <p style="margin: 5px 0 0 0;">Booking Confirmation Voucher</p>
-        </div>
-        <div style="padding: 24px; border: 1px solid #e5e7eb; background: #ffffff;">
-          <p>Dear <strong>${bookingData.customerName}</strong>,</p>
-          <p>Your booking has been successfully confirmed at <strong>${bookingData.propertyName}</strong>.</p>
-          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-            <tr><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Reference:</strong></td><td style="padding: 8px; border-bottom: 1px solid #eee;">${bookingData.bookingReference}</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Check-in:</strong></td><td style="padding: 8px; border-bottom: 1px solid #eee;">${bookingData.checkinDate}</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Check-out:</strong></td><td style="padding: 8px; border-bottom: 1px solid #eee;">${bookingData.checkoutDate}</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Total Amount:</strong></td><td style="padding: 8px; border-bottom: 1px solid #eee;">₹${bookingData.totalAmount.toLocaleString("en-IN")}</td></tr>
-          </table>
-          <p>For inquiries, please visit <a href="${bookingData.portalUrl}">${bookingData.portalUrl}</a>.</p>
-        </div>
-      </div>
-    `;
+    // 5. Attachment readiness (Voucher/Invoice PDF from Phase 4 document engine)
+    const attachments: EmailAttachment[] = [];
+    if (input.bookingData && (input as any).documentBuffer) {
+      attachments.push({
+        filename:
+          (input as any).documentFilename ||
+          `Yatra-Expertz-Booking-Voucher-${bookingData.bookingReference}.pdf`,
+        content: (input as any).documentBuffer,
+        contentType: "application/pdf",
+      });
+    }
 
+    // 6. Live SMTP Dispatch via Nodemailer pooled transporter
     try {
-      const emailSent = await sendEmail({
+      const result = await sendMailWithResult({
         to: recipient,
-        subject,
-        html,
-        text: `Booking Reference: ${bookingData.bookingReference}. Property: ${bookingData.propertyName}.`,
+        subject: rendered.subject,
+        html: rendered.html,
+        text: rendered.text,
+        attachments: attachments.length > 0 ? attachments : undefined,
       });
 
-      if (emailSent) {
+      if (result.success && result.messageId) {
         return {
           success: true,
           status: "ACCEPTED",
-          providerMessageId: `smtp-${Date.now()}`,
+          providerMessageId: result.messageId,
           retryable: false,
         };
-      } else {
+      }
+
+      // Classify SMTP Error
+      const errorMsg = result.error?.message || "Unknown SMTP dispatch error";
+      const errorCode = result.error?.code || "";
+      const isRateLimit =
+        errorMsg.toLowerCase().includes("rate") ||
+        errorMsg.includes("421") ||
+        errorCode === "ETIMEDOUT";
+
+      const isAuthError =
+        errorMsg.includes("535") ||
+        errorCode === "EAUTH";
+
+      if (isAuthError) {
         return {
           success: false,
-          status: "FAILED",
-          errorCode: "SMTP_TRANSPORTER_FAILED",
-          errorMessage: "Nodemailer transporter failed to dispatch message",
-          retryable: true,
+          status: "BLOCKED",
+          errorCode: "SMTP_AUTH_FAILED",
+          errorMessage: "SMTP authentication failed. Verify SMTP_USER and SMTP_PASSWORD.",
+          retryable: false,
         };
       }
-    } catch (err: any) {
-      const isRateLimit = err?.message?.toLowerCase().includes("rate");
+
       return {
         success: false,
         status: "FAILED",
         errorCode: isRateLimit ? "SMTP_RATE_LIMITED" : "SMTP_TRANSIENT_ERROR",
-        errorMessage: err?.message || "Unknown SMTP error",
+        errorMessage: errorMsg,
+        retryable: true,
+        retryAfterMs: isRateLimit ? 120_000 : 30_000,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        status: "FAILED",
+        errorCode: "SMTP_DISPATCH_EXCEPTION",
+        errorMessage: err?.message || "Unhandled exception during SMTP delivery",
         retryable: true,
       };
     }

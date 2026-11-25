@@ -11,13 +11,19 @@ import {
   markNotificationDelivered,
   scheduleNotificationRetry,
   markNotificationFailed,
+  markNotificationBlocked,
+  markNotificationSkipped,
   markNotificationDeliveryUnknown,
 } from "./queue";
 import { buildBookingCommunicationData } from "./data-builder";
+import { validateReminderPreSendEligibility } from "./reminders";
+import { checkEmailSendingCapacity } from "./capacity-limiter";
 import { EmailNotificationAdapter } from "./adapters/email";
 import { WhatsAppNotificationAdapter } from "./adapters/whatsapp";
 import { NotificationAdapter, SendNotificationResult } from "./adapters/types";
 import { BookingNotification } from "../../models/notification";
+import { getOrGenerateBookingVoucher, getOrGenerateFinalInvoice } from "../documents/generator";
+import { recordWorkerRun } from "./admin";
 
 export interface ProcessingStats {
   claimed: number;
@@ -26,6 +32,7 @@ export interface ProcessingStats {
   retried: number;
   failed: number;
   blocked: number;
+  skipped: number;
   unknown: number;
   durationMs: number;
 }
@@ -62,6 +69,7 @@ export class NotificationProcessor {
       retried: 0,
       failed: 0,
       blocked: 0,
+      skipped: 0,
       unknown: 0,
       durationMs: 0,
     };
@@ -105,9 +113,107 @@ export class NotificationProcessor {
           return;
         }
 
+        // Pre-send validation for reminder notifications (re-check cancellation, checked-in, expired window)
+        if (
+          job.type === "REMINDER_48_HOURS" ||
+          job.type === "REMINDER_24_HOURS" ||
+          job.type === "REMINDER_2_HOURS"
+        ) {
+          const preSendCheck = await validateReminderPreSendEligibility(job, db);
+          if (!preSendCheck.eligible) {
+            console.log(
+              `[Worker] Ineligible reminder ${job._id} for booking ${job.bookingId}: ${preSendCheck.reason}`
+            );
+            if (preSendCheck.statusIfIneligible === "CANCELLED") {
+              await markNotificationBlocked(
+                notificationId,
+                claimToken,
+                { code: preSendCheck.errorCode || "CANCELLED", message: preSendCheck.reason },
+                db
+              );
+              stats.blocked++;
+            } else {
+              await markNotificationSkipped(
+                notificationId,
+                claimToken,
+                { code: preSendCheck.errorCode || "SKIPPED", message: preSendCheck.reason },
+                db
+              );
+              stats.skipped++;
+            }
+            return;
+          }
+        }
+
+        // Email capacity quota check
+        if (job.channel === "EMAIL") {
+          const capacity = await checkEmailSendingCapacity(job.type, db);
+          if (!capacity.permitted) {
+            console.warn(
+              `[Worker] Capacity limit reached. Postponing job ${job._id}: ${capacity.reason}`
+            );
+            await scheduleNotificationRetry(
+              notificationId,
+              claimToken,
+              job.attempts,
+              job.maxAttempts || 3,
+              { code: "SMTP_CAPACITY_LIMIT_REACHED", message: capacity.reason },
+              600_000, // Retry in 10 minutes
+              db
+            );
+            stats.retried++;
+            return;
+          }
+        }
+
         // Select channel adapter
         const adapter =
           job.channel === "EMAIL" ? this.emailAdapter : this.whatsappAdapter;
+
+        // Attachment retrieval for booking vouchers
+        let documentBuffer: Buffer | undefined;
+        let documentFilename: string | undefined;
+
+        if (
+          job.channel === "EMAIL" &&
+          (job.type === "BOOKING_CONFIRMATION" || job.type === "BOOKING_RESCHEDULED")
+        ) {
+          try {
+            // Retrieve or generate voucher within bounded deadline (3500ms)
+            const voucherPromise = getOrGenerateBookingVoucher(job.bookingId, {
+              database: db,
+              isRescheduled: job.type === "BOOKING_RESCHEDULED",
+            });
+            const timeoutPromise = new Promise<{ success: false; error: string }>((resolve) =>
+              setTimeout(() => resolve({ success: false, error: "Voucher generation deadline reached" }), 3500)
+            );
+            const voucherRes = await Promise.race([voucherPromise, timeoutPromise]);
+            if (voucherRes.success && voucherRes.pdfBuffer) {
+              documentBuffer = voucherRes.pdfBuffer;
+              documentFilename =
+                voucherRes.document?.filename ||
+                `Yatra-Expertz-Booking-Voucher-${voucherRes.document?.documentNumber || job.bookingId}.pdf`;
+            }
+          } catch (vErr) {
+            console.warn(`[Worker] Voucher attachment generation failed for ${job.bookingId}, falling back to plain confirmation:`, vErr);
+          }
+        } else if (job.channel === "EMAIL" && job.type === "FINAL_INVOICE") {
+          try {
+            const invoicePromise = getOrGenerateFinalInvoice(job.bookingId, { database: db });
+            const timeoutPromise = new Promise<{ success: false; error: string }>((resolve) =>
+              setTimeout(() => resolve({ success: false, error: "Invoice generation deadline reached" }), 3500)
+            );
+            const invoiceRes = await Promise.race([invoicePromise, timeoutPromise]);
+            if (invoiceRes.success && invoiceRes.pdfBuffer) {
+              documentBuffer = invoiceRes.pdfBuffer;
+              documentFilename =
+                invoiceRes.document?.filename ||
+                `Yatra-Expertz-Invoice-${invoiceRes.document?.documentNumber || job.bookingId}.pdf`;
+            }
+          } catch (iErr) {
+            console.warn(`[Worker] Final invoice attachment generation failed for ${job.bookingId}:`, iErr);
+          }
+        }
 
         const result: SendNotificationResult = await adapter.send({
           notificationId,
@@ -117,7 +223,8 @@ export class NotificationProcessor {
           channel: job.channel,
           bookingData,
           attempt: job.attempts,
-        });
+          ...(documentBuffer ? { documentBuffer, documentFilename } : {}),
+        } as any);
 
         // Handle outcomes
         if (result.status === "ACCEPTED") {
@@ -132,7 +239,7 @@ export class NotificationProcessor {
           await markNotificationDelivered(notificationId, claimToken, db);
           stats.delivered++;
         } else if (result.status === "BLOCKED") {
-          await markNotificationFailed(
+          await markNotificationBlocked(
             notificationId,
             claimToken,
             {
@@ -142,6 +249,17 @@ export class NotificationProcessor {
             db
           );
           stats.blocked++;
+        } else if (result.status === "SKIPPED") {
+          await markNotificationSkipped(
+            notificationId,
+            claimToken,
+            {
+              code: result.errorCode || "SKIPPED_BY_POLICY",
+              message: result.errorMessage || "Notification skipped",
+            },
+            db
+          );
+          stats.skipped++;
         } else if (result.status === "DELIVERY_UNKNOWN") {
           await markNotificationDeliveryUnknown(
             notificationId,
@@ -199,6 +317,24 @@ export class NotificationProcessor {
 
     await Promise.allSettled(executionPromises);
     stats.durationMs = Date.now() - startTime;
+
+    try {
+      await recordWorkerRun(
+        {
+          claimed: stats.claimed,
+          accepted: stats.accepted,
+          delivered: stats.delivered,
+          retried: stats.retried,
+          failed: stats.failed,
+          durationMs: stats.durationMs,
+        },
+        workerId,
+        db
+      );
+    } catch {
+      // In-memory or logging error
+    }
+
     return stats;
   }
 }

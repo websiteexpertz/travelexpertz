@@ -45,6 +45,7 @@ export interface BookingNotification {
 
   scheduledAt: Date;
   nextAttemptAt: Date;
+  expiresAt?: Date;
 
   attempts: number;
   maxAttempts: number;

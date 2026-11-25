@@ -17,7 +17,7 @@ export interface SendNotificationInput {
 
 export interface SendNotificationResult {
   success: boolean;
-  status: "ACCEPTED" | "DELIVERED" | "FAILED" | "DELIVERY_UNKNOWN" | "BLOCKED";
+  status: "ACCEPTED" | "DELIVERED" | "FAILED" | "DELIVERY_UNKNOWN" | "BLOCKED" | "SKIPPED";
   providerMessageId?: string;
   errorCode?: string;
   errorMessage?: string;

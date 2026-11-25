@@ -1,14 +1,15 @@
 import { redirect } from "next/navigation";
 
-export default function HomestaysSearchRedirect({
+export default async function HomestaysSearchRedirect({
   searchParams,
 }: {
-  searchParams?: { [key: string]: string | string[] | undefined };
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const params = new URLSearchParams();
 
-  if (searchParams) {
-    for (const [key, value] of Object.entries(searchParams)) {
+  if (resolvedSearchParams) {
+    for (const [key, value] of Object.entries(resolvedSearchParams)) {
       if (key === "type") continue;
       if (typeof value === "string") {
         params.set(key, value);

@@ -39,7 +39,7 @@ function getDateRangeExclusive(checkinStr: string, checkoutStr: string): string[
 
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> | { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const params = await context.params;

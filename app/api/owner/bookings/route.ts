@@ -160,7 +160,10 @@ export async function GET(request: NextRequest) {
 
         return {
           _id: booking._id,
+          bookingReference: booking.bookingReference || `YE-${booking._id.toString().slice(-6).toUpperCase()}`,
           guestName: booking.guestName,
+          guestEmail: booking.guestEmail,
+          guestPhone: booking.guestPhone,
           propertyName: propertyName,
           propertyType: propertyType,
           roomDetails: roomDetails,
@@ -173,7 +176,16 @@ export async function GET(request: NextRequest) {
           guests: booking.guests,
           nights: booking.nights,
           totalPrice: booking.totalPrice,
+          outstandingAmount: Number(booking.amountToPay ?? booking.outstandingAmount ?? 0),
+          paidAmount: Number(booking.amountPaid ?? booking.totalPrice ?? 0),
           bookingStatus: booking.bookingStatus,
+          stayStatus: booking.stayStatus || "NOT_CHECKED_IN",
+          billingStatus: booking.billingStatus || "OPEN",
+          actualCheckInAt: booking.actualCheckInAt,
+          actualCheckOutAt: booking.actualCheckOutAt,
+          billingFinalizedAt: booking.billingFinalizedAt,
+          finalInvoiceNumber: booking.finalInvoiceNumber,
+          finalInvoiceDocumentId: booking.finalInvoiceDocumentId,
           createdAt: booking.createdAt,
         };
       })

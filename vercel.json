@@ -23,5 +23,11 @@
         "service": "app"
       }
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/process-notifications",
+      "schedule": "* * * * *"
+    }
   ]
 }

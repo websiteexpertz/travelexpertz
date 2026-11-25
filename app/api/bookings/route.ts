@@ -5,6 +5,12 @@ import {
   enqueueBookingConfirmedNotifications,
   cancelPendingNotificationsForBooking,
 } from "@/lib/services/notifications/queue";
+import { NotificationProcessor } from "@/lib/services/notifications/processor";
+import { rescheduleRemindersForBooking } from "@/lib/services/notifications/reminders";
+import {
+  handleBookingRescheduledDocuments,
+  handleBookingCancelledDocuments,
+} from "@/lib/services/documents/generator";
 
 const uri = process.env.MONGODB_URI || "mongodb://localhost:27017";
 const dbName = "travelexpertz";
@@ -497,6 +503,7 @@ export async function POST(request: Request) {
     if (booking.bookingStatus === "confirmed") {
       try {
         await enqueueBookingConfirmedNotifications(result.insertedId.toString(), { database: db });
+        new NotificationProcessor({ database: db }).processBatch({ batchSize: 5 }).catch(console.error);
       } catch (queueErr) {
         console.error("Error enqueuing booking confirmed notifications:", queueErr);
       }
@@ -561,14 +568,28 @@ export async function PATCH(request: Request) {
     if (updateData.bookingStatus === "cancelled") {
       try {
         await cancelPendingNotificationsForBooking(id, db);
+        await handleBookingCancelledDocuments(id, body.cancellationReason || "Cancelled via booking API", db);
       } catch (cancelErr) {
         console.error("Error cancelling pending notifications:", cancelErr);
       }
     } else if (updateData.bookingStatus === "confirmed") {
       try {
         await enqueueBookingConfirmedNotifications(id, { database: db });
+        new NotificationProcessor({ database: db }).processBatch({ batchSize: 5 }).catch(console.error);
       } catch (queueErr) {
         console.error("Error enqueuing booking confirmed notifications on update:", queueErr);
+      }
+    } else if ((body.checkin || body.checkinTime) && result.bookingStatus === "confirmed") {
+      try {
+        await rescheduleRemindersForBooking(
+          id,
+          body.checkin || result.checkin,
+          body.checkinTime || result.checkinTime,
+          { database: db }
+        );
+        await handleBookingRescheduledDocuments(id, Number(result.bookingVersion || 1), db);
+      } catch (reschedErr) {
+        console.error("Error rescheduling reminders on booking update:", reschedErr);
       }
     }
 
@@ -666,6 +687,7 @@ export async function DELETE(request: Request) {
 
     try {
       await cancelPendingNotificationsForBooking(id, db);
+      await handleBookingCancelledDocuments(id, "Cancelled via delete API", db);
     } catch (cancelErr) {
       console.error("Error cancelling pending notifications on delete:", cancelErr);
     }

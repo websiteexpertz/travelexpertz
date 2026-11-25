@@ -1,6 +1,7 @@
 import { MongoClient, ObjectId } from "mongodb";
 import { NextResponse } from "next/server";
 import { enqueueBookingConfirmedNotifications } from "@/lib/services/notifications/queue";
+import { NotificationProcessor } from "@/lib/services/notifications/processor";
 
 const cashfreeBaseUrl =
   process.env.CASHFREE_ENV === "production"
@@ -60,6 +61,7 @@ export async function POST(request: Request) {
 
         try {
           await enqueueBookingConfirmedNotifications(bookingId, { database: db });
+          new NotificationProcessor({ database: db }).processBatch({ batchSize: 5 }).catch(console.error);
         } catch (queueErr) {
           console.error("Error enqueuing simulated booking notifications:", queueErr);
         }
@@ -130,6 +132,7 @@ export async function POST(request: Request) {
 
       try {
         await enqueueBookingConfirmedNotifications(bookingId, { database: db });
+        new NotificationProcessor({ database: db }).processBatch({ batchSize: 5 }).catch(console.error);
       } catch (queueErr) {
         console.error("Error enqueuing booking notifications on Cashfree verify:", queueErr);
       }

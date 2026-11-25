@@ -7,6 +7,8 @@
 process.env.MONGODB_URI = "mock://test";
 process.env.NOTIFICATION_TEST_MODE = "true";
 (process.env as any).NODE_ENV = "test";
+process.env.BOOKING_EMAIL_ENABLED = "true";
+process.env.BOOKING_WHATSAPP_ENABLED = "true";
 process.env.WHATSAPP_LIVE_ENABLED = "false";
 process.env.CRON_SECRET = "test_cron_secret_12345";
 

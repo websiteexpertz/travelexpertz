@@ -14,6 +14,7 @@ import {
 } from "../../models/notification";
 import { calculateReminderTimes } from "./reminder-calculator";
 import { buildBookingCommunicationData } from "./data-builder";
+import { scheduleRemindersForBooking } from "./reminders";
 
 /**
  * Generates a stable deterministic idempotency key.
@@ -62,7 +63,7 @@ export async function enqueueBookingConfirmedNotifications(
     ""
   ).trim();
 
-  let customerPhone = (
+  const customerPhone = (
     booking.guestPhone ||
     booking.customerDetails?.phone ||
     ""
@@ -152,83 +153,22 @@ export async function enqueueBookingConfirmedNotifications(
   });
 
   // 3. Reminders calculation (48h, 24h, 2h before check-in)
+  let remindersEnqueued = 0;
   if (booking.checkin) {
-    const reminders = calculateReminderTimes(booking.checkin, "12:00", now);
-
-    const reminderOffsets: Array<{
-      type: NotificationType;
-      scheduledAt: Date;
-      isPast: boolean;
-    }> = [
-      {
-        type: "REMINDER_48_HOURS",
-        scheduledAt: reminders.reminder48h.scheduledAt,
-        isPast: reminders.reminder48h.isPast,
-      },
-      {
-        type: "REMINDER_24_HOURS",
-        scheduledAt: reminders.reminder24h.scheduledAt,
-        isPast: reminders.reminder24h.isPast,
-      },
-      {
-        type: "REMINDER_2_HOURS",
-        scheduledAt: reminders.reminder2h.scheduledAt,
-        isPast: reminders.reminder2h.isPast,
-      },
-    ];
-
-    for (const reminder of reminderOffsets) {
-      // Email reminder
-      jobsToCreate.push({
-        bookingId,
-        bookingVersion,
-        customerId: booking.userId?.toString(),
-        propertyId,
-        type: reminder.type,
-        channel: "EMAIL",
-        recipient: customerEmail,
-        status: reminder.isPast ? "SKIPPED" : isEmailValid ? "PENDING" : "BLOCKED",
-        scheduledAt: reminder.scheduledAt,
-        nextAttemptAt: reminder.scheduledAt,
-        attempts: 0,
-        maxAttempts: 3,
-        idempotencyKey: generateIdempotencyKey(
-          reminder.type,
-          bookingId,
-          bookingVersion,
-          "EMAIL"
-        ),
-        createdAt: now,
-        updatedAt: now,
+    try {
+      const reminderResult = await scheduleRemindersForBooking(bookingId, {
+        database: db,
+        session: options.session,
+        now,
+        forceConfirmed: true,
       });
-
-      // WhatsApp reminder
-      jobsToCreate.push({
-        bookingId,
-        bookingVersion,
-        customerId: booking.userId?.toString(),
-        propertyId,
-        type: reminder.type,
-        channel: "WHATSAPP",
-        recipient: customerPhone,
-        status: reminder.isPast ? "SKIPPED" : isPhoneValid ? "PENDING" : "BLOCKED",
-        scheduledAt: reminder.scheduledAt,
-        nextAttemptAt: reminder.scheduledAt,
-        attempts: 0,
-        maxAttempts: 3,
-        idempotencyKey: generateIdempotencyKey(
-          reminder.type,
-          bookingId,
-          bookingVersion,
-          "WHATSAPP"
-        ),
-        createdAt: now,
-        updatedAt: now,
-      });
+      remindersEnqueued = reminderResult.enqueuedCount;
+    } catch (reminderErr) {
+      console.error(`[Queue] Failed to schedule reminders for booking ${bookingId}:`, reminderErr);
     }
   }
 
-  // Insert jobs using insertMany with ordered: false so existing duplicates don't fail the batch
+  // Insert confirmation jobs
   const insertedIds: string[] = [];
   for (const job of jobsToCreate) {
     try {
@@ -252,7 +192,7 @@ export async function enqueueBookingConfirmedNotifications(
   }
 
   return {
-    enqueuedCount: insertedIds.length,
+    enqueuedCount: insertedIds.length + remindersEnqueued,
     jobIds: insertedIds,
   };
 }
@@ -511,6 +451,74 @@ export async function markNotificationFailed(
 }
 
 /**
+ * Marks a notification as BLOCKED (e.g. invalid recipient or channel disabled).
+ */
+export async function markNotificationBlocked(
+  notificationId: string | ObjectId,
+  claimToken: string,
+  error: { code?: string; message?: string },
+  database?: Db
+): Promise<boolean> {
+  const db = database || (await getDb());
+  const collection = db.collection("booking_notifications");
+
+  const now = new Date();
+  const res = await collection.updateOne(
+    {
+      _id: new ObjectId(notificationId),
+      claimToken,
+    },
+    {
+      $set: {
+        status: "BLOCKED",
+        lastErrorCode: error.code || "BLOCKED_BY_POLICY",
+        lastErrorMessage: error.message,
+        updatedAt: now,
+      },
+      $unset: {
+        leaseExpiresAt: "",
+      },
+    }
+  );
+
+  return res.modifiedCount > 0;
+}
+
+/**
+ * Marks a notification as SKIPPED (e.g. historical notification or disabled channel).
+ */
+export async function markNotificationSkipped(
+  notificationId: string | ObjectId,
+  claimToken: string,
+  reason: { code?: string; message?: string },
+  database?: Db
+): Promise<boolean> {
+  const db = database || (await getDb());
+  const collection = db.collection("booking_notifications");
+
+  const now = new Date();
+  const res = await collection.updateOne(
+    {
+      _id: new ObjectId(notificationId),
+      claimToken,
+    },
+    {
+      $set: {
+        status: "SKIPPED",
+        lastErrorCode: reason.code || "SKIPPED_BY_POLICY",
+        lastErrorMessage: reason.message,
+        updatedAt: now,
+      },
+      $unset: {
+        leaseExpiresAt: "",
+      },
+    }
+  );
+
+  return res.modifiedCount > 0;
+}
+
+/**
  * Marks an ambiguous outcome as DELIVERY_UNKNOWN.
  */
 export async function markNotificationDeliveryUnknown(
@@ -549,9 +557,19 @@ export async function markNotificationDeliveryUnknown(
  */
 export async function cancelPendingNotificationsForBooking(
   bookingId: string,
+  reasonOrDb?: string | Db,
   database?: Db
 ): Promise<number> {
-  const db = database || (await getDb());
+  let reason = "Booking cancelled or rescheduled";
+  let db: Db;
+  if (typeof reasonOrDb === "string") {
+    reason = reasonOrDb;
+    db = database || (await getDb());
+  } else if (reasonOrDb) {
+    db = reasonOrDb as Db;
+  } else {
+    db = database || (await getDb());
+  }
   const collection = db.collection("booking_notifications");
 
   const now = new Date();
@@ -563,7 +581,7 @@ export async function cancelPendingNotificationsForBooking(
     {
       $set: {
         status: "CANCELLED",
-        lastErrorMessage: "Booking cancelled or rescheduled",
+        lastErrorMessage: reason,
         updatedAt: now,
       },
       $unset: {
@@ -573,4 +591,323 @@ export async function cancelPendingNotificationsForBooking(
   );
 
   return res.modifiedCount;
+}
+
+/**
+ * Enqueues customer checkout thank-you notification.
+ */
+export async function enqueueCheckoutThankYouNotification(
+  bookingId: string,
+  options: {
+    database?: Db;
+  } = {}
+): Promise<{ enqueuedCount: number; jobIds: string[] }> {
+  const db = options.database || (await getDb());
+  const collection = db.collection<BookingNotification>("booking_notifications");
+
+  const booking = await db.collection("bookings").findOne({
+    _id: ObjectId.isValid(bookingId) ? new ObjectId(bookingId) : (bookingId as any),
+  });
+
+  if (!booking) {
+    throw new Error(`Booking ${bookingId} not found`);
+  }
+
+  const bookingVersion = Number(booking.bookingVersion || 1);
+  const now = new Date();
+  const propertyId = (booking.hotelId || booking.homestayId || "").toString();
+
+  const customerEmail = (
+    booking.guestEmail ||
+    booking.customerDetails?.email ||
+    ""
+  ).trim();
+
+  const customerPhone = (
+    booking.guestPhone ||
+    booking.customerDetails?.phone ||
+    ""
+  ).trim();
+
+  const jobsToCreate: BookingNotification[] = [];
+
+  // 1. Email Job
+  if (customerEmail) {
+    const emailKey = `CHECKOUT_THANK_YOU:${bookingId}:${bookingVersion}:EMAIL`;
+    jobsToCreate.push({
+      bookingId,
+      bookingVersion,
+      customerId: booking.userId?.toString(),
+      propertyId,
+      type: "CHECKOUT_THANK_YOU",
+      channel: "EMAIL",
+      recipient: customerEmail,
+      status: "PENDING",
+      scheduledAt: now,
+      nextAttemptAt: now,
+      attempts: 0,
+      maxAttempts: 3,
+      idempotencyKey: emailKey,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  // 2. WhatsApp Job (Dormant)
+  if (customerPhone) {
+    const waKey = `CHECKOUT_THANK_YOU:${bookingId}:${bookingVersion}:WHATSAPP`;
+    jobsToCreate.push({
+      bookingId,
+      bookingVersion,
+      customerId: booking.userId?.toString(),
+      propertyId,
+      type: "CHECKOUT_THANK_YOU",
+      channel: "WHATSAPP",
+      recipient: customerPhone,
+      status: "PENDING",
+      scheduledAt: now,
+      nextAttemptAt: now,
+      attempts: 0,
+      maxAttempts: 3,
+      idempotencyKey: waKey,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  const createdJobIds: string[] = [];
+  for (const job of jobsToCreate) {
+    try {
+      const existing = await collection.findOne({ idempotencyKey: job.idempotencyKey });
+      if (!existing) {
+        const insertRes = await collection.insertOne(job as any);
+        createdJobIds.push(insertRes.insertedId?.toString() || job.idempotencyKey);
+      }
+    } catch {
+      // In-memory or duplicate key
+    }
+  }
+
+  return { enqueuedCount: createdJobIds.length, jobIds: createdJobIds };
+}
+
+/**
+ * Enqueues final invoice delivery notification.
+ */
+export async function enqueueFinalInvoiceNotification(
+  bookingId: string,
+  invoiceNumber: string,
+  options: {
+    database?: Db;
+  } = {}
+): Promise<{ enqueuedCount: number; jobIds: string[] }> {
+  const db = options.database || (await getDb());
+  const collection = db.collection<BookingNotification>("booking_notifications");
+
+  const booking = await db.collection("bookings").findOne({
+    _id: ObjectId.isValid(bookingId) ? new ObjectId(bookingId) : (bookingId as any),
+  });
+
+  if (!booking) {
+    throw new Error(`Booking ${bookingId} not found`);
+  }
+
+  const bookingVersion = Number(booking.bookingVersion || 1);
+  const now = new Date();
+  const propertyId = (booking.hotelId || booking.homestayId || "").toString();
+
+  const customerEmail = (
+    booking.guestEmail ||
+    booking.customerDetails?.email ||
+    ""
+  ).trim();
+
+  const customerPhone = (
+    booking.guestPhone ||
+    booking.customerDetails?.phone ||
+    ""
+  ).trim();
+
+  const jobsToCreate: BookingNotification[] = [];
+
+  // 1. Email Job
+  if (customerEmail) {
+    const emailKey = `FINAL_INVOICE:${bookingId}:${invoiceNumber}:EMAIL`;
+    jobsToCreate.push({
+      bookingId,
+      bookingVersion,
+      customerId: booking.userId?.toString(),
+      propertyId,
+      type: "FINAL_INVOICE",
+      channel: "EMAIL",
+      recipient: customerEmail,
+      status: "PENDING",
+      scheduledAt: now,
+      nextAttemptAt: now,
+      attempts: 0,
+      maxAttempts: 3,
+      idempotencyKey: emailKey,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  // 2. WhatsApp Job (Dormant)
+  if (customerPhone) {
+    const waKey = `FINAL_INVOICE:${bookingId}:${invoiceNumber}:WHATSAPP`;
+    jobsToCreate.push({
+      bookingId,
+      bookingVersion,
+      customerId: booking.userId?.toString(),
+      propertyId,
+      type: "FINAL_INVOICE",
+      channel: "WHATSAPP",
+      recipient: customerPhone,
+      status: "PENDING",
+      scheduledAt: now,
+      nextAttemptAt: now,
+      attempts: 0,
+      maxAttempts: 3,
+      idempotencyKey: waKey,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  const createdJobIds: string[] = [];
+  for (const job of jobsToCreate) {
+    try {
+      const existing = await collection.findOne({ idempotencyKey: job.idempotencyKey });
+      if (!existing) {
+        const insertRes = await collection.insertOne(job as any);
+        createdJobIds.push(insertRes.insertedId?.toString() || job.idempotencyKey);
+      }
+    } catch {
+      // In-memory or duplicate key
+    }
+  }
+
+  return { enqueuedCount: createdJobIds.length, jobIds: createdJobIds };
+}
+
+/**
+ * Enqueues customer post-checkout review invitation notification.
+ */
+export async function enqueueReviewInvitationNotification(
+  bookingId: string,
+  options: {
+    database?: Db;
+    delayMinutes?: number;
+  } = {}
+): Promise<{ enqueuedCount: number; jobIds: string[]; skipped?: boolean; reason?: string }> {
+  const db = options.database || (await getDb());
+  const collection = db.collection<BookingNotification>("booking_notifications");
+
+  const booking = await db.collection("bookings").findOne({
+    _id: ObjectId.isValid(bookingId) ? new ObjectId(bookingId) : (bookingId as any),
+  });
+
+  if (!booking) {
+    throw new Error(`Booking ${bookingId} not found`);
+  }
+
+  // If the booking is not completed or guest did not check out, do not invite
+  if (booking.stayStatus !== "CHECKED_OUT" || booking.bookingStatus === "cancelled") {
+    return {
+      enqueuedCount: 0,
+      jobIds: [],
+      skipped: true,
+      reason: "Booking is not in completed CHECKED_OUT status",
+    };
+  }
+
+  // If a review has already been submitted, skip invitation
+  const existingReview = await db.collection("reviews").findOne({ bookingId });
+  if (existingReview) {
+    return {
+      enqueuedCount: 0,
+      jobIds: [],
+      skipped: true,
+      reason: "Review already submitted for this booking",
+    };
+  }
+
+  const bookingVersion = Number(booking.bookingVersion || 1);
+  const now = new Date();
+  const delayMs = (options.delayMinutes || 0) * 60 * 1000;
+  const scheduledAt = new Date(now.getTime() + delayMs);
+  const propertyId = (booking.hotelId || booking.homestayId || "").toString();
+
+  const customerEmail = (
+    booking.guestEmail ||
+    booking.customerDetails?.email ||
+    ""
+  ).trim();
+
+  const customerPhone = (
+    booking.guestPhone ||
+    booking.customerDetails?.phone ||
+    ""
+  ).trim();
+
+  const jobsToCreate: BookingNotification[] = [];
+
+  // 1. Email Job
+  if (customerEmail) {
+    const emailKey = `REVIEW_REQUEST:${bookingId}:${bookingVersion}:EMAIL`;
+    jobsToCreate.push({
+      bookingId,
+      bookingVersion,
+      customerId: booking.userId?.toString(),
+      propertyId,
+      type: "REVIEW_REQUEST",
+      channel: "EMAIL",
+      recipient: customerEmail,
+      status: "PENDING",
+      scheduledAt,
+      nextAttemptAt: scheduledAt,
+      attempts: 0,
+      maxAttempts: 3,
+      idempotencyKey: emailKey,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  // 2. WhatsApp Job (Dormant)
+  if (customerPhone) {
+    const waKey = `REVIEW_REQUEST:${bookingId}:${bookingVersion}:WHATSAPP`;
+    jobsToCreate.push({
+      bookingId,
+      bookingVersion,
+      customerId: booking.userId?.toString(),
+      propertyId,
+      type: "REVIEW_REQUEST",
+      channel: "WHATSAPP",
+      recipient: customerPhone,
+      status: "PENDING",
+      scheduledAt,
+      nextAttemptAt: scheduledAt,
+      attempts: 0,
+      maxAttempts: 3,
+      idempotencyKey: waKey,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  const createdJobIds: string[] = [];
+  for (const job of jobsToCreate) {
+    try {
+      const existing = await collection.findOne({ idempotencyKey: job.idempotencyKey });
+      if (!existing) {
+        const insertRes = await collection.insertOne(job as any);
+        createdJobIds.push(insertRes.insertedId?.toString() || job.idempotencyKey);
+      }
+    } catch {
+      // In-memory or duplicate key
+    }
+  }
+
+  return { enqueuedCount: createdJobIds.length, jobIds: createdJobIds };
 }
