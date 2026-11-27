@@ -4,6 +4,8 @@
  * Integrates professional branded email templates from lib/services/notifications/email-templates.ts
  */
 
+import path from "path";
+import fs from "fs";
 import { NotificationAdapter, SendNotificationInput, SendNotificationResult } from "./types";
 import { sendMailWithResult, EmailAttachment } from "../../email";
 import { renderNotificationEmail } from "../email-templates";
@@ -69,8 +71,19 @@ export class EmailNotificationAdapter implements NotificationAdapter {
       };
     }
 
-    // 5. Attachment readiness (Voucher/Invoice PDF from Phase 4 document engine)
+    // 5. Attachment readiness (Voucher/Invoice PDF and inline Brand Logo)
     const attachments: EmailAttachment[] = [];
+
+    // Always attach official Yatra Expertz logo for seamless inline display (CID)
+    const logoPngPath = path.join(process.cwd(), "public", "logo-email.png");
+    if (fs.existsSync(logoPngPath)) {
+      attachments.push({
+        filename: "logo.png",
+        path: logoPngPath,
+        cid: "yatraexpertz-logo",
+      });
+    }
+
     if (input.bookingData && (input as any).documentBuffer) {
       attachments.push({
         filename:

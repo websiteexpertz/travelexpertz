@@ -58,19 +58,28 @@ function renderBaseLayout(options: {
         <!-- Main Container -->
         <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 620px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08); border: 1px solid #e2e8f0;">
           
-          <!-- Header Banner -->
+          <!-- Header Banner with Official Website Logo -->
           <tr>
-            <td style="background: linear-gradient(135deg, #0b6dff 0%, #0052cc 100%); padding: 28px 32px; text-align: left;">
+            <td style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); padding: 22px 32px; text-align: left; border-bottom: 3px solid #0b6dff;">
               <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
                 <tr>
-                  <td>
-                    <span style="font-size: 24px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">🌍 YatraExpertz</span>
-                    <span style="display: block; font-size: 13px; color: #bfdbfe; margin-top: 4px; font-weight: 500;">Safar Aapka, Planning Hamari</span>
+                  <td valign="middle">
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td valign="middle" style="padding-right: 14px;">
+                          <img src="cid:yatraexpertz-logo" alt="YatraExpertz" width="62" style="display: block; max-height: 44px; width: auto; border: 0;" />
+                        </td>
+                        <td valign="middle">
+                          <span style="font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">YatraExpertz</span>
+                          <span style="display: block; font-size: 12px; color: #93c5fd; margin-top: 2px; font-weight: 500;">Safar Aapka, Planning Hamari</span>
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                   ${
                     options.headerBadge
                       ? `<td align="right" valign="middle">
-                          <span style="background: rgba(255,255,255,0.2); color: #ffffff; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid rgba(255,255,255,0.3);">${options.headerBadge}</span>
+                          <span style="background: rgba(255,255,255,0.15); color: #ffffff; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid rgba(255,255,255,0.25);">${options.headerBadge}</span>
                         </td>`
                       : ""
                   }

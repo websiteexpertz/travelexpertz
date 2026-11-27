@@ -503,7 +503,7 @@ export async function POST(request: Request) {
     if (booking.bookingStatus === "confirmed") {
       try {
         await enqueueBookingConfirmedNotifications(result.insertedId.toString(), { database: db });
-        new NotificationProcessor({ database: db }).processBatch({ batchSize: 5 }).catch(console.error);
+        await new NotificationProcessor({ database: db }).processBatch({ batchSize: 5 });
       } catch (queueErr) {
         console.error("Error enqueuing booking confirmed notifications:", queueErr);
       }
@@ -575,7 +575,7 @@ export async function PATCH(request: Request) {
     } else if (updateData.bookingStatus === "confirmed") {
       try {
         await enqueueBookingConfirmedNotifications(id, { database: db });
-        new NotificationProcessor({ database: db }).processBatch({ batchSize: 5 }).catch(console.error);
+        await new NotificationProcessor({ database: db }).processBatch({ batchSize: 5 });
       } catch (queueErr) {
         console.error("Error enqueuing booking confirmed notifications on update:", queueErr);
       }

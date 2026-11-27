@@ -1,5 +1,6 @@
-import { MongoClient, ObjectId } from "mongodb";
+import { ObjectId } from "mongodb";
 import { NextResponse } from "next/server";
+import { getDb } from "@/lib/db";
 import { enqueueBookingConfirmedNotifications } from "@/lib/services/notifications/queue";
 import { NotificationProcessor } from "@/lib/services/notifications/processor";
 
@@ -15,14 +16,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Valid booking ID is required" }, { status: 400 });
     }
 
-    const client = new MongoClient(process.env.MONGODB_URI || "mongodb://localhost:27017");
-    await client.connect();
-    const db = client.db(process.env.MONGODB_DB || "travelexpertz");
+    const db = await getDb();
     const bookings = db.collection("bookings");
     const booking = await bookings.findOne({ _id: new ObjectId(bookingId) });
 
     if (!booking?.cashfreeOrderId) {
-      await client.close();
       return NextResponse.json({ error: "Payment order not found" }, { status: 404 });
     }
 
@@ -61,16 +59,14 @@ export async function POST(request: Request) {
 
         try {
           await enqueueBookingConfirmedNotifications(bookingId, { database: db });
-          new NotificationProcessor({ database: db }).processBatch({ batchSize: 5 }).catch(console.error);
+          await new NotificationProcessor({ database: db }).processBatch({ batchSize: 5 });
         } catch (queueErr) {
           console.error("Error enqueuing simulated booking notifications:", queueErr);
         }
 
-        await client.close();
         return NextResponse.json({ status: "PAID" });
       }
 
-      await client.close();
       return NextResponse.json({ error: "Cashfree credentials are not configured" }, { status: 500 });
     }
 
@@ -84,7 +80,6 @@ export async function POST(request: Request) {
     const order = await response.json();
 
     if (!response.ok) {
-      await client.close();
       console.error("Cashfree payment verification failed", order);
       return NextResponse.json({ error: "Could not verify payment" }, { status: 502 });
     }
@@ -132,16 +127,14 @@ export async function POST(request: Request) {
 
       try {
         await enqueueBookingConfirmedNotifications(bookingId, { database: db });
-        new NotificationProcessor({ database: db }).processBatch({ batchSize: 5 }).catch(console.error);
+        await new NotificationProcessor({ database: db }).processBatch({ batchSize: 5 });
       } catch (queueErr) {
         console.error("Error enqueuing booking notifications on Cashfree verify:", queueErr);
       }
 
-      await client.close();
       return NextResponse.json({ status: "PAID" });
     }
 
-    await client.close();
     return NextResponse.json({ status: order.order_status || "PENDING" });
   } catch (error) {
     console.error("Cashfree payment verification failed", error);

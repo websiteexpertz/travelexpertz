@@ -10,6 +10,7 @@ export interface EmailAttachment {
   path?: string;
   contentType?: string;
   encoding?: string;
+  cid?: string;
 }
 
 export interface EmailOptions {
