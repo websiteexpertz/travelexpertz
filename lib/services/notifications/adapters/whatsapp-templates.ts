@@ -127,6 +127,45 @@ export const WHATSAPP_TEMPLATE_REGISTRY: Record<NotificationType, WhatsAppTempla
     },
   },
 
+  REMINDER_7_DAYS: {
+    type: "REMINDER_7_DAYS",
+    templateName: "booking_reminder_7d",
+    language: "en",
+    category: "UTILITY",
+    isApprovedByMeta: false,
+    requiredParameters: ["customerName", "propertyName", "checkinDate", "propertyAddress"],
+    headerType: "TEXT",
+    buildPayload(recipientPhone, data) {
+      return {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: recipientPhone,
+        type: "template",
+        template: {
+          name: "booking_reminder_7d",
+          language: { code: "en" },
+          components: [
+            {
+              type: "body",
+              parameters: [
+                { type: "text", text: data.customerName },
+                { type: "text", text: data.propertyName },
+                { type: "text", text: data.checkinDate },
+                { type: "text", text: data.propertyAddress },
+              ],
+            },
+            {
+              type: "button",
+              sub_type: "url",
+              index: 0,
+              parameters: [{ type: "text", text: `booking/confirm?bookingId=${data.bookingId}` }],
+            },
+          ],
+        },
+      };
+    },
+  },
+
   REMINDER_48_HOURS: {
     type: "REMINDER_48_HOURS",
     templateName: "booking_reminder_48h",
@@ -191,6 +230,84 @@ export const WHATSAPP_TEMPLATE_REGISTRY: Record<NotificationType, WhatsAppTempla
                 { type: "text", text: data.propertyName },
                 { type: "text", text: data.checkinDate },
                 { type: "text", text: data.propertyAddress },
+              ],
+            },
+            {
+              type: "button",
+              sub_type: "url",
+              index: 0,
+              parameters: [{ type: "text", text: `booking/confirm?bookingId=${data.bookingId}` }],
+            },
+          ],
+        },
+      };
+    },
+  },
+
+  REMINDER_12_HOURS: {
+    type: "REMINDER_12_HOURS",
+    templateName: "booking_reminder_12h",
+    language: "en",
+    category: "UTILITY",
+    isApprovedByMeta: false,
+    requiredParameters: ["customerName", "propertyName", "checkinDate", "propertyAddress"],
+    headerType: "TEXT",
+    buildPayload(recipientPhone, data) {
+      return {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: recipientPhone,
+        type: "template",
+        template: {
+          name: "booking_reminder_12h",
+          language: { code: "en" },
+          components: [
+            {
+              type: "body",
+              parameters: [
+                { type: "text", text: data.customerName },
+                { type: "text", text: data.propertyName },
+                { type: "text", text: data.checkinDate },
+                { type: "text", text: data.propertyAddress },
+              ],
+            },
+            {
+              type: "button",
+              sub_type: "url",
+              index: 0,
+              parameters: [{ type: "text", text: `booking/confirm?bookingId=${data.bookingId}` }],
+            },
+          ],
+        },
+      };
+    },
+  },
+
+  REMINDER_4_HOURS: {
+    type: "REMINDER_4_HOURS",
+    templateName: "booking_reminder_4h",
+    language: "en",
+    category: "UTILITY",
+    isApprovedByMeta: false,
+    requiredParameters: ["customerName", "propertyName", "propertyAddress", "bookingReference"],
+    headerType: "TEXT",
+    buildPayload(recipientPhone, data) {
+      return {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: recipientPhone,
+        type: "template",
+        template: {
+          name: "booking_reminder_4h",
+          language: { code: "en" },
+          components: [
+            {
+              type: "body",
+              parameters: [
+                { type: "text", text: data.customerName },
+                { type: "text", text: data.propertyName },
+                { type: "text", text: data.propertyAddress },
+                { type: "text", text: data.bookingReference },
               ],
             },
             {

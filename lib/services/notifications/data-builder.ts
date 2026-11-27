@@ -9,7 +9,7 @@ import { generateGuestReviewToken } from "../reviews/tokens";
 
 export interface BookingCommunicationData {
   bookingId: string;
-  bookingVersion: number;
+  bookingVersion?: number;
   bookingReference: string;
   customerName: string;
   guestName?: string;
