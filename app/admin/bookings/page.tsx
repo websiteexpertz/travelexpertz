@@ -13,8 +13,16 @@ interface Booking {
   guests: number;
   nights: number;
   totalPrice: number;
+  outstandingAmount?: number;
   paymentStatus: string;
   bookingStatus: string;
+  stayStatus?: string;
+  billingStatus?: string;
+  actualCheckInAt?: string;
+  actualCheckOutAt?: string;
+  billingFinalizedAt?: string;
+  finalInvoiceNumber?: string;
+  finalInvoiceDocumentId?: string;
   homestay?: any;
   createdAt: string;
 }
@@ -24,6 +32,31 @@ export default function AdminBookings() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [communicationsTimeline, setCommunicationsTimeline] = useState<any[]>([]);
+  const [timelineLoading, setTimelineLoading] = useState(false);
+
+  useEffect(() => {
+    if (selectedBooking?._id) {
+      fetchBookingTimeline(selectedBooking._id);
+    } else {
+      setCommunicationsTimeline([]);
+    }
+  }, [selectedBooking?._id]);
+
+  const fetchBookingTimeline = async (bookingId: string) => {
+    setTimelineLoading(true);
+    try {
+      const res = await fetch(`/api/admin/communications/timeline?bookingId=${bookingId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setCommunicationsTimeline(data.timeline || []);
+      }
+    } catch (e) {
+      console.error("Failed to fetch communications timeline:", e);
+    } finally {
+      setTimelineLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchBookings();
@@ -69,6 +102,58 @@ export default function AdminBookings() {
     } catch (error) {
       console.error("Error updating booking:", error);
       alert("An error occurred");
+    }
+  };
+
+  const handleAdminCheckIn = async (bookingId: string) => {
+    if (!confirm("Confirm guest check-in for this booking?")) return;
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}/check-in`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) alert(data.error || "Failed to mark check-in");
+      else {
+        alert("Guest checked in successfully.");
+        fetchBookings();
+        setSelectedBooking(null);
+      }
+    } catch (err: any) {
+      alert(err.message || "Network error");
+    }
+  };
+
+  const handleAdminCheckOut = async (bookingId: string) => {
+    if (!confirm("Confirm guest checkout? This will complete the stay and trigger thank-you communications.")) return;
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}/check-out`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) alert(data.error || "Failed to mark checkout");
+      else {
+        alert("Guest checked out successfully.");
+        fetchBookings();
+        setSelectedBooking(null);
+      }
+    } catch (err: any) {
+      alert(err.message || "Network error");
+    }
+  };
+
+  const handleAdminFinalizeBilling = async (bookingId: string) => {
+    if (!confirm("Finalize billing and issue final invoice?")) return;
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}/finalize-billing`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (!res.ok) alert(data.error || "Failed to finalize billing");
+      else {
+        alert(`Billing finalized. Invoice: ${data.invoiceNumber || "Generated"}`);
+        fetchBookings();
+        setSelectedBooking(null);
+      }
+    } catch (err: any) {
+      alert(err.message || "Network error");
     }
   };
 
@@ -541,9 +626,156 @@ export default function AdminBookings() {
 
               <div>
                 <p style={{ fontSize: "0.875rem", color: "#666" }}>
-                  Booking Date
+                  Stay & Billing Lifecycle
                 </p>
-                <p>{new Date(selectedBooking.createdAt).toLocaleString()}</p>
+                <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.25rem", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: "0.8rem", padding: "0.25rem 0.5rem", borderRadius: "4px", background: "#f1f5f9", fontWeight: 600 }}>
+                    Stay: {selectedBooking.stayStatus || "NOT_CHECKED_IN"}
+                  </span>
+                  <span style={{ fontSize: "0.8rem", padding: "0.25rem 0.5rem", borderRadius: "4px", background: "#f1f5f9", fontWeight: 600 }}>
+                    Billing: {selectedBooking.billingStatus || "OPEN"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Operational Actions */}
+              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
+                {selectedBooking.bookingStatus === "confirmed" && (!selectedBooking.stayStatus || selectedBooking.stayStatus === "NOT_CHECKED_IN") && (
+                  <button
+                    onClick={() => handleAdminCheckIn(selectedBooking._id)}
+                    style={{
+                      padding: "0.5rem 1rem",
+                      backgroundColor: "#166534",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "0.375rem",
+                      fontSize: "0.85rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    🏨 Mark Check-In
+                  </button>
+                )}
+
+                {selectedBooking.stayStatus === "CHECKED_IN" && (
+                  <button
+                    onClick={() => handleAdminCheckOut(selectedBooking._id)}
+                    style={{
+                      padding: "0.5rem 1rem",
+                      backgroundColor: "#6b21a8",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "0.375rem",
+                      fontSize: "0.85rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    🚪 Mark Checkout
+                  </button>
+                )}
+
+                {selectedBooking.stayStatus === "CHECKED_OUT" && selectedBooking.billingStatus !== "FINALIZED" && (
+                  <button
+                    onClick={() => handleAdminFinalizeBilling(selectedBooking._id)}
+                    style={{
+                      padding: "0.5rem 1rem",
+                      backgroundColor: "#0b6dff",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "0.375rem",
+                      fontSize: "0.85rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    🧾 Finalize Billing
+                  </button>
+                )}
+
+                {selectedBooking.finalInvoiceNumber && (
+                  <span style={{ fontSize: "0.85rem", color: "#166534", fontWeight: 600, alignSelf: "center" }}>
+                    ✓ Invoice: {selectedBooking.finalInvoiceNumber}
+                  </span>
+                )}
+              </div>
+
+              {/* Communication History Section */}
+              <div style={{ marginTop: "1rem", borderTop: "1px solid #e5e7eb", paddingTop: "1rem" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+                  <h3 style={{ fontSize: "1rem", fontWeight: 700, margin: 0, color: "#111827" }}>
+                    📨 Communication History
+                  </h3>
+                  <a
+                    href={`/admin/communications?search=${selectedBooking.bookingReference}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ fontSize: "0.75rem", color: "#2563eb", textDecoration: "underline", fontWeight: 600 }}
+                  >
+                    View in Center ↗
+                  </a>
+                </div>
+
+                {timelineLoading ? (
+                  <p style={{ fontSize: "0.85rem", color: "#6b7280" }}>Loading delivery history...</p>
+                ) : communicationsTimeline.length === 0 ? (
+                  <p style={{ fontSize: "0.85rem", color: "#9ca3af" }}>No communications recorded for this booking yet.</p>
+                ) : (
+                  <div style={{ display: "grid", gap: "0.5rem", maxHeight: "200px", overflowY: "auto" }}>
+                    {communicationsTimeline.map((item) => (
+                      <div
+                        key={item.id}
+                        style={{
+                          padding: "0.5rem 0.75rem",
+                          borderRadius: "0.375rem",
+                          background: "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                          fontSize: "0.8rem",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontWeight: 600, color: "#1e293b" }}>
+                            {item.type} {item.isResend && <span style={{ color: "#d97706" }}>[RESEND]</span>}
+                          </div>
+                          <div style={{ color: "#64748b", fontSize: "0.75rem" }}>
+                            {new Date(item.deliveredAt || item.scheduledFor || item.createdAt).toLocaleString()} • {item.recipientMasked}
+                          </div>
+                          {item.lastError && (
+                            <div style={{ color: "#dc2626", fontSize: "0.7rem", marginTop: "0.1rem" }}>
+                              {item.lastError}
+                            </div>
+                          )}
+                        </div>
+                        <span
+                          style={{
+                            fontSize: "0.7rem",
+                            fontWeight: 700,
+                            padding: "0.2rem 0.5rem",
+                            borderRadius: "9999px",
+                            backgroundColor:
+                              item.status === "DELIVERED" || item.status === "ACCEPTED"
+                                ? "#dcfce7"
+                                : item.status === "FAILED"
+                                ? "#fee2e2"
+                                : "#fef9c3",
+                            color:
+                              item.status === "DELIVERED" || item.status === "ACCEPTED"
+                                ? "#15803d"
+                                : item.status === "FAILED"
+                                ? "#b91c1c"
+                                : "#a16207",
+                          }}
+                        >
+                          {item.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 

@@ -1,49 +1,109 @@
 /**
- * Email Service for sending OTP and other notifications via SMTP
+ * Email Service for sending OTP, booking confirmations and notifications via Nodemailer & Gmail SMTP
  */
 
-import nodemailer from 'nodemailer';
+import nodemailer, { Transporter } from 'nodemailer';
 
-interface EmailOptions {
+export interface EmailAttachment {
+  filename: string;
+  content?: string | Buffer;
+  path?: string;
+  contentType?: string;
+  encoding?: string;
+  cid?: string;
+}
+
+export interface EmailOptions {
   to: string;
   subject: string;
   html: string;
   text?: string;
+  from?: string;
+  replyTo?: string;
+  attachments?: EmailAttachment[];
 }
 
-// Create transporter with Gmail SMTP
-const createTransporter = () => {
-  return nodemailer.createTransport({
+export interface SendMailResult {
+  success: boolean;
+  messageId?: string;
+  response?: string;
+  error?: any;
+}
+
+// Global cached transporter for connection pooling across warm invocations
+let cachedTransporter: Transporter | null = null;
+
+export const getTransporter = (): Transporter => {
+  if (cachedTransporter) return cachedTransporter;
+
+  cachedTransporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: false, // true for 465, false for other ports
-    connectionTimeout: 10_000,
-    greetingTimeout: 10_000,
-    socketTimeout: 15_000,
+    port: parseInt(process.env.SMTP_PORT || '587', 10),
+    secure: process.env.SMTP_SECURE ? process.env.SMTP_SECURE === 'true' : process.env.SMTP_PORT === '465',
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 100,
     auth: {
-      user: process.env.SMTP_USER || '', // Gmail address
-      pass: process.env.SMTP_PASSWORD || '', // App password
+      user: process.env.SMTP_USER || '',
+      pass: process.env.SMTP_PASSWORD || process.env.SMTP_PASS || '',
     },
+    connectionTimeout: 15_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 30_000,
   });
+
+  return cachedTransporter;
 };
 
-export async function sendEmail(options: EmailOptions): Promise<boolean> {
+/**
+ * Sends an email and returns detailed outcome information.
+ */
+export async function sendMailWithResult(options: EmailOptions): Promise<SendMailResult> {
   try {
-    const transporter = createTransporter();
+    const transporter = getTransporter();
 
-    const mailOptions = {
-      from: `"YatraExpertz" <${process.env.SMTP_USER}>`,
+    const sender =
+      options.from ||
+      process.env.SMTP_FROM ||
+      `"YatraExpertz" <${process.env.SMTP_USER || 'noreply@yatraexpertz.com'}>`;
+
+    const mailOptions: any = {
+      from: sender,
       to: options.to,
       subject: options.subject,
       html: options.html,
       text: options.text || '',
     };
 
-    await transporter.sendMail(mailOptions);
-    return true;
-  } catch {
-    return false;
+    if (options.replyTo || process.env.SMTP_REPLY_TO) {
+      mailOptions.replyTo = options.replyTo || process.env.SMTP_REPLY_TO;
+    }
+
+    if (options.attachments && options.attachments.length > 0) {
+      mailOptions.attachments = options.attachments;
+    }
+
+    const info = await transporter.sendMail(mailOptions);
+    return {
+      success: true,
+      messageId: info.messageId,
+      response: info.response,
+    };
+  } catch (error: any) {
+    console.error("Error in sendMailWithResult:", error);
+    return {
+      success: false,
+      error,
+    };
   }
+}
+
+/**
+ * Standard sendEmail returning boolean (retained for backwards compatibility).
+ */
+export async function sendEmail(options: EmailOptions): Promise<boolean> {
+  const result = await sendMailWithResult(options);
+  return result.success;
 }
 
 export async function sendOTP(email: string, otp: string): Promise<boolean> {

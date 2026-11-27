@@ -2,10 +2,19 @@
 
 import React, { useState, useEffect } from "react";
 
+interface ReviewMedia {
+  type: "photo" | "video";
+  url: string;
+  thumbnailUrl?: string;
+  fileId?: string;
+}
+
 interface Review {
   _id: string;
+  bookingId?: string;
   userId: string;
   userName: string;
+  reviewerDisplayName?: string;
   userImage: string;
   propertyId: string;
   propertyName: string;
@@ -13,23 +22,38 @@ interface Review {
   propertyState?: string;
   propertyType: string;
   rating: number;
+  overallRating?: number;
+  reviewTitle?: string;
   reviewText: string;
   reviewImages: string[];
-  media?: Array<{ type: "photo" | "video"; url: string; thumbnailUrl?: string }>;
+  photos?: string[];
+  videos?: string[];
+  media?: ReviewMedia[];
+  recommendProperty?: boolean;
   createdAt: string;
+  submittedAt?: string;
+  moderationStatus?: "PENDING" | "APPROVED" | "REJECTED" | "HIDDEN" | "CHANGES_REQUESTED";
+  moderationReason?: string;
+  moderatedBy?: string;
+  moderatedAt?: string;
   verified: boolean;
+  verifiedStay?: boolean;
   active: boolean;
+  featuredOnHomepage?: boolean;
 }
 
 export default function AdminReviews() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterActive, setFilterActive] = useState<
-    "all" | "active" | "inactive"
-  >("all");
-  const [sortBy, setSortBy] = useState<
-    "newest" | "oldest" | "rating-high" | "rating-low"
-  >("newest");
+  const [activeTab, setActiveTab] = useState<"all" | "PENDING" | "APPROVED" | "REJECTED" | "HIDDEN">("all");
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "rating-high" | "rating-low">("newest");
+
+  // Rejection/Hide Reason Modal
+  const [reasonModalOpen, setReasonModalOpen] = useState(false);
+  const [targetReviewId, setTargetReviewId] = useState<string | null>(null);
+  const [targetAction, setTargetAction] = useState<"reject" | "hide" | null>(null);
+  const [moderationReason, setModerationReason] = useState("");
+  const [actionProcessing, setActionProcessing] = useState(false);
 
   useEffect(() => {
     fetchReviews();
@@ -52,33 +76,115 @@ export default function AdminReviews() {
     }
   };
 
-  const handleToggleActive = async (
+  const handleModerationAction = async (
     reviewId: string,
-    currentActive: boolean,
+    action: "approve" | "restore"
   ) => {
     try {
       const response = await fetch(`/api/reviews/${reviewId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ active: !currentActive }),
+        body: JSON.stringify({ action }),
       });
 
       if (response.ok) {
-        setReviews(
-          reviews.map((review) =>
-            review._id === reviewId
-              ? { ...review, active: !currentActive }
-              : review,
-          ),
+        const updated = await response.json();
+        setReviews((prev) =>
+          prev.map((r) =>
+            r._id === reviewId
+              ? {
+                  ...r,
+                  moderationStatus: "APPROVED",
+                  active: true,
+                  moderatedAt: new Date().toISOString(),
+                }
+              : r
+          )
         );
       }
     } catch (error) {
-      console.error("Failed to update review:", error);
+      console.error("Failed to update review status:", error);
+    }
+  };
+
+  const handleToggleHomepageFeature = async (
+    reviewId: string,
+    currentFeatured?: boolean
+  ) => {
+    try {
+      const response = await fetch(`/api/reviews/${reviewId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ featuredOnHomepage: !currentFeatured }),
+      });
+
+      if (response.ok) {
+        setReviews((prev) =>
+          prev.map((r) =>
+            r._id === reviewId ? { ...r, featuredOnHomepage: !currentFeatured } : r
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Failed to toggle homepage feature:", error);
+    }
+  };
+
+  const openReasonModal = (reviewId: string, action: "reject" | "hide") => {
+    setTargetReviewId(reviewId);
+    setTargetAction(action);
+    setModerationReason("");
+    setReasonModalOpen(true);
+  };
+
+  const submitReasonModal = async () => {
+    if (!targetReviewId || !targetAction) return;
+    if (!moderationReason.trim()) {
+      alert("Please provide a moderation reason.");
+      return;
+    }
+
+    try {
+      setActionProcessing(true);
+      const response = await fetch(`/api/reviews/${targetReviewId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: targetAction,
+          moderationReason: moderationReason.trim(),
+        }),
+      });
+
+      if (response.ok) {
+        const newStatus = targetAction === "reject" ? "REJECTED" : "HIDDEN";
+        setReviews((prev) =>
+          prev.map((r) =>
+            r._id === targetReviewId
+              ? {
+                  ...r,
+                  moderationStatus: newStatus,
+                  active: false,
+                  moderationReason: moderationReason.trim(),
+                  moderatedAt: new Date().toISOString(),
+                }
+              : r
+          )
+        );
+        setReasonModalOpen(false);
+      } else {
+        const err = await response.json();
+        alert(err.error || "Failed to update review.");
+      }
+    } catch (error) {
+      console.error("Failed to apply moderation action:", error);
+      alert("Failed to apply moderation action.");
+    } finally {
+      setActionProcessing(false);
     }
   };
 
   const handleDeleteReview = async (reviewId: string) => {
-    if (!confirm("Are you sure you want to delete this review?")) return;
+    if (!confirm("Are you sure you want to permanently delete this review?")) return;
 
     try {
       const response = await fetch(`/api/reviews/${reviewId}`, {
@@ -95,24 +201,20 @@ export default function AdminReviews() {
 
   const filteredReviews = reviews
     .filter((review) => {
-      if (filterActive === "active") return review.active;
-      if (filterActive === "inactive") return !review.active;
-      return true;
+      const status = review.moderationStatus || (review.active ? "APPROVED" : "PENDING");
+      if (activeTab === "all") return true;
+      return status === activeTab;
     })
     .sort((a, b) => {
       switch (sortBy) {
         case "newest":
-          return (
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         case "oldest":
-          return (
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          );
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
         case "rating-high":
-          return b.rating - a.rating;
+          return (b.overallRating || b.rating) - (a.overallRating || a.rating);
         case "rating-low":
-          return a.rating - b.rating;
+          return (a.overallRating || a.rating) - (b.overallRating || b.rating);
         default:
           return 0;
       }
@@ -120,11 +222,20 @@ export default function AdminReviews() {
 
   if (loading) {
     return (
-      <div style={{ padding: "2rem", textAlign: "center" }}>
-        <p>Loading reviews...</p>
+      <div style={{ padding: "2rem", textAlign: "center", paddingTop: "5rem" }}>
+        <p>Loading guest reviews...</p>
       </div>
     );
   }
+
+  const pendingCount = reviews.filter(
+    (r) => (r.moderationStatus === "PENDING" || (!r.active && !r.moderationStatus))
+  ).length;
+  const approvedCount = reviews.filter(
+    (r) => (r.moderationStatus === "APPROVED" || (r.active && !r.moderationStatus))
+  ).length;
+  const rejectedCount = reviews.filter((r) => r.moderationStatus === "REJECTED").length;
+  const hiddenCount = reviews.filter((r) => r.moderationStatus === "HIDDEN").length;
 
   return (
     <div
@@ -135,111 +246,178 @@ export default function AdminReviews() {
         margin: "0 auto",
       }}
     >
-      <h1 style={{ fontSize: "2rem", fontWeight: 700, marginBottom: "1rem" }}>
-        Guest Reviews Management
-      </h1>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "1rem" }}>
+        <h1 style={{ fontSize: "2rem", fontWeight: 700, margin: 0 }}>
+          Guest Reviews & Moderation Engine
+        </h1>
+        <button
+          onClick={fetchReviews}
+          style={{
+            padding: "0.5rem 1rem",
+            background: "#f1f5f9",
+            border: "1px solid #cbd5e1",
+            borderRadius: "6px",
+            fontSize: "0.85rem",
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          🔄 Refresh Reviews
+        </button>
+      </div>
 
-      {/* Stats */}
+      {/* Stats Cards */}
       <div
         style={{
           display: "flex",
           gap: "1rem",
-          marginBottom: "2rem",
+          marginBottom: "1.5rem",
           flexWrap: "wrap",
         }}
       >
         <div
+          onClick={() => setActiveTab("PENDING")}
           style={{
             background: "#fef3c7",
             padding: "1rem 1.5rem",
             borderRadius: "8px",
-            border: "1px solid #fcd34d",
+            border: activeTab === "PENDING" ? "2px solid #d97706" : "1px solid #fcd34d",
+            cursor: "pointer",
+            flex: "1 1 180px",
           }}
         >
-          <div
-            style={{ fontSize: "1.5rem", fontWeight: 700, color: "#d97706" }}
-          >
-            {reviews.filter((r) => !r.active).length}
+          <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#d97706" }}>
+            {pendingCount}
           </div>
-          <div style={{ fontSize: "0.875rem", color: "#92400e" }}>
-            Pending Approval
+          <div style={{ fontSize: "0.875rem", color: "#92400e", fontWeight: 600 }}>
+            Pending Moderation
           </div>
         </div>
+
         <div
+          onClick={() => setActiveTab("APPROVED")}
           style={{
             background: "#d1fae5",
             padding: "1rem 1.5rem",
             borderRadius: "8px",
-            border: "1px solid #6ee7b7",
+            border: activeTab === "APPROVED" ? "2px solid #059669" : "1px solid #6ee7b7",
+            cursor: "pointer",
+            flex: "1 1 180px",
           }}
         >
-          <div
-            style={{ fontSize: "1.5rem", fontWeight: 700, color: "#059669" }}
-          >
-            {reviews.filter((r) => r.active).length}
+          <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#059669" }}>
+            {approvedCount}
           </div>
-          <div style={{ fontSize: "0.875rem", color: "#065f46" }}>Approved</div>
+          <div style={{ fontSize: "0.875rem", color: "#065f46", fontWeight: 600 }}>
+            Approved &amp; Published
+          </div>
         </div>
+
         <div
+          onClick={() => setActiveTab("REJECTED")}
           style={{
-            background: "#f3f4f6",
+            background: "#fee2e2",
             padding: "1rem 1.5rem",
             borderRadius: "8px",
-            border: "1px solid #d1d5db",
+            border: activeTab === "REJECTED" ? "2px solid #dc2626" : "1px solid #fca5a5",
+            cursor: "pointer",
+            flex: "1 1 180px",
           }}
         >
-          <div
-            style={{ fontSize: "1.5rem", fontWeight: 700, color: "#374151" }}
-          >
+          <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#dc2626" }}>
+            {rejectedCount}
+          </div>
+          <div style={{ fontSize: "0.875rem", color: "#991b1b", fontWeight: 600 }}>
+            Rejected
+          </div>
+        </div>
+
+        <div
+          onClick={() => setActiveTab("HIDDEN")}
+          style={{
+            background: "#f1f5f9",
+            padding: "1rem 1.5rem",
+            borderRadius: "8px",
+            border: activeTab === "HIDDEN" ? "2px solid #475569" : "1px solid #cbd5e1",
+            cursor: "pointer",
+            flex: "1 1 180px",
+          }}
+        >
+          <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#475569" }}>
+            {hiddenCount}
+          </div>
+          <div style={{ fontSize: "0.875rem", color: "#334155", fontWeight: 600 }}>
+            Hidden
+          </div>
+        </div>
+
+        <div
+          onClick={() => setActiveTab("all")}
+          style={{
+            background: "#ffffff",
+            padding: "1rem 1.5rem",
+            borderRadius: "8px",
+            border: activeTab === "all" ? "2px solid #2563eb" : "1px solid #e2e8f0",
+            cursor: "pointer",
+            flex: "1 1 180px",
+          }}
+        >
+          <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#1e293b" }}>
             {reviews.length}
           </div>
-          <div style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+          <div style={{ fontSize: "0.875rem", color: "#64748b", fontWeight: 600 }}>
             Total Reviews
           </div>
         </div>
       </div>
 
-      {/* Filters & Sorting */}
+      {/* Tabs & Sorting */}
       <div
         style={{
           display: "flex",
           gap: "1rem",
-          marginBottom: "2rem",
+          marginBottom: "1.5rem",
           flexWrap: "wrap",
           alignItems: "center",
+          background: "#ffffff",
+          padding: "1rem",
+          borderRadius: "8px",
+          border: "1px solid #e2e8f0",
         }}
       >
-        <div>
-          <label style={{ fontWeight: 600, marginRight: "0.5rem" }}>
-            Filter:
-          </label>
-          <select
-            value={filterActive}
-            onChange={(e) => setFilterActive(e.target.value as any)}
-            style={{
-              padding: "0.5rem",
-              borderRadius: "4px",
-              border: "1px solid #ddd",
-              cursor: "pointer",
-            }}
-          >
-            <option value="all">All Reviews</option>
-            <option value="active">Approved Only</option>
-            <option value="inactive">Pending Approval</option>
-          </select>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          {(["all", "PENDING", "APPROVED", "REJECTED", "HIDDEN"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              style={{
+                padding: "0.45rem 0.9rem",
+                borderRadius: "6px",
+                border: "none",
+                background: activeTab === tab ? "#0066cc" : "#f1f5f9",
+                color: activeTab === tab ? "white" : "#475569",
+                fontSize: "0.85rem",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              {tab === "all" ? "All Reviews" : tab.charAt(0) + tab.slice(1).toLowerCase()}
+            </button>
+          ))}
         </div>
 
-        <div>
-          <label style={{ fontWeight: 600, marginRight: "0.5rem" }}>
-            Sort by:
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <label style={{ fontSize: "0.85rem", fontWeight: 600, color: "#475569" }}>
+            Sort:
           </label>
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
             style={{
-              padding: "0.5rem",
-              borderRadius: "4px",
-              border: "1px solid #ddd",
+              padding: "0.45rem 0.75rem",
+              borderRadius: "6px",
+              border: "1px solid #cbd5e1",
+              fontSize: "0.85rem",
               cursor: "pointer",
             }}
           >
@@ -249,353 +427,447 @@ export default function AdminReviews() {
             <option value="rating-low">Lowest Rating</option>
           </select>
         </div>
-
-        <div style={{ marginLeft: "auto", fontWeight: 600 }}>
-          Showing: {filteredReviews.length} reviews
-        </div>
       </div>
 
       {/* Reviews List */}
-      <div
-        style={{
-          display: "grid",
-          gap: "1.5rem",
-        }}
-      >
+      <div style={{ display: "grid", gap: "1.25rem" }}>
         {filteredReviews.length === 0 ? (
           <div
             style={{
-              padding: "2rem",
+              padding: "3rem 1.5rem",
               textAlign: "center",
-              background: "#f5f5f5",
-              borderRadius: "8px",
-              color: "#666",
+              background: "#ffffff",
+              borderRadius: "12px",
+              border: "1px solid #e2e8f0",
+              color: "#64748b",
             }}
           >
-            No reviews found
+            No reviews matching the selected filter.
           </div>
         ) : (
-          filteredReviews.map((review) => (
-            <div
-              key={review._id}
-              style={{
-                background: review.active ? "white" : "#fffbeb",
-                border: `2px solid ${review.active ? "#10b981" : "#f59e0b"}`,
-                borderRadius: "8px",
-                padding: "1.5rem",
-                boxShadow: review.active
-                  ? "0 2px 4px rgba(0,0,0,0.1)"
-                  : "0 2px 8px rgba(245, 158, 11, 0.2)",
-                position: "relative",
-              }}
-            >
-              {/* Pending Badge */}
-              {!review.active && (
+          filteredReviews.map((review) => {
+            const status = review.moderationStatus || (review.active ? "APPROVED" : "PENDING");
+            const isVerified = review.verifiedStay === true || review.verified === true;
+            const starCount = review.overallRating || review.rating || 5;
+
+            return (
+              <div
+                key={review._id}
+                style={{
+                  background: "white",
+                  border: `1.5px solid ${
+                    status === "APPROVED"
+                      ? "#10b981"
+                      : status === "PENDING"
+                      ? "#f59e0b"
+                      : status === "REJECTED"
+                      ? "#ef4444"
+                      : "#94a3b8"
+                  }`,
+                  borderRadius: "12px",
+                  padding: "1.5rem",
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.04)",
+                  position: "relative",
+                }}
+              >
+                {/* Header */}
                 <div
                   style={{
-                    position: "absolute",
-                    top: "-10px",
-                    right: "20px",
-                    background:
-                      "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-                    color: "white",
-                    padding: "4px 12px",
-                    borderRadius: "12px",
-                    fontSize: "0.75rem",
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    marginBottom: "0.75rem",
+                    flexWrap: "wrap",
+                    gap: "0.5rem",
                   }}
                 >
-                  Needs Approval
-                </div>
-              )}
-              {/* Header */}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  marginBottom: "1rem",
-                }}
-              >
-                <div>
-                  <div
-                    style={{
-                      fontWeight: 700,
-                      fontSize: "1.1rem",
-                      marginBottom: "0.25rem",
-                    }}
-                  >
-                    {review.propertyName || "YatraExpertz Journey"}
-                  </div>
-                  <div style={{ color: "#666", fontSize: "0.9rem" }}>
-                    {[review.propertyCity, review.propertyState]
-                      .filter(Boolean)
-                      .join(", ") && (
-                      <span style={{ marginRight: "8px" }}>
-                        📍 {[review.propertyCity, review.propertyState]
-                          .filter(Boolean)
-                          .join(", ")}
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                      <span style={{ fontWeight: 800, fontSize: "1.15rem", color: "#0f172a" }}>
+                        {review.propertyName || "YatraExpertz Journey"}
                       </span>
-                    )}
-                    <span>Type: {review.propertyType || "Property"}</span>
+                      {isVerified && (
+                        <span
+                          style={{
+                            background: "#ecfdf5",
+                            color: "#059669",
+                            border: "1px solid #a7f3d0",
+                            fontSize: "0.75rem",
+                            fontWeight: 700,
+                            padding: "2px 8px",
+                            borderRadius: "12px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "3px",
+                          }}
+                        >
+                          ✓ Verified Stay
+                        </span>
+                      )}
+                      {review.bookingId && (
+                        <span style={{ fontSize: "0.75rem", color: "#64748b", background: "#f1f5f9", padding: "2px 6px", borderRadius: "4px" }}>
+                          Booking: {review.bookingId}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ color: "#64748b", fontSize: "0.85rem", marginTop: "2px" }}>
+                      {review.propertyCity && <span>📍 {review.propertyCity} • </span>}
+                      <span>Type: {review.propertyType || "Hotel"}</span>
+                    </div>
                   </div>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <div
-                    style={{
-                      color: "#f59e0b",
-                      fontWeight: 600,
-                      marginBottom: "0.5rem",
-                    }}
-                  >
-                    {"★".repeat(review.rating)}
-                    <span style={{ color: "#ddd" }}>
-                      {"★".repeat(5 - review.rating)}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: "0.85rem", color: "#999" }}>
-                    {new Date(review.createdAt).toLocaleDateString()}
-                  </div>
-                </div>
-              </div>
 
-              {/* User Info */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "1rem",
-                  marginBottom: "1rem",
-                  paddingBottom: "1rem",
-                  borderBottom: "1px solid #eee",
-                }}
-              >
-                {review.userImage ? (
-                  <img
-                    src={review.userImage}
-                    alt={review.userName}
-                    style={{
-                      width: "40px",
-                      height: "40px",
-                      borderRadius: "50%",
-                      objectFit: "cover",
-                    }}
-                  />
-                ) : (
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ color: "#f59e0b", fontSize: "1.1rem", fontWeight: 700 }}>
+                      {"★".repeat(starCount)}
+                      <span style={{ color: "#e2e8f0" }}>{"★".repeat(5 - starCount)}</span>
+                    </div>
+                    <div style={{ fontSize: "0.8rem", color: "#94a3b8", marginTop: "2px" }}>
+                      Submitted: {new Date(review.submittedAt || review.createdAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reviewer Info */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.75rem",
+                    marginBottom: "0.75rem",
+                    paddingBottom: "0.75rem",
+                    borderBottom: "1px solid #f1f5f9",
+                  }}
+                >
                   <div
                     style={{
-                      width: "40px",
-                      height: "40px",
+                      width: "36px",
+                      height: "36px",
                       borderRadius: "50%",
-                      background:
-                        "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
+                      background: "linear-gradient(135deg, #0066cc 0%, #0099ff 100%)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       color: "white",
-                      fontWeight: 600,
+                      fontWeight: 700,
+                      fontSize: "0.9rem",
                     }}
                   >
-                    {review.userName?.charAt(0).toUpperCase() || "U"}
+                    {(review.reviewerDisplayName || review.userName || "G").charAt(0).toUpperCase()}
                   </div>
-                )}
-                <div>
-                  <div style={{ fontWeight: 600 }}>{review.userName}</div>
-                  <div style={{ fontSize: "0.85rem", color: "#999" }}>
-                    User ID: {review.userId}
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: "0.9rem", color: "#1e293b" }}>
+                      {review.reviewerDisplayName || review.userName}
+                    </div>
+                    {typeof review.recommendProperty === "boolean" && (
+                      <div style={{ fontSize: "0.75rem", color: review.recommendProperty ? "#059669" : "#dc2626", fontWeight: 600 }}>
+                        {review.recommendProperty ? "👍 Recommends this property" : "👎 Does not recommend"}
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
 
-              {/* Review Content */}
-              <div style={{ marginBottom: "1rem" }}>
-                <p
-                  style={{
-                    color: "#333",
-                    lineHeight: "1.6",
-                    margin: "0 0 1rem 0",
-                  }}
-                >
-                  {review.reviewText}
-                </p>
+                {/* Review Content */}
+                <div style={{ marginBottom: "1rem" }}>
+                  {review.reviewTitle && (
+                    <h4 style={{ margin: "0 0 0.4rem 0", fontSize: "1rem", fontWeight: 700, color: "#0f172a" }}>
+                      {review.reviewTitle}
+                    </h4>
+                  )}
+                  <p style={{ color: "#334155", lineHeight: 1.6, margin: "0 0 0.75rem 0", fontSize: "0.925rem" }}>
+                    {review.reviewText}
+                  </p>
 
-                {/* Review Media (Photos & Videos) */}
-                {((review.media && review.media.length > 0) ||
-                  (review.reviewImages && review.reviewImages.length > 0)) && (
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "0.75rem",
-                      flexWrap: "wrap",
-                      marginTop: "0.5rem",
-                    }}
-                  >
-                    {review.media && review.media.length > 0
-                      ? review.media.map((m, idx) => (
-                          <div
-                            key={idx}
-                            style={{
-                              position: "relative",
-                              width: "140px",
-                              aspectRatio: "16 / 9",
-                              borderRadius: "6px",
-                              overflow: "hidden",
-                              background: "#0f172a",
-                              border: "1px solid #cbd5e1",
-                            }}
-                          >
-                            {m.type === "photo" ? (
-                              <img
-                                src={m.url}
-                                alt="Review media"
-                                style={{
-                                  width: "100%",
-                                  height: "100%",
-                                  objectFit: "cover",
-                                }}
-                              />
-                            ) : (
-                              <video
-                                src={m.url}
-                                controls
-                                style={{
-                                  width: "100%",
-                                  height: "100%",
-                                  objectFit: "cover",
-                                }}
-                              />
-                            )}
-                            <span
+                  {/* Media Previews */}
+                  {((review.media && review.media.length > 0) ||
+                    (review.reviewImages && review.reviewImages.length > 0)) && (
+                    <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
+                      {review.media && review.media.length > 0
+                        ? review.media.map((m, idx) => (
+                            <div
+                              key={idx}
                               style={{
-                                position: "absolute",
-                                top: "4px",
-                                left: "4px",
-                                padding: "2px 6px",
-                                borderRadius: "3px",
-                                fontSize: "0.65rem",
-                                fontWeight: 700,
-                                background:
-                                  m.type === "photo" ? "#0b6dff" : "#7c3aed",
-                                color: "white",
+                                position: "relative",
+                                width: "130px",
+                                aspectRatio: "16 / 9",
+                                borderRadius: "8px",
+                                overflow: "hidden",
+                                background: "#0f172a",
+                                border: "1px solid #cbd5e1",
                               }}
                             >
-                              {m.type === "photo" ? "Photo" : "Video"}
-                            </span>
-                          </div>
-                        ))
-                      : review.reviewImages.map((img, idx) => (
-                          <img
-                            key={idx}
-                            src={img}
-                            alt={`Review image ${idx + 1}`}
-                            style={{
-                              width: "120px",
-                              height: "80px",
-                              objectFit: "cover",
-                              borderRadius: "6px",
-                              border: "1px solid #cbd5e1",
-                            }}
-                          />
-                        ))}
-                  </div>
-                )}
-              </div>
+                              {m.type === "photo" ? (
+                                <img
+                                  src={m.url}
+                                  alt="Review attachment"
+                                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                />
+                              ) : (
+                                <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: "0.75rem", fontWeight: 700 }}>
+                                  📹 Video
+                                </div>
+                              )}
+                              <span
+                                style={{
+                                  position: "absolute",
+                                  top: "4px",
+                                  left: "4px",
+                                  padding: "1px 5px",
+                                  borderRadius: "3px",
+                                  fontSize: "0.65rem",
+                                  fontWeight: 700,
+                                  background: m.type === "photo" ? "#0066cc" : "#7c3aed",
+                                  color: "white",
+                                }}
+                              >
+                                {m.type === "photo" ? "Photo" : "Video"}
+                              </span>
+                            </div>
+                          ))
+                        : review.reviewImages.map((img, idx) => (
+                            <img
+                              key={idx}
+                              src={img}
+                              alt="Review"
+                              style={{
+                                width: "110px",
+                                height: "70px",
+                                objectFit: "cover",
+                                borderRadius: "6px",
+                                border: "1px solid #cbd5e1",
+                              }}
+                            />
+                          ))}
+                    </div>
+                  )}
 
-              {/* Actions */}
-              <div
-                style={{
-                  display: "flex",
-                  gap: "1rem",
-                  paddingTop: "1rem",
-                  borderTop: "1px solid #eee",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                }}
-              >
-                {!review.active ? (
-                  <button
-                    onClick={() =>
-                      handleToggleActive(review._id, review.active)
-                    }
-                    style={{
-                      padding: "0.65rem 1.4rem",
-                      borderRadius: "6px",
-                      border: "none",
-                      background:
-                        "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-                      color: "white",
-                      cursor: "pointer",
-                      fontWeight: 700,
-                      fontSize: "0.95rem",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                      boxShadow: "0 2px 8px rgba(16, 185, 129, 0.3)",
-                    }}
-                    title="Accept this review to display it in Stories of Happy Journeys on homepage"
-                  >
-                    ✓ Accept Review
-                  </button>
-                ) : (
-                  <button
-                    onClick={() =>
-                      handleToggleActive(review._id, review.active)
-                    }
-                    style={{
-                      padding: "0.55rem 1.1rem",
-                      borderRadius: "6px",
-                      border: "none",
-                      background: "#f59e0b",
-                      color: "white",
-                      cursor: "pointer",
-                      fontWeight: 600,
-                      fontSize: "0.88rem",
-                    }}
-                  >
-                    Unpublish
-                  </button>
-                )}
-                <button
-                  onClick={() => handleDeleteReview(review._id)}
-                  style={{
-                    padding: "0.55rem 1.1rem",
-                    borderRadius: "6px",
-                    border: "1px solid #ef4444",
-                    background: "#fff1f2",
-                    color: "#e11d48",
-                    cursor: "pointer",
-                    fontWeight: 600,
-                    fontSize: "0.88rem",
-                  }}
-                  title="Reject or delete this review"
-                >
-                  ✕ Reject / Delete
-                </button>
+                  {/* Moderation Details if Rejected or Hidden */}
+                  {review.moderationReason && (
+                    <div style={{ marginTop: "0.75rem", padding: "0.5rem 0.75rem", background: "#fef2f2", borderLeft: "3px solid #ef4444", borderRadius: "4px", fontSize: "0.8rem", color: "#991b1b" }}>
+                      <strong>Moderation Reason:</strong> {review.moderationReason}
+                      {review.moderatedAt && (
+                        <span style={{ marginLeft: "8px", color: "#64748b" }}>
+                          ({new Date(review.moderatedAt).toLocaleDateString()})
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Moderation Action Buttons */}
                 <div
                   style={{
-                    marginLeft: "auto",
-                    padding: "0.45rem 1rem",
-                    background: review.active ? "#d1fae5" : "#fef3c7",
-                    borderRadius: "20px",
-                    fontSize: "0.85rem",
-                    fontWeight: 700,
-                    color: review.active ? "#065f46" : "#d97706",
-                    border: `1px solid ${
-                      review.active ? "#6ee7b7" : "#fcd34d"
-                    }`,
+                    display: "flex",
+                    gap: "0.6rem",
+                    paddingTop: "0.75rem",
+                    borderTop: "1px solid #f1f5f9",
+                    alignItems: "center",
+                    flexWrap: "wrap",
                   }}
                 >
-                  {review.active
-                    ? "✓ Accepted & Showing on Homepage"
-                    : "⏳ Pending Admin Acceptance"}
+                  {status !== "APPROVED" && (
+                    <button
+                      onClick={() => handleModerationAction(review._id, "approve")}
+                      style={{
+                        padding: "0.5rem 1rem",
+                        borderRadius: "8px",
+                        border: "none",
+                        background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                        color: "white",
+                        cursor: "pointer",
+                        fontWeight: 700,
+                        fontSize: "0.85rem",
+                      }}
+                    >
+                      ✓ Approve &amp; Publish
+                    </button>
+                  )}
+
+                  {status !== "REJECTED" && (
+                    <button
+                      onClick={() => openReasonModal(review._id, "reject")}
+                      style={{
+                        padding: "0.5rem 0.9rem",
+                        borderRadius: "8px",
+                        border: "1px solid #fca5a5",
+                        background: "#fff1f2",
+                        color: "#dc2626",
+                        cursor: "pointer",
+                        fontWeight: 600,
+                        fontSize: "0.85rem",
+                      }}
+                    >
+                      ✕ Reject Review
+                    </button>
+                  )}
+
+                  {status === "APPROVED" && (
+                    <button
+                      onClick={() => openReasonModal(review._id, "hide")}
+                      style={{
+                        padding: "0.5rem 0.9rem",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        background: "#f8fafc",
+                        color: "#475569",
+                        cursor: "pointer",
+                        fontWeight: 600,
+                        fontSize: "0.85rem",
+                      }}
+                    >
+                      Hide Review
+                    </button>
+                  )}
+
+                  {status === "HIDDEN" && (
+                    <button
+                      onClick={() => handleModerationAction(review._id, "restore")}
+                      style={{
+                        padding: "0.5rem 0.9rem",
+                        borderRadius: "8px",
+                        border: "1px solid #6ee7b7",
+                        background: "#ecfdf5",
+                        color: "#059669",
+                        cursor: "pointer",
+                        fontWeight: 600,
+                        fontSize: "0.85rem",
+                      }}
+                    >
+                      Restore to Published
+                    </button>
+                  )}
+
+                  {/* Feature on Homepage Toggle */}
+                  {status === "APPROVED" && (
+                    <button
+                      onClick={() => handleToggleHomepageFeature(review._id, review.featuredOnHomepage)}
+                      style={{
+                        padding: "0.5rem 0.9rem",
+                        borderRadius: "8px",
+                        border: review.featuredOnHomepage ? "1px solid #fcd34d" : "1px solid #e2e8f0",
+                        background: review.featuredOnHomepage ? "#fef3c7" : "#ffffff",
+                        color: review.featuredOnHomepage ? "#92400e" : "#64748b",
+                        cursor: "pointer",
+                        fontWeight: 600,
+                        fontSize: "0.85rem",
+                      }}
+                    >
+                      {review.featuredOnHomepage ? "⭐ Featured on Home" : "Feature on Home"}
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => handleDeleteReview(review._id)}
+                    style={{
+                      padding: "0.5rem 0.75rem",
+                      borderRadius: "8px",
+                      border: "none",
+                      background: "transparent",
+                      color: "#94a3b8",
+                      cursor: "pointer",
+                      fontSize: "0.8rem",
+                      marginLeft: "auto",
+                    }}
+                    title="Delete permanently"
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
+
+      {/* Moderation Reason Modal */}
+      {reasonModalOpen && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(15, 23, 42, 0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            padding: "1rem",
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              borderRadius: "16px",
+              padding: "1.75rem",
+              maxWidth: "480px",
+              width: "100%",
+              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)",
+            }}
+          >
+            <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "1.2rem", fontWeight: 700, color: "#0f172a" }}>
+              {targetAction === "reject" ? "Reject Review" : "Hide Review"}
+            </h3>
+            <p style={{ margin: "0 0 1rem 0", fontSize: "0.85rem", color: "#64748b", lineHeight: 1.5 }}>
+              Please specify the internal moderation reason for {targetAction === "reject" ? "rejecting" : "hiding"} this review. Moderation policies must apply fairly regardless of positive or negative ratings.
+            </p>
+
+            <textarea
+              rows={4}
+              value={moderationReason}
+              onChange={(e) => setModerationReason(e.target.value)}
+              placeholder="e.g. Inappropriate language, off-topic spam, or privacy policy violation..."
+              style={{
+                width: "100%",
+                padding: "0.75rem",
+                borderRadius: "8px",
+                border: "1px solid #cbd5e1",
+                fontSize: "0.85rem",
+                boxSizing: "border-box",
+                marginBottom: "1rem",
+                fontFamily: "inherit",
+              }}
+            />
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem" }}>
+              <button
+                type="button"
+                onClick={() => setReasonModalOpen(false)}
+                disabled={actionProcessing}
+                style={{
+                  padding: "0.5rem 1rem",
+                  borderRadius: "8px",
+                  border: "1px solid #cbd5e1",
+                  background: "#ffffff",
+                  color: "#475569",
+                  fontWeight: 600,
+                  fontSize: "0.85rem",
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={submitReasonModal}
+                disabled={actionProcessing || !moderationReason.trim()}
+                style={{
+                  padding: "0.5rem 1.25rem",
+                  borderRadius: "8px",
+                  border: "none",
+                  background: targetAction === "reject" ? "#dc2626" : "#475569",
+                  color: "white",
+                  fontWeight: 700,
+                  fontSize: "0.85rem",
+                  cursor: "pointer",
+                }}
+              >
+                {actionProcessing ? "Saving..." : `Confirm ${targetAction === "reject" ? "Rejection" : "Hiding"}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

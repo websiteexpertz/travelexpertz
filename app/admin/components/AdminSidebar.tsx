@@ -24,6 +24,7 @@ const menuItems: MenuItem[] = [
     href: "/admin/service-bookings",
   },
   { icon: "calendar_month", label: "Bookings", href: "/admin/bookings" },
+  { icon: "mail", label: "Communications", href: "/admin/communications" },
   { icon: "local_taxi", label: "Cab Management", href: "/admin/cabs" },
   { icon: "airport_shuttle", label: "Cab Bookings", href: "/admin/cab-bookings" },
   { icon: "event", label: "Upcoming Events", href: "/admin/events" },

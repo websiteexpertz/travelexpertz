@@ -1400,17 +1400,63 @@ export default function HotelDetails() {
                       border: "1px solid #f1f5f9",
                     }}
                   >
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.35rem" }}>
-                      <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.95rem" }}>
-                        {rev.userName || "Verified Guest"}
-                      </span>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.35rem" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.95rem" }}>
+                          {rev.reviewerDisplayName || rev.userName || "Verified Guest"}
+                        </span>
+                        {(rev.verifiedStay === true || rev.verified === true) && (
+                          <span
+                            style={{
+                              background: "#ecfdf5",
+                              color: "#059669",
+                              fontSize: "0.7rem",
+                              fontWeight: 700,
+                              padding: "1px 6px",
+                              borderRadius: "10px",
+                              border: "1px solid #a7f3d0",
+                            }}
+                          >
+                            ✓ Verified Stay
+                          </span>
+                        )}
+                      </div>
                       <span style={{ color: "#f59e0b", fontSize: "0.85rem" }}>
-                        {"★".repeat(Math.round(rev.rating || 5))}
+                        {"★".repeat(Math.round(rev.overallRating || rev.rating || 5))}
                       </span>
                     </div>
+                    {rev.reviewTitle && (
+                      <div style={{ fontWeight: 700, color: "#1e293b", fontSize: "0.875rem", marginBottom: "0.25rem" }}>
+                        {rev.reviewTitle}
+                      </div>
+                    )}
                     <p style={{ margin: 0, color: "#475569", fontSize: "0.875rem", lineHeight: 1.5 }}>
-                      {rev.comment}
+                      {rev.reviewText || rev.comment}
                     </p>
+                    {rev.media && rev.media.length > 0 && (
+                      <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem", flexWrap: "wrap" }}>
+                        {rev.media.map((m: any, mIdx: number) => (
+                          <div
+                            key={mIdx}
+                            style={{
+                              width: "80px",
+                              height: "55px",
+                              borderRadius: "6px",
+                              overflow: "hidden",
+                              background: "#0f172a",
+                            }}
+                          >
+                            {m.type === "photo" ? (
+                              <img src={m.url} alt="Review photo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            ) : (
+                              <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: "0.65rem" }}>
+                                📹 Video
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

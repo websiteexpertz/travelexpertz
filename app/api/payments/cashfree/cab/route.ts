@@ -24,9 +24,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid cab booking amount" }, { status: 400 });
     }
 
-    const origin = process.env.CASHFREE_ENV === "production"
-      ? (process.env.NEXT_PUBLIC_APP_URL || "https://travelexpertz.com").replace(/\/$/, "")
-      : (process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin).replace(/\/$/, "");
+    const getOrigin = () => {
+      if (process.env.CASHFREE_ENV === "production") {
+        if (process.env.NEXT_PUBLIC_APP_URL?.startsWith("https://")) {
+          return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+        }
+        const proto = request.headers.get("x-forwarded-proto");
+        const host = request.headers.get("x-forwarded-host") || request.headers.get("host");
+        if (proto === "https" && host) {
+          return `https://${host}`;
+        }
+        return "https://www.yatraexpertz.com";
+      }
+      return (process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin).replace(/\/$/, "");
+    };
+
+    const origin = getOrigin();
 
     const appId = process.env.CASHFREE_APP_ID;
     const secretKey = process.env.CASHFREE_SECRET_KEY;
