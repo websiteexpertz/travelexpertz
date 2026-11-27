@@ -16,7 +16,7 @@ export class WhatsAppNotificationAdapter implements NotificationAdapter {
   }
 
   async send(input: SendNotificationInput): Promise<SendNotificationResult> {
-    const { recipient, type } = input;
+    const { recipient } = input;
 
     // 1. Sanitize & validate phone number (E.164 or 10-digit Indian mobile)
     let sanitizedPhone = recipient.replace(/[^\d+]/g, "");
@@ -44,9 +44,6 @@ export class WhatsAppNotificationAdapter implements NotificationAdapter {
       process.env.NODE_ENV === "production";
 
     if (!isProductionLive) {
-      console.log(
-        `[WhatsAppAdapter:MOCK_MODE] Simulated WhatsApp Cloud API (${this.apiVersion}) send to +${sanitizedPhone} for ${type}`
-      );
       return {
         success: true,
         status: "ACCEPTED",

@@ -22,6 +22,11 @@ export async function ensureNotificationIndexes(database?: Db): Promise<void> {
     { name: "idx_notifications_polling_lease" }
   );
 
+  await collection.createIndex(
+    { status: 1, leaseExpiresAt: 1 },
+    { name: "idx_notifications_status_lease_recovery" }
+  );
+
   // 3. Booking communication history & cancellation/rescheduling index
   await collection.createIndex(
     { bookingId: 1, bookingVersion: 1, type: 1, channel: 1 },

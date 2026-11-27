@@ -4,8 +4,12 @@
  */
 
 export interface ReminderSchedule {
+  checkinAt: Date;
+  reminder7d: { scheduledAt: Date; isPast: boolean };
   reminder48h: { scheduledAt: Date; isPast: boolean };
   reminder24h: { scheduledAt: Date; isPast: boolean };
+  reminder12h: { scheduledAt: Date; isPast: boolean };
+  reminder4h: { scheduledAt: Date; isPast: boolean };
   reminder2h: { scheduledAt: Date; isPast: boolean };
 }
 
@@ -57,28 +61,27 @@ export function calculateReminderTimes(
   const targetCheckInUtcMs =
     Date.UTC(year, month, day, hours, minutes) - istOffsetMs;
 
-  const ms48Hours = 48 * 60 * 60 * 1000;
-  const ms24Hours = 24 * 60 * 60 * 1000;
-  const ms2Hours = 2 * 60 * 60 * 1000;
-
-  const date48h = new Date(targetCheckInUtcMs - ms48Hours);
-  const date24h = new Date(targetCheckInUtcMs - ms24Hours);
-  const date2h = new Date(targetCheckInUtcMs - ms2Hours);
-
+  const checkinAt = new Date(targetCheckInUtcMs);
   const nowMs = now.getTime();
+  const reminder = (hoursBefore: number) => {
+    const scheduledAt = new Date(
+      targetCheckInUtcMs - hoursBefore * 60 * 60 * 1000
+    );
+    return {
+      scheduledAt,
+      isPast:
+        !Number.isFinite(scheduledAt.getTime()) ||
+        scheduledAt.getTime() <= nowMs,
+    };
+  };
 
   return {
-    reminder48h: {
-      scheduledAt: date48h,
-      isPast: date48h.getTime() <= nowMs,
-    },
-    reminder24h: {
-      scheduledAt: date24h,
-      isPast: date24h.getTime() <= nowMs,
-    },
-    reminder2h: {
-      scheduledAt: date2h,
-      isPast: date2h.getTime() <= nowMs,
-    },
+    checkinAt,
+    reminder7d: reminder(7 * 24),
+    reminder48h: reminder(48),
+    reminder24h: reminder(24),
+    reminder12h: reminder(12),
+    reminder4h: reminder(4),
+    reminder2h: reminder(2),
   };
 }

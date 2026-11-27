@@ -20,7 +20,7 @@ In accordance with user instructions, the following mandatory corrections were a
    - Reminders may be dispatched to staff to prompt checkout verification, but the system will never auto-mutate bookings to completed without human confirmation.
 3. **Scheduler Platform Strategy:**
    - Documented that Vercel Hobby accounts only support once-daily cron invocations (`0 0 * * *`).
-   - Schedulers can run at 1-minute intervals on Vercel Pro, or via free external cron pingers (e.g. cron-job.org, Upstash QStash, or GitHub Actions) triggering the secure endpoint without extra infrastructure costs.
+   - Use an external HTTP scheduler every 5 minutes; no native Vercel cron is registered.
 4. **Outbox & Booking Consistency:**
    - Confirmation transitions and notification job persistence are designed with transactional atomicity and durable outbox guarantees to prevent job loss upon serverless crashes.
 
@@ -30,7 +30,7 @@ In accordance with user instructions, the following mandatory corrections were a
 
 1. [lib/models/notification.ts](file:///Users/deepanshtyagi/Documents/Experzt%20Technology%20office%20work/travelexpertz/lib/models/notification.ts) — Core TypeScript model definitions, channel types, notification categories, and statuses.
 2. [lib/db/init-notifications.ts](file:///Users/deepanshtyagi/Documents/Experzt%20Technology%20office%20work/travelexpertz/lib/db/init-notifications.ts) — Idempotent index initialization utility for MongoDB Atlas.
-3. [lib/services/notifications/reminder-calculator.ts](file:///Users/deepanshtyagi/Documents/Experzt%20Technology%20office%20work/travelexpertz/lib/services/notifications/reminder-calculator.ts) — Asia/Kolkata (IST = UTC + 5:30) offset calculator for 48h, 24h, and 2h reminders with past-time skipping.
+3. [lib/services/notifications/reminder-calculator.ts](file:///Users/deepanshtyagi/Documents/Experzt%20Technology%20office%20work/travelexpertz/lib/services/notifications/reminder-calculator.ts) — Asia/Kolkata (IST = UTC + 5:30) offset calculator for 7d, 2d, 24h, 12h, 4h, and 2h reminders with past-time skipping.
 4. [lib/services/notifications/data-builder.ts](file:///Users/deepanshtyagi/Documents/Experzt%20Technology%20office%20work/travelexpertz/lib/services/notifications/data-builder.ts) — Canonical booking and property data extractor with official "Yatra Expertz" branding.
 5. [lib/services/notifications/adapters/types.ts](file:///Users/deepanshtyagi/Documents/Experzt%20Technology%20office%20work/travelexpertz/lib/services/notifications/adapters/types.ts) — Reusable provider adapter interfaces and response status definitions.
 6. [lib/services/notifications/adapters/email.ts](file:///Users/deepanshtyagi/Documents/Experzt%20Technology%20office%20work/travelexpertz/lib/services/notifications/adapters/email.ts) — Nodemailer SMTP adapter with test-mode interceptor.
@@ -134,7 +134,7 @@ Created via [lib/db/init-notifications.ts](file:///Users/deepanshtyagi/Documents
     `SHA256("${type}:${bookingId}:v${bookingVersion}:${channel}")`.
   - The enqueuer utilizes MongoDB's atomic upsert (`updateOne({ idempotencyKey }, { $setOnInsert: job }, { upsert: true })`).
   - If a server crashes or network reconnects, re-execution of the confirmation hook does not create duplicate notification records.
-  - Future reminders (48h, 24h, 2h) are pre-calculated and scheduled. Any reminder whose scheduled time has already elapsed (e.g., last-minute bookings) is immediately flagged as `SKIPPED`.
+  - Future reminders (7d, 2d, 24h, 12h, 4h, 2h) are pre-calculated and scheduled. Any reminder whose scheduled time has already elapsed is flagged as `SKIPPED`.
 
 ---
 
@@ -236,10 +236,11 @@ Implemented in [lib/services/notifications/adapters/whatsapp.ts](file:///Users/d
 ## 13. Scheduler Endpoint Security
 
 Implemented in [app/api/cron/process-notifications/route.ts](file:///Users/deepanshtyagi/Documents/Experzt%20Technology%20office%20work/travelexpertz/app/api/cron/process-notifications/route.ts):
-- **Authentication:** Enforces `CRON_SECRET` via `Authorization: Bearer <SECRET>` or query parameter `?secret=<SECRET>`.
+- **Authentication:** Requires `CRON_SECRET` via `Authorization: Bearer <SECRET>`; query-string secrets are rejected. Preview deployments return 404 without processing.
 - Rejects unauthorized requests with HTTP `401 Unauthorized`.
 - Disables caching: `Cache-Control: no-store, no-cache`.
-- Configurable batch size parameter: `?batchSize=20` (capped at 50).
+- `POST` only; batch size is capped at 10.
+- Uses atomic MongoDB claims, unique idempotency keys, bounded retries, and marks expired in-flight deliveries `DELIVERY_UNKNOWN` rather than resending.
 - Node.js serverless runtime configuration (`export const runtime = 'nodejs'`).
 
 ---
@@ -322,13 +323,19 @@ Full TypeScript compilation verified with `npx tsc --noEmit` (**0 errors**).
 
 ---
 
-## 16. Remaining Production Configuration Requirements
+## 16. External Scheduler Setup
 
-Before deploying to live production in future phases:
-1. **CRON_SECRET:** Add a strong secret (e.g. 32-character hex) to Vercel Environment Variables.
-2. **Cron Trigger:**
-   - On Vercel Pro: configure `vercel.json` cron schedule `* * * * *`.
-   - On Vercel Hobby: set up an external recurring HTTPS pinger (cron-job.org / QStash) pointing to `https://www.yatraexpertz.com/api/cron/process-notifications` with Bearer auth.
+1. Generate a high-entropy secret with Node.js: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` (or `openssl rand -hex 32`).
+2. In Vercel Project Settings → Environment Variables, set `CRON_SECRET` to that value for **Production only**. Never use a `NEXT_PUBLIC_*` name.
+3. In cron-job.org, create an enabled task with:
+   - URL: `https://www.yatraexpertz.com/api/cron/process-notifications` (replace with the production domain if different)
+   - Schedule: every 5 minutes (`*/5 * * * *`)
+   - Request method: `POST`
+   - Request header: `Authorization: Bearer <the same CRON_SECRET>`
+   - Request body: empty
+   - Retry non-2xx failures; do not append the secret to the URL.
+4. Save and run the task once. Success returns HTTP 200 and batch statistics; invalid credentials return 401 and an unset `CRON_SECRET` returns 503. Keep native `crons` out of `vercel.json`.
+5. Configure production `MONGODB_URI`, `MONGODB_DB`, and SMTP settings in Vercel as well. WhatsApp sending still follows the existing provider activation/configuration.
 3. **Meta WhatsApp Business Setup (Phase 5):**
    - Register Meta Developer App and WABA Phone Number ID.
    - Configure `WHATSAPP_CLOUD_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, and `WHATSAPP_API_VERSION` (`v21.0`).

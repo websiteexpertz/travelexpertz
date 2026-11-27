@@ -17,6 +17,9 @@ const createTransporter = () => {
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
     port: parseInt(process.env.SMTP_PORT || '587'),
     secure: false, // true for 465, false for other ports
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 15_000,
     auth: {
       user: process.env.SMTP_USER || '', // Gmail address
       pass: process.env.SMTP_PASSWORD || '', // App password
@@ -36,27 +39,14 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       text: options.text || '',
     };
 
-    console.log("=== Email Service ===");
-    console.log("To:", options.to);
-    console.log("Subject:", options.subject);
-    console.log("From:", mailOptions.from);
-    console.log("=====================");
-
-    const info = await transporter.sendMail(mailOptions);
-    console.log("✅ Email sent successfully!");
-    console.log("Message ID:", info.messageId);
-    console.log("Response:", info.response);
-    console.log("=====================");
+    await transporter.sendMail(mailOptions);
     return true;
-  } catch (error) {
-    console.error("Error sending email:", error);
+  } catch {
     return false;
   }
 }
 
 export async function sendOTP(email: string, otp: string): Promise<boolean> {
-  console.log("🔐 GENERATED OTP:", otp, "for email:", email);
-  
   const subject = 'Your OTP for YatraExpertz';
   const html = `
     <!DOCTYPE html>

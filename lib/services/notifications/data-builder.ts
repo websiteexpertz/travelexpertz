@@ -8,6 +8,7 @@ import { getDb } from "../../db";
 
 export interface BookingCommunicationData {
   bookingId: string;
+  bookingVersion: number;
   bookingReference: string;
   customerName: string;
   customerEmail: string;
@@ -97,6 +98,7 @@ export async function buildBookingCommunicationData(
 
   return {
     bookingId: booking._id.toString(),
+    bookingVersion: Number(booking.bookingVersion || 1),
     bookingReference:
       booking.bookingReference || `YE-${booking._id.toString().slice(-6).toUpperCase()}`,
     customerName,

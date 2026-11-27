@@ -10,7 +10,7 @@ export class EmailNotificationAdapter implements NotificationAdapter {
   channel: "EMAIL" = "EMAIL";
 
   async send(input: SendNotificationInput): Promise<SendNotificationResult> {
-    const { recipient, type, bookingData } = input;
+    const { recipient, bookingData } = input;
 
     // 1. Validate email syntax
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -30,7 +30,6 @@ export class EmailNotificationAdapter implements NotificationAdapter {
       process.env.NODE_ENV === "test";
 
     if (isTestMode) {
-      console.log(`[EmailAdapter:TEST_MODE] Mocked email send to ${recipient} for type ${type}`);
       return {
         success: true,
         status: "ACCEPTED",

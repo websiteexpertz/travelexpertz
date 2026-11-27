@@ -1,69 +1,66 @@
-/**
- * Protected Background Notification Worker Endpoint
- * Route: /api/cron/process-notifications
- * Supports GET (Vercel Cron) and POST (External Pinger / QStash / Manual Test)
- */
-
+import { timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { NotificationProcessor } from "@/lib/services/notifications/processor";
 import { ensureNotificationIndexes } from "@/lib/db/init-notifications";
+import { NotificationProcessor } from "@/lib/services/notifications/processor";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 function isAuthorized(request: NextRequest): boolean {
-  const cronSecret = process.env.CRON_SECRET;
+  const secret = process.env.CRON_SECRET;
+  const authorization = request.headers.get("authorization");
+  const match = authorization?.match(/^Bearer ([^\s]+)$/i);
 
-  // In test mode with no CRON_SECRET configured, permit local verification
-  if (!cronSecret && process.env.NODE_ENV !== "production") {
-    return true;
-  }
+  if (!secret || !match) return false;
 
-  // Check Bearer token in Authorization header
-  const authHeader = request.headers.get("authorization");
-  if (authHeader && cronSecret) {
-    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
-    if (token === cronSecret) return true;
-  }
-
-  // Check ?secret= query param
-  const { searchParams } = new URL(request.url);
-  const secretParam = searchParams.get("secret");
-  if (secretParam && cronSecret && secretParam === cronSecret) {
-    return true;
-  }
-
-  return false;
+  const supplied = Buffer.from(match[1], "utf8");
+  const expected = Buffer.from(secret, "utf8");
+  return (
+    supplied.length === expected.length &&
+    timingSafeEqual(supplied, expected)
+  );
 }
 
-async function handleProcessing(request: NextRequest) {
-  if (!isAuthorized(request)) {
+export async function POST(request: NextRequest) {
+  if (
+    process.env.VERCEL_ENV &&
+    process.env.VERCEL_ENV !== "production"
+  ) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  if (!process.env.CRON_SECRET) {
     return NextResponse.json(
-      { error: "Unauthorized: Invalid or missing CRON_SECRET" },
-      { status: 401 }
+      { error: "Cron authentication is not configured" },
+      { status: 503 }
     );
+  }
+
+  if (!isAuthorized(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const { searchParams } = new URL(request.url);
-    const batchSize = Math.min(
-      parseInt(searchParams.get("batchSize") || "20", 10),
-      50
+    const requestedBatchSize = Number(
+      new URL(request.url).searchParams.get("batchSize")
     );
+    const batchSize =
+      Number.isInteger(requestedBatchSize) && requestedBatchSize > 0
+        ? Math.min(requestedBatchSize, 10)
+        : 10;
 
-    // Ensure database indexes exist (idempotent)
     await ensureNotificationIndexes();
 
     const processor = new NotificationProcessor();
-    const stats = await processor.processBatch({ batchSize });
+    const stats = await processor.processBatch({
+      batchSize,
+      maxExecutionTimeMs: 45_000,
+    });
 
     return NextResponse.json(
-      {
-        success: true,
-        stats,
-        timestamp: new Date().toISOString(),
-      },
+      { success: true, stats, timestamp: new Date().toISOString() },
       {
         status: 200,
         headers: {
@@ -71,22 +68,10 @@ async function handleProcessing(request: NextRequest) {
         },
       }
     );
-  } catch (error: any) {
-    console.error("[Cron:process-notifications] Unhandled error:", error);
+  } catch {
     return NextResponse.json(
-      {
-        success: false,
-        error: "Notification processing encountered an internal error",
-      },
+      { success: false, error: "Notification processing failed" },
       { status: 500 }
     );
   }
-}
-
-export async function GET(request: NextRequest) {
-  return handleProcessing(request);
-}
-
-export async function POST(request: NextRequest) {
-  return handleProcessing(request);
 }

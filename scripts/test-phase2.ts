@@ -339,6 +339,7 @@ async function runTests() {
 
   const dummyData = {
     bookingId: "b1",
+    bookingVersion: 1,
     bookingReference: "YE-001",
     customerName: "Aarav",
     customerEmail: "invalid-email-address",
@@ -472,12 +473,45 @@ async function runTests() {
   passedCount++;
 
   // Test 20: Reminder Timezone & Offset Calculations
-  console.log("Test 20: Reminder Timezone & 48h/24h/2h Offsets in Asia/Kolkata");
-  const testNow = new Date("2026-12-05T00:00:00.000Z");
+  console.log("Test 20: Reminder Timezone & Six Offsets in Asia/Kolkata");
+  const testNow = new Date("2026-12-02T00:00:00.000Z");
   const reminders = calculateReminderTimes("2026-12-10", "12:00", testNow);
+  assert.strictEqual(reminders.reminder7d.isPast, false, "7-day reminder in future");
   assert.strictEqual(reminders.reminder48h.isPast, false, "48h reminder in future");
   assert.strictEqual(reminders.reminder24h.isPast, false, "24h reminder in future");
+  assert.strictEqual(reminders.reminder12h.isPast, false, "12h reminder in future");
+  assert.strictEqual(reminders.reminder4h.isPast, false, "4h reminder in future");
   assert.strictEqual(reminders.reminder2h.isPast, false, "2h reminder in future");
+  assert.strictEqual(
+    reminders.checkinAt.getTime() - reminders.reminder7d.scheduledAt.getTime(),
+    7 * 24 * 60 * 60 * 1000,
+    "7-day offset is exact"
+  );
+  assert.strictEqual(
+    reminders.checkinAt.getTime() - reminders.reminder48h.scheduledAt.getTime(),
+    48 * 60 * 60 * 1000,
+    "2-day offset is exact"
+  );
+  assert.strictEqual(
+    reminders.checkinAt.getTime() - reminders.reminder24h.scheduledAt.getTime(),
+    24 * 60 * 60 * 1000,
+    "24-hour offset is exact"
+  );
+  assert.strictEqual(
+    reminders.checkinAt.getTime() - reminders.reminder12h.scheduledAt.getTime(),
+    12 * 60 * 60 * 1000,
+    "12-hour offset is exact"
+  );
+  assert.strictEqual(
+    reminders.checkinAt.getTime() - reminders.reminder4h.scheduledAt.getTime(),
+    4 * 60 * 60 * 1000,
+    "4-hour offset is exact"
+  );
+  assert.strictEqual(
+    reminders.checkinAt.getTime() - reminders.reminder2h.scheduledAt.getTime(),
+    2 * 60 * 60 * 1000,
+    "2-hour offset is exact"
+  );
 
   const lastMinuteNow = new Date("2026-12-10T05:00:00.000Z"); // 1.5 hours before 12:00 IST (06:30 UTC)
   const lastMinuteReminders = calculateReminderTimes("2026-12-10", "12:00", lastMinuteNow);

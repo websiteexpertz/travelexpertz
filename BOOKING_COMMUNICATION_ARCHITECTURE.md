@@ -18,7 +18,7 @@
                |        Transactional Notification Outbox Enqueuer           |
                |  - Generates deterministic Idempotency Keys                 |
                |  - Enqueues immediate Confirmation Jobs (Email + WhatsApp)  |
-               |  - Calculates & Enqueues Reminder Jobs (48h, 24h, 2h)       |
+               |  - Calculates & Enqueues Reminder Jobs (7d, 2d, 1d, 12h, 4h, 2h) |
                +-------------------------------------------------------------+
                                               |
                                               v
@@ -27,8 +27,8 @@
                               |  [booking_notifications]      |
                               +-------------------------------+
                                      |                ^
-                Cron Trigger (1 min) |                | State Update
-             (Vercel Cron / API)     v                | (SENT / FAILED)
+                External HTTP Cron  |                | State Update
+                (every 5 minutes)   v                | (SENT / FAILED)
                +-------------------------------------------------------------+
                |               Background Notification Processor             |
                |  - Atomic Lease Claiming (claimToken + leaseExpiresAt)      |
@@ -59,8 +59,11 @@ A dedicated MongoDB collection named `booking_notifications` will persist all co
 ```typescript
 export type NotificationType =
   | "BOOKING_CONFIRMATION"
+  | "REMINDER_7_DAYS"
   | "REMINDER_48_HOURS"
   | "REMINDER_24_HOURS"
+  | "REMINDER_12_HOURS"
+  | "REMINDER_4_HOURS"
   | "REMINDER_2_HOURS"
   | "BOOKING_RESCHEDULED"
   | "BOOKING_CANCELLED"
@@ -225,13 +228,11 @@ If a customer makes a last-minute booking (e.g., booking 10 hours before check-i
 
 A protected serverless API endpoint serves as the processor runner:
 - **Route:** `app/api/cron/process-notifications/route.ts`
-- **Security:** Requires header `Authorization: Bearer ${process.env.CRON_SECRET}` (or `?secret=...`).
-- **HTTP Methods:** Supports `GET` (for standard Vercel cron triggers) and `POST` (for manual/automated webhook pings).
-- **Scheduler Plan Compatibility Notice:**
-  - **Vercel Hobby Plan:** Supports only 1 cron invocation per day (`0 0 * * *`), not minute-by-minute execution.
-  - **Vercel Pro Plan:** Supports up to 1-minute cron intervals (`* * * * *`).
-  - **Alternative Schedulers (Zero-Cost):** If operating on a Hobby plan without upgrading, an external cron pinger (e.g. cron-job.org, Upstash QStash, or GitHub Actions workflow) can invoke this protected endpoint at regular 1–5 minute intervals without violating platform limits.
-- **Bounded Concurrency & Timeouts:** Each run processes a maximum batch size (e.g. 20 jobs) with bounded `Promise.allSettled`. The worker aborts claiming new jobs before serverless execution deadlines (e.g. 10s budget) to prevent forced timeouts.
+- **Security:** Requires `Authorization: Bearer ${process.env.CRON_SECRET}`; credentials in query strings are rejected. Vercel preview deployments return 404 without processing.
+- **HTTP Method:** `POST` only.
+- **Scheduler:** Use an external HTTP scheduler every five minutes; `vercel.json` must not register a native cron on Vercel Hobby.
+- **Bounded processing:** Each invocation claims at most 10 jobs and allows up to 45 seconds of work. Expired processing leases can be reclaimed, while a worker that expires during delivery is marked `DELIVERY_UNKNOWN` rather than resent.
+- **Missed runs:** Jobs remain due in MongoDB until claimed, so the next successful invocation catches up. Expired reminders and reminders for bookings that are no longer confirmed/current are skipped.
 
 ---
 

@@ -151,7 +151,7 @@ export async function enqueueBookingConfirmedNotifications(
     },
   });
 
-  // 3. Reminders calculation (48h, 24h, 2h before check-in)
+  // 3. Reminders calculation (7d, 2d, 24h, 12h, 4h, 2h before check-in)
   if (booking.checkin) {
     const reminders = calculateReminderTimes(booking.checkin, "12:00", now);
 
@@ -161,6 +161,11 @@ export async function enqueueBookingConfirmedNotifications(
       isPast: boolean;
     }> = [
       {
+        type: "REMINDER_7_DAYS",
+        scheduledAt: reminders.reminder7d.scheduledAt,
+        isPast: reminders.reminder7d.isPast,
+      },
+      {
         type: "REMINDER_48_HOURS",
         scheduledAt: reminders.reminder48h.scheduledAt,
         isPast: reminders.reminder48h.isPast,
@@ -169,6 +174,16 @@ export async function enqueueBookingConfirmedNotifications(
         type: "REMINDER_24_HOURS",
         scheduledAt: reminders.reminder24h.scheduledAt,
         isPast: reminders.reminder24h.isPast,
+      },
+      {
+        type: "REMINDER_12_HOURS",
+        scheduledAt: reminders.reminder12h.scheduledAt,
+        isPast: reminders.reminder12h.isPast,
+      },
+      {
+        type: "REMINDER_4_HOURS",
+        scheduledAt: reminders.reminder4h.scheduledAt,
+        isPast: reminders.reminder4h.isPast,
       },
       {
         type: "REMINDER_2_HOURS",
@@ -307,6 +322,58 @@ export async function claimNextEligibleNotification(
   return (result as any)?.value || (result as any) || null;
 }
 
+export async function markNotificationSending(
+  notificationId: string | ObjectId,
+  claimToken: string,
+  database?: Db
+): Promise<boolean> {
+  const db = database || (await getDb());
+  const now = new Date();
+  const result = await db.collection("booking_notifications").updateOne(
+    {
+      _id: new ObjectId(notificationId),
+      claimToken,
+      status: "PROCESSING",
+      leaseExpiresAt: { $gt: now },
+    },
+    { $set: { status: "SENDING", updatedAt: now } }
+  );
+
+  return result.modifiedCount > 0;
+}
+
+export async function markNotificationIneligible(
+  notificationId: string | ObjectId,
+  claimToken: string,
+  status: "CANCELLED" | "SKIPPED",
+  reasonCode: string,
+  database?: Db
+): Promise<boolean> {
+  const db = database || (await getDb());
+  const now = new Date();
+  const result = await db.collection("booking_notifications").updateOne(
+    {
+      _id: new ObjectId(notificationId),
+      claimToken,
+      status: "PROCESSING",
+    },
+    {
+      $set: {
+        status,
+        lastErrorCode: reasonCode,
+        lastErrorMessage: reasonCode,
+        updatedAt: now,
+      },
+      $unset: {
+        leaseExpiresAt: "",
+        claimToken: "",
+      },
+    }
+  );
+
+  return result.modifiedCount > 0;
+}
+
 /**
  * Claims a batch of eligible notification jobs up to batchSize.
  */
@@ -316,13 +383,54 @@ export async function claimNotificationBatch(
   leaseDurationMs: number = 120_000,
   database?: Db
 ): Promise<BookingNotification[]> {
+  const db = database || (await getDb());
   const claimed: BookingNotification[] = [];
+
+  const now = new Date();
+  await db.collection("booking_notifications").updateMany(
+    {
+      status: "PROCESSING",
+      attempts: { $gte: 3 },
+      leaseExpiresAt: { $lt: now },
+    },
+    {
+      $set: {
+        status: "FAILED",
+        lastErrorCode: "MAX_ATTEMPTS_EXHAUSTED",
+        lastErrorMessage: "Worker attempts exhausted before completion",
+        updatedAt: now,
+      },
+      $unset: {
+        leaseExpiresAt: "",
+        claimToken: "",
+      },
+    }
+  );
+
+  await db.collection("booking_notifications").updateMany(
+    {
+      status: "SENDING",
+      leaseExpiresAt: { $lt: now },
+    },
+    {
+      $set: {
+        status: "DELIVERY_UNKNOWN",
+        lastErrorCode: "DELIVERY_OUTCOME_UNKNOWN",
+        lastErrorMessage: "Worker lease expired during delivery",
+        updatedAt: now,
+      },
+      $unset: {
+        leaseExpiresAt: "",
+        claimToken: "",
+      },
+    }
+  );
 
   for (let i = 0; i < batchSize; i++) {
     const job = await claimNextEligibleNotification(
       workerId,
       leaseDurationMs,
-      database
+      db
     );
     if (!job) break; // No more eligible jobs
     claimed.push(job);
@@ -358,6 +466,7 @@ export async function markNotificationAccepted(
       },
       $unset: {
         leaseExpiresAt: "",
+        claimToken: "",
       },
     }
   );
@@ -387,6 +496,10 @@ export async function markNotificationDelivered(
         status: "DELIVERED",
         deliveredAt: now,
         updatedAt: now,
+      },
+      $unset: {
+        leaseExpiresAt: "",
+        claimToken: "",
       },
     }
   );
@@ -444,6 +557,7 @@ export async function scheduleNotificationRetry(
         },
         $unset: {
           leaseExpiresAt: "",
+          claimToken: "",
         },
       }
     );
@@ -469,6 +583,7 @@ export async function scheduleNotificationRetry(
       },
       $unset: {
         leaseExpiresAt: "",
+        claimToken: "",
       },
     }
   );
@@ -503,6 +618,7 @@ export async function markNotificationFailed(
       },
       $unset: {
         leaseExpiresAt: "",
+        claimToken: "",
       },
     }
   );
@@ -537,6 +653,7 @@ export async function markNotificationDeliveryUnknown(
       },
       $unset: {
         leaseExpiresAt: "",
+        claimToken: "",
       },
     }
   );
@@ -558,7 +675,7 @@ export async function cancelPendingNotificationsForBooking(
   const res = await collection.updateMany(
     {
       bookingId,
-      status: { $in: ["PENDING", "RETRY_SCHEDULED"] },
+      status: { $in: ["PENDING", "RETRY_SCHEDULED", "PROCESSING"] },
     },
     {
       $set: {
@@ -568,6 +685,7 @@ export async function cancelPendingNotificationsForBooking(
       },
       $unset: {
         leaseExpiresAt: "",
+        claimToken: "",
       },
     }
   );

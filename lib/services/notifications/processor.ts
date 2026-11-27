@@ -12,12 +12,15 @@ import {
   scheduleNotificationRetry,
   markNotificationFailed,
   markNotificationDeliveryUnknown,
+  markNotificationIneligible,
+  markNotificationSending,
 } from "./queue";
 import { buildBookingCommunicationData } from "./data-builder";
 import { EmailNotificationAdapter } from "./adapters/email";
 import { WhatsAppNotificationAdapter } from "./adapters/whatsapp";
 import { NotificationAdapter, SendNotificationResult } from "./adapters/types";
 import { BookingNotification } from "../../models/notification";
+import { calculateReminderTimes } from "./reminder-calculator";
 
 export interface ProcessingStats {
   claimed: number;
@@ -49,8 +52,8 @@ export class NotificationProcessor {
     } = {}
   ): Promise<ProcessingStats> {
     const startTime = Date.now();
-    const batchSize = options.batchSize || 20;
-    const maxExecutionTimeMs = options.maxExecutionTimeMs || 25_000; // Leave 5s buffer for 30s lambda timeout
+    const batchSize = Math.min(Math.max(options.batchSize || 10, 1), 10);
+    const maxExecutionTimeMs = options.maxExecutionTimeMs || 45_000;
     const workerId =
       options.workerId ||
       `worker-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
@@ -81,12 +84,12 @@ export class NotificationProcessor {
     const executionPromises = jobs.map(async (job) => {
       // Check execution deadline
       if (Date.now() - startTime > maxExecutionTimeMs) {
-        console.warn(`[Worker] Execution deadline approaching. Aborting job ${job._id}`);
         return;
       }
 
       const claimToken = job.claimToken || workerId;
       const notificationId = job._id?.toString() || "";
+      let deliveryStarted = false;
 
       try {
         // Fetch canonical booking data
@@ -102,6 +105,57 @@ export class NotificationProcessor {
             db
           );
           stats.failed++;
+          return;
+        }
+
+        if (job.type.startsWith("REMINDER_")) {
+          if (bookingData.bookingStatus.toLowerCase() !== "confirmed") {
+            await markNotificationIneligible(
+              notificationId,
+              claimToken,
+              "CANCELLED",
+              "BOOKING_NOT_CONFIRMED",
+              db
+            );
+            return;
+          }
+
+          if (bookingData.bookingVersion !== job.bookingVersion) {
+            await markNotificationIneligible(
+              notificationId,
+              claimToken,
+              "CANCELLED",
+              "BOOKING_VERSION_CHANGED",
+              db
+            );
+            return;
+          }
+
+          const checkinAt = calculateReminderTimes(
+            bookingData.checkinDate,
+            "12:00"
+          ).checkinAt;
+          if (
+            !Number.isFinite(checkinAt.getTime()) ||
+            checkinAt.getTime() <= Date.now()
+          ) {
+            await markNotificationIneligible(
+              notificationId,
+              claimToken,
+              "SKIPPED",
+              "REMINDER_WINDOW_EXPIRED",
+              db
+            );
+            return;
+          }
+        }
+
+        deliveryStarted = await markNotificationSending(
+          notificationId,
+          claimToken,
+          db
+        );
+        if (!deliveryStarted) {
           return;
         }
 
@@ -179,21 +233,33 @@ export class NotificationProcessor {
             stats.failed++;
           }
         }
-      } catch (err: any) {
-        console.error(`[Worker] Uncaught exception processing job ${job._id}:`, err);
-        await scheduleNotificationRetry(
-          notificationId,
-          claimToken,
-          job.attempts,
-          job.maxAttempts || 3,
-          {
-            code: "UNCAUGHT_PROCESSOR_EXCEPTION",
-            message: err?.message || "Internal processor error",
-          },
-          undefined,
-          db
-        );
-        stats.retried++;
+      } catch {
+        if (deliveryStarted) {
+          await markNotificationDeliveryUnknown(
+            notificationId,
+            claimToken,
+            {
+              code: "DELIVERY_OUTCOME_UNKNOWN",
+              message: "Delivery outcome requires reconciliation",
+            },
+            db
+          );
+          stats.unknown++;
+        } else {
+          await scheduleNotificationRetry(
+            notificationId,
+            claimToken,
+            job.attempts,
+            job.maxAttempts || 3,
+            {
+              code: "UNCAUGHT_PROCESSOR_EXCEPTION",
+              message: "Internal processor error",
+            },
+            undefined,
+            db
+          );
+          stats.retried++;
+        }
       }
     });
 
