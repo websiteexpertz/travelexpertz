@@ -18,12 +18,11 @@ import {
   markNotificationSending,
 } from "./queue";
 import { buildBookingCommunicationData } from "./data-builder";
-import { validateReminderPreSendEligibility } from "./reminders";
 import { checkEmailSendingCapacity } from "./capacity-limiter";
 import { EmailNotificationAdapter } from "./adapters/email";
 import { WhatsAppNotificationAdapter } from "./adapters/whatsapp";
 import { NotificationAdapter, SendNotificationResult } from "./adapters/types";
-import { BookingNotification } from "../../models/notification";
+import type { BookingNotification } from "../../models/notification";
 import { getOrGenerateBookingVoucher, getOrGenerateFinalInvoice } from "../documents/generator";
 import { recordWorkerRun } from "./admin";
 import { calculateReminderTimes } from "./reminder-calculator";
@@ -183,7 +182,7 @@ export class NotificationProcessor {
           }
         }
 
-        const deliveryStarted = await markNotificationSending(
+        deliveryStarted = await markNotificationSending(
           notificationId,
           claimToken,
           db

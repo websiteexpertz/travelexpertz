@@ -5,7 +5,7 @@
 
 import { Db, ObjectId, ClientSession } from "mongodb";
 import { createHash, randomUUID } from "crypto";
-import { getDb, getClientPromise } from "../../db";
+import { getDb } from "../../db";
 import {
   BookingNotification,
   NotificationChannel,
@@ -13,8 +13,6 @@ import {
   NotificationStatus,
 } from "../../models/notification";
 import { calculateReminderTimes } from "./reminder-calculator";
-import { buildBookingCommunicationData } from "./data-builder";
-import { scheduleRemindersForBooking } from "./reminders";
 
 /**
  * Generates a stable deterministic idempotency key.
