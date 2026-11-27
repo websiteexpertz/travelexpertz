@@ -107,8 +107,6 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
 }
 
 export async function sendOTP(email: string, otp: string): Promise<boolean> {
-  console.log("🔐 GENERATED OTP:", otp, "for email:", email);
-  
   const subject = 'Your OTP for YatraExpertz';
   const html = `
     <!DOCTYPE html>

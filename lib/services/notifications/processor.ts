@@ -14,6 +14,8 @@ import {
   markNotificationBlocked,
   markNotificationSkipped,
   markNotificationDeliveryUnknown,
+  markNotificationIneligible,
+  markNotificationSending,
 } from "./queue";
 import { buildBookingCommunicationData } from "./data-builder";
 import { validateReminderPreSendEligibility } from "./reminders";
@@ -24,6 +26,7 @@ import { NotificationAdapter, SendNotificationResult } from "./adapters/types";
 import { BookingNotification } from "../../models/notification";
 import { getOrGenerateBookingVoucher, getOrGenerateFinalInvoice } from "../documents/generator";
 import { recordWorkerRun } from "./admin";
+import { calculateReminderTimes } from "./reminder-calculator";
 
 export interface ProcessingStats {
   claimed: number;
@@ -56,8 +59,8 @@ export class NotificationProcessor {
     } = {}
   ): Promise<ProcessingStats> {
     const startTime = Date.now();
-    const batchSize = options.batchSize || 20;
-    const maxExecutionTimeMs = options.maxExecutionTimeMs || 25_000; // Leave 5s buffer for 30s lambda timeout
+    const batchSize = Math.min(Math.max(options.batchSize || 10, 1), 10);
+    const maxExecutionTimeMs = options.maxExecutionTimeMs || 45_000;
     const workerId =
       options.workerId ||
       `worker-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
@@ -89,12 +92,12 @@ export class NotificationProcessor {
     const executionPromises = jobs.map(async (job) => {
       // Check execution deadline
       if (Date.now() - startTime > maxExecutionTimeMs) {
-        console.warn(`[Worker] Execution deadline approaching. Aborting job ${job._id}`);
         return;
       }
 
       const claimToken = job.claimToken || workerId;
       const notificationId = job._id?.toString() || "";
+      let deliveryStarted = false;
 
       try {
         // Fetch canonical booking data
@@ -113,34 +116,48 @@ export class NotificationProcessor {
           return;
         }
 
-        // Pre-send validation for reminder notifications (re-check cancellation, checked-in, expired window)
-        if (
-          job.type === "REMINDER_48_HOURS" ||
-          job.type === "REMINDER_24_HOURS" ||
-          job.type === "REMINDER_2_HOURS"
-        ) {
-          const preSendCheck = await validateReminderPreSendEligibility(job, db);
-          if (!preSendCheck.eligible) {
-            console.log(
-              `[Worker] Ineligible reminder ${job._id} for booking ${job.bookingId}: ${preSendCheck.reason}`
+        // Pre-send validation for reminder notifications
+        if (job.type.startsWith("REMINDER_")) {
+          if (bookingData.bookingStatus.toLowerCase() !== "confirmed") {
+            await markNotificationIneligible(
+              notificationId,
+              claimToken,
+              "CANCELLED",
+              "BOOKING_NOT_CONFIRMED",
+              db
             );
-            if (preSendCheck.statusIfIneligible === "CANCELLED") {
-              await markNotificationBlocked(
-                notificationId,
-                claimToken,
-                { code: preSendCheck.errorCode || "CANCELLED", message: preSendCheck.reason },
-                db
-              );
-              stats.blocked++;
-            } else {
-              await markNotificationSkipped(
-                notificationId,
-                claimToken,
-                { code: preSendCheck.errorCode || "SKIPPED", message: preSendCheck.reason },
-                db
-              );
-              stats.skipped++;
-            }
+            stats.blocked++;
+            return;
+          }
+
+          if (bookingData.bookingVersion !== job.bookingVersion) {
+            await markNotificationIneligible(
+              notificationId,
+              claimToken,
+              "CANCELLED",
+              "BOOKING_VERSION_CHANGED",
+              db
+            );
+            stats.blocked++;
+            return;
+          }
+
+          const checkinAt = calculateReminderTimes(
+            bookingData.checkinDate,
+            "12:00"
+          ).checkinAt;
+          if (
+            !Number.isFinite(checkinAt.getTime()) ||
+            checkinAt.getTime() <= Date.now()
+          ) {
+            await markNotificationIneligible(
+              notificationId,
+              claimToken,
+              "SKIPPED",
+              "REMINDER_WINDOW_EXPIRED",
+              db
+            );
+            stats.skipped++;
             return;
           }
         }
@@ -166,6 +183,14 @@ export class NotificationProcessor {
           }
         }
 
+        const deliveryStarted = await markNotificationSending(
+          notificationId,
+          claimToken,
+          db
+        );
+        if (!deliveryStarted) {
+          return;
+        }
         // Select channel adapter
         const adapter =
           job.channel === "EMAIL" ? this.emailAdapter : this.whatsappAdapter;
@@ -297,21 +322,33 @@ export class NotificationProcessor {
             stats.failed++;
           }
         }
-      } catch (err: any) {
-        console.error(`[Worker] Uncaught exception processing job ${job._id}:`, err);
-        await scheduleNotificationRetry(
-          notificationId,
-          claimToken,
-          job.attempts,
-          job.maxAttempts || 3,
-          {
-            code: "UNCAUGHT_PROCESSOR_EXCEPTION",
-            message: err?.message || "Internal processor error",
-          },
-          undefined,
-          db
-        );
-        stats.retried++;
+      } catch {
+        if (deliveryStarted) {
+          await markNotificationDeliveryUnknown(
+            notificationId,
+            claimToken,
+            {
+              code: "DELIVERY_OUTCOME_UNKNOWN",
+              message: "Delivery outcome requires reconciliation",
+            },
+            db
+          );
+          stats.unknown++;
+        } else {
+          await scheduleNotificationRetry(
+            notificationId,
+            claimToken,
+            job.attempts,
+            job.maxAttempts || 3,
+            {
+              code: "UNCAUGHT_PROCESSOR_EXCEPTION",
+              message: "Internal processor error",
+            },
+            undefined,
+            db
+          );
+          stats.retried++;
+        }
       }
     });
 
